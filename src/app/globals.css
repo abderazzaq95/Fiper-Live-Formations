@@ -1,26 +1,103 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --navy-950: #021525;
+  --navy-900: #031a2d;
+  --navy-850: #062139;
+  --navy-800: #0a2a46;
+  --navy-700: #113754;
+  --ink: #0b1825;
+  --red: #C32828;
+  --red-dark: #A92121;
+  --ice: #e9f5ff;
+  --muted: #8daac1;
+  --line: rgba(143, 186, 218, 0.16);
+  --surface: rgba(9, 39, 64, 0.72);
+  --background: var(--navy-950);
+  --foreground: #f7fbff;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-arabic);
+  --font-latin: var(--font-latin);
+  --color-fiper-red: var(--red);
+  --color-fiper-navy: var(--navy-950);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-arabic), system-ui, sans-serif;
+  margin: 0;
+  min-height: 100vh;
+  text-rendering: optimizeLegibility;
+}
+
+button, input, select, textarea { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+::selection { background: rgba(195, 40, 40, 0.9); color: white; }
+:focus-visible { outline: 3px solid rgba(82, 178, 255, 0.75); outline-offset: 3px; }
+
+.latin {
+  direction: ltr;
+  font-family: var(--font-latin), system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.noise-grid {
+  background-image:
+    linear-gradient(rgba(69, 139, 190, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(69, 139, 190, 0.045) 1px, transparent 1px),
+    radial-gradient(circle at 20% 10%, rgba(22, 107, 171, 0.2), transparent 35%),
+    radial-gradient(circle at 80% 40%, rgba(195, 40, 40, 0.08), transparent 28%);
+  background-size: 48px 48px, 48px 48px, auto, auto;
+}
+
+.fine-grid {
+  background-image:
+    linear-gradient(rgba(16, 54, 82, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 54, 82, 0.055) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.glass {
+  background: linear-gradient(145deg, rgba(14, 52, 82, 0.88), rgba(5, 31, 52, 0.7));
+  border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 28px 80px rgba(0, 9, 18, 0.24);
+  backdrop-filter: blur(18px);
+}
+
+.soft-shadow { box-shadow: 0 24px 70px rgba(0, 10, 20, 0.25); }
+.red-glow { box-shadow: 0 14px 40px rgba(195, 40, 40, 0.23); }
+.scrollbar-thin { scrollbar-color: rgba(75, 115, 144, 0.45) transparent; scrollbar-width: thin; }
+
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(195, 40, 40, 0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(195, 40, 40, 0); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -9px, 0); }
+}
+
+.pulse-dot { animation: pulse-dot 2.2s infinite; }
+.float-slow { animation: float-slow 6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .noise-grid { background-size: 28px 28px, 28px 28px, auto, auto; }
 }

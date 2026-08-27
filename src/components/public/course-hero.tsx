@@ -1,0 +1,107 @@
+import Image from "next/image";
+import { ArrowLeft, CalendarDays, Clock3, Menu, Sparkles, Users, Video } from "lucide-react";
+import { FiperLogo } from "@/components/brand/fiper-logo";
+import { Countdown } from "@/components/public/countdown";
+import { featuredCourse } from "@/lib/demo-data";
+
+const facts = [
+  { icon: CalendarDays, label: "الموعد", value: featuredCourse.dateLabel },
+  { icon: Clock3, label: "التوقيت", value: featuredCourse.timeLabel },
+  { icon: Video, label: "نوع الدورة", value: `مباشرة عبر ${featuredCourse.platform}` },
+  { icon: Users, label: "المقاعد المتاحة", value: `${featuredCourse.capacity - featuredCourse.registrations} مقعداً فقط` },
+];
+
+export function CourseHero() {
+  const percentage = Math.round((featuredCourse.registrations / featuredCourse.capacity) * 100);
+
+  return (
+    <section className="noise-grid relative min-h-screen overflow-hidden bg-[#031a2d]">
+      <div className="pointer-events-none absolute -right-40 top-10 h-96 w-96 rounded-full bg-[#0b5a91]/15 blur-[100px]" />
+      <header className="sticky top-0 z-30 border-b border-white/8 bg-[#031a2d]/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-20 max-w-[1240px] items-center justify-between px-5 sm:px-8">
+          <FiperLogo />
+          <nav className="hidden items-center gap-8 text-xs font-semibold text-[#9bb3c5] md:flex" aria-label="التنقل الرئيسي">
+            <a href="#about" className="transition hover:text-white">عن الدورة</a>
+            <a href="#agenda" className="transition hover:text-white">المحاور</a>
+            <a href="#instructor" className="transition hover:text-white">المحاضر</a>
+            <a href="#faq" className="transition hover:text-white">الأسئلة</a>
+          </nav>
+          <a href="#register" className="hidden h-11 items-center gap-2 rounded-xl bg-[#C32828] px-5 text-xs font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#A92121] sm:flex">
+            احجز مقعدك <ArrowLeft size={15} />
+          </a>
+          <button className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 sm:hidden" aria-label="فتح القائمة">
+            <Menu size={20} />
+          </button>
+        </div>
+      </header>
+
+      <div className="relative z-10 mx-auto grid max-w-[1240px] gap-12 px-5 pb-20 pt-14 sm:px-8 lg:grid-cols-[1.04fr_.96fr] lg:items-center lg:gap-14 lg:pb-24 lg:pt-20">
+        <div>
+          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#D96B6B]/25 bg-[#C32828]/10 px-4 py-2 text-[11px] font-bold text-[#E6A2A2]">
+            <span className="pulse-dot h-2 w-2 rounded-full bg-[#C32828]" />
+            {featuredCourse.eyebrow}
+            <Sparkles size={13} />
+          </div>
+          <h1 className="max-w-2xl bg-gradient-to-b from-white via-white to-[#b9d4e7] bg-clip-text text-[40px] font-extrabold leading-[1.32] tracking-[-0.055em] text-transparent sm:text-[54px] lg:text-[62px]">
+            افهم السوق.
+            <span className="relative mt-1 block text-[#dceeff]">
+              تداول بوضوح.
+              <span className="absolute -bottom-2 right-0 h-1.5 w-24 rounded-full bg-[#C32828]" />
+            </span>
+          </h1>
+          <h2 className="mt-9 max-w-xl text-lg font-bold leading-8 text-white sm:text-xl">{featuredCourse.title}</h2>
+          <p className="mt-4 max-w-xl text-sm leading-8 text-[#91adc2] sm:text-base">{featuredCourse.description}</p>
+
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <a href="#register" className="red-glow group flex h-14 items-center justify-center gap-3 rounded-2xl bg-[#C32828] px-7 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#A92121]">
+              سجل الآن مجاناً <ArrowLeft size={18} className="transition group-hover:-translate-x-1" />
+            </a>
+            <a href="#agenda" className="flex h-14 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.04] px-7 text-sm font-bold text-white transition hover:bg-white/[0.08]">
+              استكشف محاور الدورة
+            </a>
+          </div>
+
+          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-[11px] text-[#7f9cb2]">
+            <span className="flex items-center gap-2"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#1f8d67]/15 text-[#62d5aa]">✓</span> لا تحتاج خبرة سابقة</span>
+            <span className="flex items-center gap-2"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#1f8d67]/15 text-[#62d5aa]">✓</span> حضور مباشر وتفاعلي</span>
+          </div>
+        </div>
+
+        <div className="relative">
+          <div className="glass relative overflow-hidden rounded-[30px] p-2.5 shadow-[0_30px_90px_rgba(0,10,20,.42)]">
+            <div className="relative aspect-[1.22/1] overflow-hidden rounded-[23px] bg-[#d9eaf6]">
+              <Image src="/brand/fiper-dashboard.jpg" alt="مسار بصري يرمز إلى التقدم في تعلم الأسواق المالية" fill priority sizes="(max-width: 1024px) 100vw, 46vw" className="object-cover object-center" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#021525] via-transparent to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
+                <div className="rounded-2xl border border-white/10 bg-[#031a2d]/85 p-4 backdrop-blur-xl">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-[10px] font-semibold text-[#7594ab]">الانطلاقة بعد</p>
+                      <p className="mt-1 text-sm font-bold text-white">{featuredCourse.dateLabel}</p>
+                    </div>
+                    <span className="rounded-xl border border-[#C32828]/25 bg-[#C32828]/10 px-3 py-2 text-[10px] font-bold text-[#E6A2A2]">مباشر</span>
+                  </div>
+                  <div className="mt-4"><Countdown target={featuredCourse.isoStart} /></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="float-slow absolute -left-3 top-8 hidden w-44 rounded-2xl border border-white/12 bg-[#082740]/90 p-4 backdrop-blur-xl sm:block">
+            <div className="flex items-center justify-between text-[10px] text-[#8ba7ba]"><span>الحجوزات</span><span className="latin">{percentage}%</span></div>
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[#C32828]" style={{ width: `${percentage}%` }} /></div>
+            <p className="mt-3 text-xs font-bold text-white"><span className="latin">{featuredCourse.registrations}</span> شخصاً أكد حضوره</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="relative z-10 mx-auto grid max-w-[1240px] gap-3 px-5 pb-14 sm:grid-cols-2 sm:px-8 lg:grid-cols-4">
+        {facts.map(({ icon: Icon, label, value }) => (
+          <div key={label} className="group flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.035] p-4 transition duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.06]">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0d3554] text-[#C32828]"><Icon size={19} /></span>
+            <span><span className="block text-[10px] text-[#6f8da4]">{label}</span><span className="mt-1 block text-[11px] font-bold text-white">{value}</span></span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
