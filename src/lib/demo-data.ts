@@ -15,7 +15,7 @@ export type Course = {
   capacity: number;
   registrations: number;
   status: CourseStatus;
-  instructor: { name: string; role: string; bio: string; initials: string };
+  instructor: { name: string; role: string; bio: string; initials: string; image?: string };
 };
 
 export const featuredCourse: Course = {
@@ -34,10 +34,11 @@ export const featuredCourse: Course = {
   registrations: 146,
   status: "open",
   instructor: {
-    name: "أحمد بن داعور",
+    name: "أحمد التميمي",
     role: "محلل أسواق مالية ومدرب تداول",
     bio: "خبرة تتجاوز 10 سنوات في أسواق العملات والسلع، ساعد خلالها آلاف المتداولين على بناء منهج أكثر انضباطاً ووضوحاً.",
-    initials: "أ د",
+    initials: "أ ت",
+    image: "/brand/instructor-ahmed-tamimi.png",
   },
 };
 

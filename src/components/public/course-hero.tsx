@@ -70,7 +70,7 @@ export function CourseHero() {
         <div className="relative">
           <div className="glass relative overflow-hidden rounded-[30px] p-2.5 shadow-[0_30px_90px_rgba(0,10,20,.42)]">
             <div className="relative aspect-[1.22/1] overflow-hidden rounded-[23px] bg-[#d9eaf6]">
-              <Image src="/brand/fiper-dashboard.jpg" alt="مسار بصري يرمز إلى التقدم في تعلم الأسواق المالية" fill priority sizes="(max-width: 1024px) 100vw, 46vw" className="object-cover object-center" />
+              <Image src="/brand/hero-reference.png" alt="منصة Fiper لتحليل الأسواق على الحاسوب والهاتف" fill priority sizes="(max-width: 1024px) 100vw, 46vw" className="object-cover object-center" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#021525] via-transparent to-transparent" />
               <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
                 <div className="rounded-2xl border border-white/10 bg-[#031a2d]/85 p-4 backdrop-blur-xl">
