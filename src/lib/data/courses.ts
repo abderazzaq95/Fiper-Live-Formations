@@ -64,12 +64,13 @@ function mapPublicData(row: JsonRecord, translation: JsonRecord | undefined, ses
   const endDate = endsAt ? new Date(endsAt) : new Date(startDate.getTime() + 90 * 60 * 1000);
   const durationMinutes = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / 60000));
   const type = session?.delivery_type === "onsite" ? "onsite" : "online";
-  const platform = asText(session?.platform, featuredCourse.platform);
+  const platform = type === "onsite" ? asText(session?.platform, "حضوري") : asText(session?.platform, featuredCourse.platform);
   const capacity = typeof session?.capacity === "number" ? session.capacity : featuredCourse.capacity;
   const course: Course = {
     ...featuredCourse,
     id: asText(row.id, featuredCourse.id),
     slug: asText(row.slug, featuredCourse.slug),
+    coverImage: asText(row.cover_path, featuredCourse.coverImage),
     title,
     eyebrow,
     description,
@@ -110,7 +111,7 @@ export async function getPublicCourse(): Promise<PublicCourseData> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id,slug,state,default_locale,instructor_id,course_translations(locale,title,eyebrow,description,outcomes,agenda,audience,faqs),course_sessions(starts_at,ends_at,timezone,delivery_type,platform,capacity),instructors(name,title,bio,photo_path)")
+      .select("id,slug,state,default_locale,instructor_id,cover_path,course_translations(locale,title,eyebrow,description,outcomes,agenda,audience,faqs),course_sessions(starts_at,ends_at,timezone,delivery_type,platform,capacity),instructors(name,title,bio,photo_path)")
       .eq("state", "published")
       .order("published_at", { ascending: false })
       .limit(1)
@@ -192,9 +193,10 @@ export type CourseEditorData = {
   state: string;
   title: string;
   eyebrow: string;
-  description: string;
+  description: string
+  coverPath: string;
   faqs: Array<{ question: string; answer: string }>;
-  instructor: { id: string; name: string; title: string; bio: string };
+  instructor: { id: string; name: string; title: string; bio: string; image: string };
   session: { id: string; startsAt: string; endsAt: string; timezone: string; deliveryType: string; platform: string; capacity: number; registrationOpen: boolean; waitlistEnabled: boolean; meetUrl: string };
 };
 
@@ -203,7 +205,7 @@ export async function getCourseEditorData(id: string): Promise<CourseEditorData 
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id,slug,state,default_locale,instructor_id,course_translations(locale,title,eyebrow,description,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url),instructors(id,name,title,bio)")
+      .select("id,slug,state,default_locale,instructor_id,cover_path,course_translations(locale,title,eyebrow,description,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url),instructors(id,name,title,bio,photo_path)")
       .eq("id", id)
       .maybeSingle();
     if (error || !data) return null;
@@ -219,8 +221,9 @@ export async function getCourseEditorData(id: string): Promise<CourseEditorData 
       title: asText(translation.title),
       eyebrow: asText(translation.eyebrow),
       description: asText(translation.description),
+      coverPath: asText(row.cover_path),
       faqs: asArray(translation.faqs).map((item) => ({ question: asText(item.question), answer: asText(item.answer) })).filter((item) => item.question && item.answer),
-      instructor: { id: asText(instructor.id), name: asText(instructor.name), title: asText(instructor.title), bio: asText(instructor.bio) },
+      instructor: { id: asText(instructor.id), name: asText(instructor.name), title: asText(instructor.title), bio: asText(instructor.bio), image: asText(instructor.photo_path) },
       session: {
         id: asText(session.id),
         startsAt: asText(session.starts_at),

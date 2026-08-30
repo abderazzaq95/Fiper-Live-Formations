@@ -27,7 +27,7 @@ export async function Overview() {
   return (
     <div className="mx-auto max-w-[1450px]">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div><p className="text-[10px] font-bold text-[#C32828]">الخميس، 27 أغسطس 2026</p><h1 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-[#102536] sm:text-3xl">صباح الخير، خالد</h1><p className="mt-2 text-xs text-[#788d9c]">إليك ملخص أداء دورات Fiper اليوم.</p></div>
+        <div><p className="text-[10px] font-bold text-[#C32828]">الخميس، 27 أغسطس 2026</p><h1 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-[#102536] sm:text-3xl">ملخص لوحة التحكم</h1><p className="mt-2 text-xs text-[#788d9c]">إليك ملخص أداء دورات Fiper اليوم.</p></div>
         <div className="flex items-center gap-2 rounded-xl border border-[#dce5eb] bg-white px-4 py-3 text-[10px] font-semibold text-[#5c7282]"><Clock3 size={15} className="text-[#C32828]" /> الدورة القادمة بعد 9 أيام</div>
       </div>
 
