@@ -2,6 +2,7 @@ import "server-only";
 
 import { agenda as demoAgenda, audience as demoAudience, faqs as demoFaqs, featuredCourse, learningOutcomes, type Course } from "@/lib/demo-data";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -54,7 +55,7 @@ function formatDate(value: string | null | undefined) {
   return new Intl.DateTimeFormat("ar", { day: "numeric", month: "long", year: "numeric" }).format(new Date(value));
 }
 
-function mapPublicData(row: JsonRecord, translation: JsonRecord | undefined, session: JsonRecord | undefined, instructor: JsonRecord | undefined): PublicCourseData {
+function mapPublicData(row: JsonRecord, translation: JsonRecord | undefined, session: JsonRecord | undefined, instructor: JsonRecord | undefined, registrationCount = 0): PublicCourseData {
   const title = asText(translation?.title, featuredCourse.title);
   const eyebrow = asText(translation?.eyebrow, featuredCourse.eyebrow);
   const description = asText(translation?.description, featuredCourse.description);
@@ -81,7 +82,7 @@ function mapPublicData(row: JsonRecord, translation: JsonRecord | undefined, ses
     type,
     platform,
     capacity,
-    registrations: 0,
+    registrations: registrationCount,
     status: row.state === "published" ? "open" : "draft",
     instructor: {
       name: asText(instructor?.name, featuredCourse.instructor.name),
@@ -111,7 +112,7 @@ export async function getPublicCourse(): Promise<PublicCourseData> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id,slug,state,default_locale,instructor_id,cover_path,course_translations(locale,title,eyebrow,description,outcomes,agenda,audience,faqs),course_sessions(starts_at,ends_at,timezone,delivery_type,platform,capacity),instructors(name,title,bio,photo_path)")
+      .select("id,slug,state,default_locale,instructor_id,cover_path,course_translations(locale,title,eyebrow,description,outcomes,agenda,audience,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity),instructors(name,title,bio,photo_path)")
       .eq("state", "published")
       .order("published_at", { ascending: false })
       .limit(1)
@@ -125,7 +126,16 @@ export async function getPublicCourse(): Promise<PublicCourseData> {
     const translation = translations.find((item) => item.locale === locale) ?? translations[0];
     const sessions = asArray(row.course_sessions);
     const instructor = firstRecord(row.instructors);
-    return mapPublicData(row, translation, sessions[0], instructor);
+    let registrationCount = 0;
+    const serviceUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const sessionId = asText(sessions[0]?.id);
+    if (serviceUrl && serviceKey && sessionId) {
+      const admin = createSupabaseClient(serviceUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+      const result = await admin.from("registrations").select("id", { count: "exact", head: true }).eq("session_id", sessionId).in("status", ["confirmed", "attended"]);
+      registrationCount = result.count ?? 0;
+    }
+    return mapPublicData(row, translation, sessions[0], instructor, registrationCount);
   } catch {
     return { course: featuredCourse, outcomes: learningOutcomes, agenda: demoAgenda, audience: demoAudience, faqs: demoFaqs };
   }

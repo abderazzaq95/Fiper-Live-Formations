@@ -1,25 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { BarChart3, Bell, BookOpen, CalendarRange, ChevronDown, Eye, LayoutDashboard, MailCheck, Menu, Plus, Search, Settings, UsersRound } from "lucide-react";
 import { FiperLogo } from "@/components/brand/fiper-logo";
+import { createClient } from "@/lib/supabase/client";
 import type { DashboardIdentity } from "@/lib/auth";
 
 const navigation = [
   { label: "نظرة عامة", href: "/admin", icon: LayoutDashboard },
   { label: "الدورات", href: "/admin/courses", icon: BookOpen },
-  { label: "التسجيلات", href: "/admin/registrations", icon: UsersRound, count: "346" },
+  { label: "التسجيلات", href: "/admin/registrations", icon: UsersRound },
   { label: "الحضور", href: "/admin/attendance", icon: CalendarRange },
-  { label: "التواصل", href: "/admin/communications", icon: MailCheck, count: "3" },
+  { label: "التواصل", href: "/admin/communications", icon: MailCheck },
   { label: "التقارير", href: "/admin/reports", icon: BarChart3 },
 ];
 
-export function AdminShell({ children, identity }: { children: React.ReactNode; identity: DashboardIdentity }) {
+export function AdminShell({ children, identity, counts }: { children: React.ReactNode; identity: DashboardIdentity; counts: { registrations: number; communications: number } }) {
   const pathname = usePathname();
   const initials = identity.name.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase();
+  const router = useRouter();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const signOut = async () => { setSigningOut(true); await createClient().auth.signOut(); router.replace("/login"); router.refresh(); };
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f3f6f8] text-[#102536]">
@@ -28,13 +33,13 @@ export function AdminShell({ children, identity }: { children: React.ReactNode; 
         <div className="mt-8 flex-1">
           <p className="px-3 text-[9px] font-bold tracking-wider text-[#54758d]">مساحة العمل</p>
           <nav className="mt-3 space-y-1.5" aria-label="لوحة التحكم">
-            {navigation.map(({ label, href, icon: Icon, count }) => {
+            {navigation.map(({ label, href, icon: Icon }) => {
               const active = href === "/admin" ? pathname === href : pathname.startsWith(href);
               return (
                 <Link key={href} href={href} className={`flex h-12 items-center gap-3 rounded-xl px-3 text-xs font-semibold transition ${active ? "bg-[#0d3554] text-white shadow-[inset_3px_0_0_#C32828]" : "text-[#88a2b5] hover:bg-white/5 hover:text-white"}`}>
                   <Icon size={18} className={active ? "text-[#C32828]" : ""} />
                   <span>{label}</span>
-                  {count && <span className="latin mr-auto rounded-full bg-white/8 px-2 py-1 text-[9px] text-[#9bb4c6]">{count}</span>}
+                  {(href === "/admin/registrations" ? counts.registrations : href === "/admin/communications" ? counts.communications : 0) > 0 ? <span className="latin mr-auto rounded-full bg-white/8 px-2 py-1 text-[9px] text-[#9bb4c6]">{href === "/admin/registrations" ? counts.registrations : counts.communications}</span> : null}
                 </Link>
               );
             })}
@@ -44,12 +49,13 @@ export function AdminShell({ children, identity }: { children: React.ReactNode; 
             <Link href="/admin/settings" className="flex h-12 items-center gap-3 rounded-xl px-3 text-xs font-semibold text-[#88a2b5] transition hover:bg-white/5 hover:text-white"><Settings size={18} /> الإعدادات والتكاملات</Link>
           </nav>
         </div>
-        <div className="rounded-2xl border border-white/8 bg-white/[0.035] p-3">
-          <div className="flex items-center gap-3">
+        <div className="relative rounded-2xl border border-white/8 bg-white/[0.035] p-3">
+          <button type="button" onClick={() => setAccountOpen((open) => !open)} aria-expanded={accountOpen} className="flex w-full items-center gap-3 text-right">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#C32828] text-xs font-bold text-white">{initials}</span>
             <span className="min-w-0"><strong className="block truncate text-[11px] text-white">{identity.name}</strong><small className="latin mt-1 block text-[9px] text-[#65849b]">{identity.role.toUpperCase()}</small></span>
             <ChevronDown size={14} className="mr-auto text-[#65849b]" />
-          </div>
+          </button>
+          {accountOpen && <div className="absolute bottom-[calc(100%+8px)] right-0 left-0 rounded-xl border border-white/10 bg-[#0b2b45] p-2 shadow-xl"><button type="button" onClick={() => void signOut()} disabled={signingOut} className="w-full rounded-lg px-3 py-2 text-right text-[10px] font-semibold text-white hover:bg-white/10 disabled:opacity-60">{signingOut ? "جار تسجيل الخروج..." : "تسجيل الخروج"}</button></div>}
         </div>
       </aside>
 

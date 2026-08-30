@@ -31,7 +31,7 @@ export type AttendanceRow = {
   id: string;
   name: string;
   email: string;
-  status: "attended" | "absent";
+  status: "attended" | "absent" | "pending";
   joinedAt: string;
   leftAt: string;
   durationMinutes: number;
@@ -42,6 +42,7 @@ export type AttendanceData = {
   rows: AttendanceRow[];
   attended: number;
   absent: number;
+  pending: number;
   averageMinutes: number;
   lastSync: string;
 };
@@ -51,20 +52,23 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("registrations")
-      .select("id,full_name,email,status,attendance_sessions(id,joined_at,left_at,duration_seconds,match_method,created_at)")
+      .select("id,full_name,email,status,course_sessions(starts_at),attendance_sessions(id,joined_at,left_at,duration_seconds,match_method,created_at)")
       .order("registered_at", { ascending: false });
-    if (error || !data) return { rows: [], attended: 0, absent: 0, averageMinutes: 0, lastSync: "—" };
+    if (error || !data) return { rows: [], attended: 0, absent: 0, pending: 0, averageMinutes: 0, lastSync: "—" };
 
     const rows = data.map((item) => {
       const row = asRecord(item);
       const attendance = firstRecord(row.attendance_sessions);
       const durationMinutes = Math.max(0, Math.round((Number(attendance?.duration_seconds) || 0) / 60));
       const joinedAt = text(attendance?.joined_at);
+      const session = firstRecord(row.course_sessions);
+      const startsAt = text(session?.starts_at);
+      const isPending = !joinedAt && durationMinutes === 0 && Boolean(startsAt) && new Date(startsAt).getTime() > Date.now();
       return {
         id: text(row.id),
         name: text(row.full_name, "—"),
         email: text(row.email, "—"),
-        status: joinedAt || durationMinutes > 0 ? "attended" : "absent",
+        status: joinedAt || durationMinutes > 0 ? "attended" : isPending ? "pending" : "absent",
         joinedAt: formatTime(joinedAt),
         leftAt: formatTime(text(attendance?.left_at)),
         durationMinutes,
@@ -73,16 +77,18 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
     });
     const attended = rows.filter((row) => row.status === "attended").length;
     const durations = rows.filter((row) => row.durationMinutes > 0).map((row) => row.durationMinutes);
+    const pending = rows.filter((row) => row.status === "pending").length;
     const { data: latest } = await supabase.from("attendance_sessions").select("created_at").order("created_at", { ascending: false }).limit(1).maybeSingle();
     return {
       rows,
       attended,
-      absent: rows.length - attended,
+      absent: rows.filter((row) => row.status === "absent").length,
+      pending,
       averageMinutes: durations.length ? Math.round(durations.reduce((sum, value) => sum + value, 0) / durations.length) : 0,
       lastSync: latest?.created_at ? formatDateTime(latest.created_at) : "not synced yet",
     };
   } catch {
-    return { rows: [], attended: 0, absent: 0, averageMinutes: 0, lastSync: "—" };
+    return { rows: [], attended: 0, absent: 0, pending: 0, averageMinutes: 0, lastSync: "—" };
   }
 }
 
