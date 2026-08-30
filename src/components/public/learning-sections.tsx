@@ -22,7 +22,7 @@ export function LearningSections({ outcomes, audience }: Pick<PublicCourseData, 
               const Icon = icons[index];
               return (
                 <article key={item.index} className="group relative overflow-hidden rounded-[24px] border border-[#dce7ef] bg-white p-6 shadow-[0_16px_45px_rgba(12,43,65,.06)] transition hover:-translate-y-1 hover:border-[#b9cfde]">
-                  <span className="latin absolute left-5 top-4 text-[38px] font-black tracking-[-0.07em] text-[#edf3f7]">{item.index}</span>
+                  <span className="latin absolute left-5 top-4 text-[38px] font-black tracking-[-0.07em] text-[#C32828]">{item.index}</span>
                   <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eef6fb] text-[#0e5587] transition group-hover:bg-[#C32828] group-hover:text-white"><Icon size={21} /></span>
                   <h3 className="mt-8 text-base font-bold">{item.title}</h3>
                   <p className="mt-3 text-xs leading-7 text-[#657c8e]">{item.text}</p>

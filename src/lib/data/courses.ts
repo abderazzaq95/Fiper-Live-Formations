@@ -154,7 +154,7 @@ export async function listDashboardCourses(): Promise<DashboardCourse[]> {
       const row = course as unknown as JsonRecord;
       const translations = asArray(row.course_translations);
       const translation = translations.find((item) => item.locale === row.default_locale) ?? translations[0];
-      const session = asArray(row.course_sessions)[0];
+      const session = firstRecord(row.course_sessions);
       const sessionId = asText(session?.id);
       const count = registrationRows.filter((registration) => registration.session_id === sessionId && ["confirmed", "attended"].includes(asText(registration.status))).length;
       const capacity = typeof session?.capacity === "number" ? session.capacity : 0;
@@ -175,7 +175,7 @@ export async function listDashboardRegistrations(): Promise<DashboardRegistratio
     if (error || !data) return [];
     return data.map((item) => {
       const row = item as unknown as JsonRecord;
-      const session = asArray(row.course_sessions)[0];
+      const session = firstRecord(row.course_sessions);
       const course = firstRecord(session?.courses);
       const translations = asArray(course?.course_translations);
       const translation = translations.find((translationRow) => translationRow.locale === course?.default_locale) ?? translations[0];
