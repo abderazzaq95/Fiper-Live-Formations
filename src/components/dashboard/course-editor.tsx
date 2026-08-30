@@ -53,7 +53,7 @@ export function CourseEditor({ courseId, initial, isNew = false }: { courseId: s
     }
   }
 
-  async function save() {
+  async function save(publish = false) {
     setSaving(true);
     setSaved(false);
     const value = (id: string, fallback = "") => (document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null)?.value ?? fallback;
@@ -78,7 +78,7 @@ export function CourseEditor({ courseId, initial, isNew = false }: { courseId: s
       faqs: faqItems.filter((item) => item.question.trim() && item.answer.trim()),
     };
     try {
-      const response = await fetch("/api/admin/courses/" + encodeURIComponent(courseId), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const response = await fetch("/api/admin/courses/" + encodeURIComponent(courseId), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, publish }) });
       if (!response.ok) throw new Error("save_failed");
       setSaved(true);
     } catch {
@@ -95,8 +95,8 @@ export function CourseEditor({ courseId, initial, isNew = false }: { courseId: s
         <div><div className="flex items-center gap-2"><h1 className="text-xl font-bold sm:text-2xl">{isNew ? "إنشاء دورة جديدة" : "تعديل الدورة"}</h1>{!isNew && <span className="rounded-full bg-[#eaf8f3] px-3 py-1 text-[8px] font-bold text-[#168a65]">منشورة</span>}</div><p className="mt-1 text-[9px] text-[#8598a6]">تظهر التغييرات المنشورة تلقائياً في صفحة التسجيل.</p></div>
         <div className="mr-auto flex flex-wrap gap-2">
           <Link href="/" target="_blank" className="flex h-10 items-center gap-2 rounded-xl border border-[#dce5eb] bg-white px-4 text-[9px] font-bold text-[#51697a]"><Eye size={14} /> معاينة</Link>
-          <button onClick={save} className="flex h-10 items-center gap-2 rounded-xl border border-[#dce5eb] bg-white px-4 text-[9px] font-bold text-[#51697a]">{saving ? <Loader2 size={14} className="animate-spin" /> : saved ? <Check size={14} className="text-[#168a65]" /> : <Save size={14} />}{saving ? "جارٍ الحفظ" : saved ? "تم الحفظ" : "حفظ المسودة"}</button>
-          <button onClick={save} disabled={saving} className="flex h-10 items-center gap-2 rounded-xl bg-[#C32828] px-4 text-[9px] font-bold text-white disabled:opacity-70"><Send size={14} /> {isNew ? "نشر الدورة" : "نشر التحديثات"}</button>
+          <button onClick={() => void save()} className="flex h-10 items-center gap-2 rounded-xl border border-[#dce5eb] bg-white px-4 text-[9px] font-bold text-[#51697a]">{saving ? <Loader2 size={14} className="animate-spin" /> : saved ? <Check size={14} className="text-[#168a65]" /> : <Save size={14} />}{saving ? "جارٍ الحفظ" : saved ? "تم الحفظ" : "حفظ المسودة"}</button>
+          <button onClick={() => void save(true)} disabled={saving} className="flex h-10 items-center gap-2 rounded-xl bg-[#C32828] px-4 text-[9px] font-bold text-white disabled:opacity-70"><Send size={14} /> {isNew ? "نشر الدورة" : "نشر التحديثات"}</button>
         </div>
       </div>
 

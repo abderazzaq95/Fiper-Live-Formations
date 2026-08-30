@@ -8,6 +8,7 @@ const updateSchema = z.object({
   eyebrow: z.string().trim().max(180).default(""),
   description: z.string().trim().max(2000).default(""),
   faqs: z.array(z.object({ question: z.string().trim().min(1).max(300), answer: z.string().trim().min(1).max(2000) })).max(30).default([]),
+  publish: z.boolean().default(false),
   slug: z.string().trim().min(1).max(120),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
@@ -56,7 +57,9 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
 
   const value = parsed.data;
   const locale = existing.default_locale ?? "ar";
-  const { error: courseError } = await supabase.from("courses").update({ slug: value.slug, updated_at: new Date().toISOString() }).eq("id", id);
+  const now = new Date().toISOString();
+  const courseUpdate = { slug: value.slug, updated_at: now, ...(value.publish ? { state: "published", published_at: now } : {}) };
+  const { error: courseError } = await supabase.from("courses").update(courseUpdate).eq("id", id);
   if (courseError) return Response.json({ message: "Unable to update the course." }, { status: 500 });
 
   const { error: translationError } = await supabase.from("course_translations").upsert({

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { BarChart3, Bell, BookOpen, CalendarRange, ChevronDown, Eye, LayoutDashboard, MailCheck, Menu, Plus, Search, Settings, UsersRound } from "lucide-react";
 import { FiperLogo } from "@/components/brand/fiper-logo";
 import type { DashboardIdentity } from "@/lib/auth";
@@ -18,6 +19,7 @@ const navigation = [
 export function AdminShell({ children, identity }: { children: React.ReactNode; identity: DashboardIdentity }) {
   const pathname = usePathname();
   const initials = identity.name.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase();
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   return (
     <div dir="rtl" className="min-h-screen bg-[#f3f6f8] text-[#102536]">
@@ -61,7 +63,7 @@ export function AdminShell({ children, identity }: { children: React.ReactNode; 
           <div className="mr-auto flex items-center gap-2.5">
             <Link href="/" target="_blank" className="hidden h-10 items-center gap-2 rounded-xl border border-[#dce5eb] bg-white px-4 text-[10px] font-bold text-[#476075] transition hover:bg-[#f5f8fa] sm:flex"><Eye size={15} /> معاينة الصفحة</Link>
             <Link href="/admin/courses/new" className="flex h-10 items-center gap-2 rounded-xl bg-[#C32828] px-4 text-[10px] font-bold text-white shadow-[0_8px_20px_rgba(195,40,40,.18)] transition hover:bg-[#A92121]"><Plus size={16} /> دورة جديدة</Link>
-            <button aria-label="الإشعارات" className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#dce5eb] bg-white text-[#476075]"><Bell size={16} /><span className="absolute left-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-[#C32828]" /></button>
+            <div className="relative"><button type="button" aria-label="الإشعارات" aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen((open) => !open)} className={`relative flex h-10 w-10 items-center justify-center rounded-xl border bg-white text-[#476075] transition ${notificationsOpen ? "border-[#8eb8d2] bg-[#f3f8fb]" : "border-[#dce5eb]"}`}><Bell size={16} /><span className="absolute left-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-[#C32828]" /></button>{notificationsOpen && <div className="absolute left-0 top-12 z-50 w-72 rounded-2xl border border-[#dce5eb] bg-white p-4 text-right shadow-[0_18px_45px_rgba(15,42,61,.16)]"><div className="flex items-center justify-between"><strong className="text-[11px]">الإشعارات</strong><button type="button" onClick={() => setNotificationsOpen(false)} className="text-[9px] text-[#1779b5]">إغلاق</button></div><p className="mt-4 rounded-xl bg-[#f5f8fa] p-4 text-[9px] leading-5 text-[#718695]">لا توجد إشعارات جديدة الآن.</p></div>}</div>
           </div>
         </header>
         <main className="min-h-[calc(100vh-74px)] p-4 sm:p-7 lg:p-8">{children}</main>
