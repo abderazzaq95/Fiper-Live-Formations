@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { getDashboardIdentity } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const updateSchema = z.object({
   name: z.string().trim().min(3).max(100),
@@ -24,7 +24,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   try { body = await request.json(); } catch { return Response.json({ message: "Invalid request data." }, { status: 400 }); }
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) return Response.json({ message: "Please check the participant fields." }, { status: 422 });
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("registrations").update({ full_name: parsed.data.name, email: parsed.data.email, phone_e164: normalizePhone(parsed.data.phone), updated_at: new Date().toISOString() }).eq("id", id);
   if (error) {
     if (error.code === "23505") return Response.json({ message: "This email or phone is already registered for this course." }, { status: 409 });
@@ -39,8 +39,9 @@ export async function DELETE(request: Request, context: RouteContext<"/api/admin
   if (!identity || identity.role !== "admin") return Response.json({ message: "Unauthorized" }, { status: 403 });
   const { id } = await context.params;
   if (!id) return Response.json({ message: "Registration not found." }, { status: 404 });
-  const supabase = await createClient();
-  const { error } = await supabase.from("registrations").delete().eq("id", id);
+  const supabase = createAdminClient();
+  const { data: deleted, error } = await supabase.from("registrations").delete().eq("id", id).select("id").maybeSingle();
   if (error) return Response.json({ message: "Unable to delete the participant." }, { status: 500 });
+  if (!deleted) return Response.json({ message: "Registration not found." }, { status: 404 });
   return Response.json({ ok: true });
 }
