@@ -35,7 +35,7 @@ export function LearningSections() {
       </section>
 
       <section className="relative overflow-hidden bg-[#041a2d] py-24 sm:py-30">
-        <div className="pointer-events-none absolute left-0 top-0 h-full w-1/2 bg-[radial-gradient(circle_at_center,rgba(18,91,142,.17),transparent_60%)]" />
+        <div className="pointer-events-none absolute left-0 top-0 hidden h-full w-1/2 bg-[radial-gradient(circle_at_center,rgba(18,91,142,.17),transparent_60%)] lg:block" />
         <div className="relative mx-auto grid max-w-[1240px] gap-12 px-5 sm:px-8 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
           <div className="relative mx-auto w-full max-w-md">
             <div className="glass rounded-[30px] p-7 sm:p-9">
@@ -51,7 +51,6 @@ export function LearningSections() {
                 <div><span className="latin block text-xl font-bold text-white">Live</span><span className="text-[9px] text-[#6f8da4]">أسئلة مباشرة</span></div>
               </div>
             </div>
-            <div className="absolute -bottom-4 -right-4 h-24 w-24 rounded-[26px] border border-[#C32828]/20 bg-[#C32828]/8" />
           </div>
 
           <div>
