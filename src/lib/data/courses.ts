@@ -141,6 +141,33 @@ export async function getPublicCourse(): Promise<PublicCourseData> {
   }
 }
 
+/**
+ * Load a specific course by id so confirmation pages reflect dashboard edits.
+ */
+export async function getPublicCourseById(id: string): Promise<PublicCourseData> {
+  if (!id) return getPublicCourse();
+
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("courses")
+      .select("id,slug,state,default_locale,instructor_id,cover_path,course_translations(locale,title,eyebrow,description,outcomes,agenda,audience,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity),instructors(name,title,bio,photo_path)")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error || !data) return getPublicCourse();
+
+    const row = data as unknown as JsonRecord;
+    const translations = asArray(row.course_translations);
+    const locale = asText(row.default_locale, "ar");
+    const translation = translations.find((item) => item.locale === locale) ?? translations[0];
+    const sessions = asArray(row.course_sessions);
+    const instructor = firstRecord(row.instructors);
+    return mapPublicData(row, translation, sessions[0], instructor);
+  } catch {
+    return getPublicCourse();
+  }
+}
 export async function listDashboardCourses(): Promise<DashboardCourse[]> {
   try {
     const supabase = await createClient();

@@ -65,7 +65,7 @@ export function RegistrationForm({ courseId, compact = false }: RegistrationForm
       const result = await response.json();
       if (!response.ok) throw new Error(result.message ?? "تعذر إتمام التسجيل.");
       const name = encodeURIComponent(String(payload.name ?? ""));
-      router.push(`/confirmation?status=${result.status}&name=${name}`);
+      router.push(`/confirmation?status=${encodeURIComponent(String(result.status))}&name=${name}&courseId=${encodeURIComponent(courseId)}`);
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "حدث خطأ غير متوقع.");
       setPending(false);

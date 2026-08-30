@@ -2,17 +2,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, CalendarPlus, CheckCircle2, Clock3, MailCheck, MessageCircleMore, Users } from "lucide-react";
 import { FiperLogo } from "@/components/brand/fiper-logo";
-import { featuredCourse } from "@/lib/demo-data";
+import { getPublicCourseById } from "@/lib/data/courses";
 
 export const metadata: Metadata = { title: "تم استلام تسجيلك" };
+export const dynamic = "force-dynamic";
 
 export default async function ConfirmationPage({ searchParams }: PageProps<"/confirmation">) {
   const params = await searchParams;
   const waitlisted = params.status === "waitlisted";
   const name = typeof params.name === "string" ? params.name : "مرحباً بك";
-  const calendarStart = new Date(featuredCourse.isoStart).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
-  const calendarEnd = new Date(new Date(featuredCourse.isoStart).getTime() + 90 * 60 * 1000).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
-  const calendarHref = "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + encodeURIComponent(featuredCourse.title) + "&dates=" + calendarStart + "/" + calendarEnd + "&details=" + encodeURIComponent(featuredCourse.description) + "&location=" + encodeURIComponent(featuredCourse.platform);
+  const courseId = typeof params.courseId === "string" ? params.courseId : "";
+  const { course } = await getPublicCourseById(courseId);
+  const calendarStart = new Date(course.isoStart).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  const calendarEnd = new Date(new Date(course.isoStart).getTime() + 90 * 60 * 1000).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  const calendarHref = "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + encodeURIComponent(course.title) + "&dates=" + calendarStart + "/" + calendarEnd + "&details=" + encodeURIComponent(course.description) + "&location=" + encodeURIComponent(course.platform);
   return (
     <main className="noise-grid flex min-h-screen flex-col bg-[#031a2d]">
       <header className="mx-auto flex h-20 w-full max-w-[1120px] items-center px-5 sm:px-8"><FiperLogo /></header>
@@ -42,12 +45,12 @@ export default async function ConfirmationPage({ searchParams }: PageProps<"/con
 
           <aside className="border-t border-white/8 bg-[#041a2d]/75 p-7 sm:p-9 lg:border-r lg:border-t-0">
             <p className="text-xs font-bold text-white">ملخص الدورة</p>
-            <h2 className="mt-4 text-lg font-bold leading-8 text-white">{featuredCourse.title}</h2>
+            <h2 className="mt-4 text-lg font-bold leading-8 text-white">{course.title}</h2>
             <div className="mt-7 space-y-3">
-              <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.035] p-4"><CalendarPlus size={18} className="text-[#C32828]" /><span><small className="block text-[9px] text-[#6f8ba0]">التاريخ</small><strong className="mt-1 block text-[11px]">{featuredCourse.dateLabel}</strong></span></div>
+              <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.035] p-4"><CalendarPlus size={18} className="text-[#C32828]" /><span><small className="block text-[9px] text-[#6f8ba0]">التاريخ</small><strong className="mt-1 block text-[11px]">{course.dateLabel}</strong></span></div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-2 rounded-2xl border border-white/8 bg-white/[0.035] p-4"><Clock3 size={16} className="text-[#C32828]" /><span><small className="block text-[9px] text-[#6f8ba0]">التوقيت</small><strong className="latin mt-1 block text-[11px]">20:00</strong></span></div>
-                <div className="rounded-2xl border border-white/8 bg-white/[0.035] p-4"><small className="block text-[9px] text-[#6f8ba0]">المنصة</small><strong className="latin mt-1 block text-[11px]">Google Meet</strong></div>
+                <div className="flex items-center gap-2 rounded-2xl border border-white/8 bg-white/[0.035] p-4"><Clock3 size={16} className="text-[#C32828]" /><span><small className="block text-[9px] text-[#6f8ba0]">التوقيت</small><strong className="latin mt-1 block text-[11px]">{course.timeLabel}</strong></span></div>
+                <div className="rounded-2xl border border-white/8 bg-white/[0.035] p-4"><small className="block text-[9px] text-[#6f8ba0]">المنصة</small><strong className="latin mt-1 block text-[11px]">{course.platform}</strong></div>
               </div>
             </div>
             <div className="mt-8 border-t border-white/8 pt-6">
