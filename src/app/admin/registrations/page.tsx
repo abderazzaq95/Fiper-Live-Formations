@@ -1,7 +1,10 @@
 import { ChevronDown, Download, Filter, MoreHorizontal, Search, UserPlus, UsersRound } from "lucide-react";
-import { registrations } from "@/lib/demo-data";
+import { listDashboardRegistrations } from "@/lib/data/courses";
 
-export default function RegistrationsPage() {
+export default async function RegistrationsPage() {
+  const registrations = await listDashboardRegistrations();
+  const confirmedCount = registrations.filter((person) => person.status === "مؤكد").length;
+  const waitlistedCount = registrations.filter((person) => person.status === "قائمة انتظار").length;
   return (
     <div className="mx-auto max-w-[1450px]">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -10,7 +13,7 @@ export default function RegistrationsPage() {
       </div>
 
       <div className="mt-7 grid gap-4 sm:grid-cols-3">
-        {[["إجمالي المسجلين","346","bg-[#eaf5fc] text-[#1574ad]"],["المؤكدون","318","bg-[#eaf8f3] text-[#168a65]"],["قائمة الانتظار","28","bg-[#fff6df] text-[#a36b00]"]].map(([label,value,tone]) => (
+        {[["إجمالي المسجلين",String(registrations.length),"bg-[#eaf5fc] text-[#1574ad]"],["المؤكدون",String(confirmedCount),"bg-[#eaf8f3] text-[#168a65]"],["قائمة الانتظار",String(waitlistedCount),"bg-[#fff6df] text-[#a36b00]"]].map(([label,value,tone]) => (
           <div key={label} className="flex items-center gap-4 rounded-[18px] border border-[#dfe7ec] bg-white p-5"><span className={`flex h-11 w-11 items-center justify-center rounded-[14px] ${tone}`}><UsersRound size={19} /></span><span><small className="text-[9px] text-[#7f929f]">{label}</small><strong className="latin mt-1 block text-xl">{value}</strong></span></div>
         ))}
       </div>
@@ -25,7 +28,7 @@ export default function RegistrationsPage() {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-right">
             <thead className="bg-[#f8fafb] text-[9px] font-semibold text-[#7f929f]"><tr><th className="w-12 px-5 py-3"><input type="checkbox" aria-label="تحديد الكل" className="accent-[#C32828]" /></th><th className="px-3 py-3">المشارك</th><th className="px-3 py-3">رقم واتساب</th><th className="px-3 py-3">الدورة</th><th className="px-3 py-3">المصدر</th><th className="px-3 py-3">الحالة</th><th className="px-3 py-3">التسجيل</th><th className="px-5 py-3" /></tr></thead>
-            <tbody className="divide-y divide-[#edf2f5]">{[...registrations, ...registrations].map((person, index) => (
+            <tbody className="divide-y divide-[#edf2f5]">{registrations.map((person, index) => (
               <tr key={`${person.email}-${index}`} className="text-[9px] transition hover:bg-[#fbfcfd]">
                 <td className="px-5 py-4"><input type="checkbox" aria-label={`تحديد ${person.name}`} className="accent-[#C32828]" /></td>
                 <td className="px-3 py-4"><div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#edf4f8] text-[9px] font-bold text-[#315a75]">{person.name.split(" ").map((p) => p[0]).join("")}</span><span><strong className="block text-[10px]">{person.name}</strong><small className="latin mt-1 block text-[8px] text-[#8da0ad]">{person.email}</small></span></div></td>
@@ -36,7 +39,7 @@ export default function RegistrationsPage() {
             ))}</tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between border-t border-[#e8eef2] px-5 py-4 text-[9px] text-[#8295a2]"><span>عرض 1–8 من 346</span><div className="flex gap-1"><button className="rounded-lg border border-[#dce5eb] px-3 py-2">السابق</button><button className="rounded-lg bg-[#102f47] px-3 py-2 text-white latin">1</button><button className="rounded-lg border border-[#dce5eb] px-3 py-2 latin">2</button><button className="rounded-lg border border-[#dce5eb] px-3 py-2">التالي</button></div></div>
+        <div className="flex items-center justify-between border-t border-[#e8eef2] px-5 py-4 text-[9px] text-[#8295a2]"><span>عرض 1–{registrations.length} من {registrations.length}</span><div className="flex gap-1"><button className="rounded-lg border border-[#dce5eb] px-3 py-2">السابق</button><button className="rounded-lg bg-[#102f47] px-3 py-2 text-white latin">1</button><button className="rounded-lg border border-[#dce5eb] px-3 py-2 latin">2</button><button className="rounded-lg border border-[#dce5eb] px-3 py-2">التالي</button></div></div>
       </section>
     </div>
   );

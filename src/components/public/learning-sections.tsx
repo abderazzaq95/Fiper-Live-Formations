@@ -1,10 +1,10 @@
 import { BarChart3, BookOpenCheck, Check, ShieldCheck, Target, TrendingUp } from "lucide-react";
 import { SectionHeading } from "./section-heading";
-import { audience, learningOutcomes } from "@/lib/demo-data";
+import type { PublicCourseData } from "@/lib/data/courses";
 
 const icons = [BarChart3, TrendingUp, ShieldCheck, Target];
 
-export function LearningSections() {
+export function LearningSections({ outcomes, audience }: Pick<PublicCourseData, "outcomes" | "audience">) {
   return (
     <>
       <section id="about" className="fine-grid bg-[#f4f8fb] py-24 text-[#071d2f] sm:py-30">
@@ -18,7 +18,7 @@ export function LearningSections() {
           </div>
 
           <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {learningOutcomes.map((item, index) => {
+            {outcomes.map((item, index) => {
               const Icon = icons[index];
               return (
                 <article key={item.index} className="group relative overflow-hidden rounded-[24px] border border-[#dce7ef] bg-white p-6 shadow-[0_16px_45px_rgba(12,43,65,.06)] transition hover:-translate-y-1 hover:border-[#b9cfde]">

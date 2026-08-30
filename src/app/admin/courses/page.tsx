@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, CalendarDays, Copy, Eye, MoreHorizontal, Plus, Search, UsersRound } from "lucide-react";
-import { dashboardCourses } from "@/lib/demo-data";
+import { listDashboardCourses } from "@/lib/data/courses";
 
 const statusMap: Record<string, string> = {
   green: "bg-[#eaf8f3] text-[#168a65]",
@@ -8,7 +8,8 @@ const statusMap: Record<string, string> = {
   slate: "bg-[#eef2f4] text-[#617585]",
 };
 
-export default function CoursesPage() {
+export default async function CoursesPage() {
+  const courses = await listDashboardCourses();
   return (
     <div className="mx-auto max-w-[1450px]">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -19,11 +20,11 @@ export default function CoursesPage() {
       <div className="mt-7 flex flex-col gap-3 rounded-[20px] border border-[#dfe7ec] bg-white p-4 sm:flex-row sm:items-center">
         <div className="relative flex-1"><Search size={15} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8ba0ae]" /><input placeholder="ابحث باسم الدورة..." className="h-11 w-full rounded-xl border border-[#dfe7ec] bg-[#f8fafb] pr-10 pl-4 text-[10px] focus:border-[#9ebfd5] focus:outline-none" /></div>
         <select aria-label="حالة الدورة" className="h-11 rounded-xl border border-[#dfe7ec] bg-[#f8fafb] px-4 text-[10px] text-[#617585]"><option>جميع الحالات</option><option>مفتوح</option><option>مسودة</option><option>مكتمل</option></select>
-        <span className="text-[9px] text-[#8ba0ae] sm:px-3"><span className="latin font-bold text-[#102536]">3</span> دورات</span>
+        <span className="text-[9px] text-[#8ba0ae] sm:px-3"><span className="latin font-bold text-[#102536]">{courses.length}</span> دورات</span>
       </div>
 
       <div className="mt-5 grid gap-4 xl:grid-cols-3">
-        {dashboardCourses.map((course, index) => (
+        {courses.map((course, index) => (
           <article key={course.id} className="group overflow-hidden rounded-[22px] border border-[#dfe7ec] bg-white shadow-[0_12px_35px_rgba(15,42,61,.035)]">
             <div className={`relative h-32 overflow-hidden p-5 ${index === 0 ? "bg-[#082943]" : index === 1 ? "bg-[#102d45]" : "bg-[#17374e]"}`}>
               <div className="absolute -left-10 -top-16 h-40 w-40 rounded-full border-[28px] border-white/[0.035]" />

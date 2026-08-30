@@ -2,9 +2,10 @@ import { CalendarPlus, ChevronDown, Clock3, MailCheck, MessageCircleMore, Shield
 import { FiperLogo } from "@/components/brand/fiper-logo";
 import { RegistrationForm } from "./registration-form";
 import { SectionHeading } from "./section-heading";
-import { faqs, featuredCourse } from "@/lib/demo-data";
+import type { Course } from "@/lib/demo-data";
+import type { PublicCourseData } from "@/lib/data/courses";
 
-export function RegistrationSection() {
+export function RegistrationSection({ course, faqs }: { course: Course; faqs: PublicCourseData["faqs"] }) {
   return (
     <>
       <section id="faq" className="fine-grid bg-[#f4f8fb] py-24 text-[#071d2f] sm:py-30">
@@ -33,14 +34,14 @@ export function RegistrationSection() {
             <div className="mt-9 space-y-3">
               <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.035] p-4">
                 <CalendarPlus size={19} className="text-[#C32828]" />
-                <span><small className="block text-[9px] text-[#7895aa]">الموعد</small><strong className="mt-1 block text-xs">{featuredCourse.dateLabel}</strong></span>
+                <span><small className="block text-[9px] text-[#7895aa]">الموعد</small><strong className="mt-1 block text-xs">{course.dateLabel}</strong></span>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.035] p-4">
-                  <Clock3 size={18} className="text-[#C32828]" /><span><small className="block text-[9px] text-[#7895aa]">المدة</small><strong className="mt-1 block text-xs">{featuredCourse.duration}</strong></span>
+                  <Clock3 size={18} className="text-[#C32828]" /><span><small className="block text-[9px] text-[#7895aa]">المدة</small><strong className="mt-1 block text-xs">{course.duration}</strong></span>
                 </div>
                 <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.035] p-4">
-                  <Video size={18} className="text-[#C32828]" /><span><small className="block text-[9px] text-[#7895aa]">المكان</small><strong className="mt-1 block text-xs">{featuredCourse.platform}</strong></span>
+                  <Video size={18} className="text-[#C32828]" /><span><small className="block text-[9px] text-[#7895aa]">المكان</small><strong className="mt-1 block text-xs">{course.platform}</strong></span>
                 </div>
               </div>
             </div>
@@ -60,7 +61,7 @@ export function RegistrationSection() {
               <div><p className="text-sm font-bold text-white">بيانات التسجيل</p><p className="mt-1 text-[10px] text-[#6f8ba0]">جميع الحقول مطلوبة</p></div>
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#123754] text-[#62d5aa]"><ShieldCheck size={19} /></span>
             </div>
-            <RegistrationForm courseId={featuredCourse.id} />
+            <RegistrationForm courseId={course.id} />
           </div>
         </div>
       </section>

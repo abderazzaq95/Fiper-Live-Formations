@@ -2,17 +2,19 @@ import Image from "next/image";
 import { ArrowLeft, CalendarDays, Clock3, Menu, Sparkles, Users, Video } from "lucide-react";
 import { FiperLogo } from "@/components/brand/fiper-logo";
 import { Countdown } from "@/components/public/countdown";
-import { featuredCourse } from "@/lib/demo-data";
+import { featuredCourse, type Course } from "@/lib/demo-data";
 
-const facts = [
-  { icon: CalendarDays, label: "الموعد", value: featuredCourse.dateLabel },
-  { icon: Clock3, label: "التوقيت", value: featuredCourse.timeLabel },
-  { icon: Video, label: "نوع الدورة", value: `مباشرة عبر ${featuredCourse.platform}` },
-  { icon: Users, label: "المقاعد المتاحة", value: `${featuredCourse.capacity - featuredCourse.registrations} مقعداً فقط` },
-];
+function getFacts(course: Course) {
+  return [
+    { icon: CalendarDays, label: "الموعد", value: course.dateLabel },
+    { icon: Clock3, label: "التوقيت", value: course.timeLabel },
+    { icon: Video, label: "نوع الدورة", value: "مباشرة عبر " + course.platform },
+    { icon: Users, label: "المقاعد المتاحة", value: String(course.capacity - course.registrations) + " مقعداً فقط" },
+  ];
+}
 
-export function CourseHero() {
-  const percentage = Math.round((featuredCourse.registrations / featuredCourse.capacity) * 100);
+export function CourseHero({ course = featuredCourse }: { course?: Course }) {
+  const percentage = Math.round((course.registrations / course.capacity) * 100);
 
   return (
     <section className="noise-grid relative min-h-screen overflow-hidden bg-[#031a2d]">
@@ -39,7 +41,7 @@ export function CourseHero() {
         <div>
           <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#D96B6B]/25 bg-[#C32828]/10 px-4 py-2 text-[11px] font-bold text-[#E6A2A2]">
             <span className="pulse-dot h-2 w-2 rounded-full bg-[#C32828]" />
-            {featuredCourse.eyebrow}
+            {course.eyebrow}
             <Sparkles size={13} />
           </div>
           <h1 className="max-w-2xl bg-gradient-to-b from-white via-white to-[#b9d4e7] bg-clip-text text-[40px] font-extrabold leading-[1.32] tracking-[-0.055em] text-transparent sm:text-[54px] lg:text-[62px]">
@@ -49,8 +51,8 @@ export function CourseHero() {
               <span className="absolute -bottom-2 right-0 h-1.5 w-24 rounded-full bg-[#C32828]" />
             </span>
           </h1>
-          <h2 className="mt-9 max-w-xl text-lg font-bold leading-8 text-white sm:text-xl">{featuredCourse.title}</h2>
-          <p className="mt-4 max-w-xl text-sm leading-8 text-[#91adc2] sm:text-base">{featuredCourse.description}</p>
+          <h2 className="mt-9 max-w-xl text-lg font-bold leading-8 text-white sm:text-xl">{course.title}</h2>
+          <p className="mt-4 max-w-xl text-sm leading-8 text-[#91adc2] sm:text-base">{course.description}</p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <a href="#register" className="red-glow group flex h-14 items-center justify-center gap-3 rounded-2xl bg-[#C32828] px-7 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#A92121]">
@@ -77,11 +79,11 @@ export function CourseHero() {
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="text-[10px] font-semibold text-[#7594ab]">الانطلاقة بعد</p>
-                      <p className="mt-1 text-xs font-bold text-white sm:text-sm">{featuredCourse.dateLabel}</p>
+                      <p className="mt-1 text-xs font-bold text-white sm:text-sm">{course.dateLabel}</p>
                     </div>
                     <span className="rounded-xl border border-[#C32828]/25 bg-[#C32828]/10 px-2 py-1.5 text-[10px] sm:px-3 sm:py-2 font-bold text-[#E6A2A2]">مباشر</span>
                   </div>
-                  <div className="mt-2 sm:mt-3"><Countdown target={featuredCourse.isoStart} /></div>
+                  <div className="mt-2 sm:mt-3"><Countdown target={course.isoStart} /></div>
                 </div>
               </div>
             </div>
@@ -89,13 +91,13 @@ export function CourseHero() {
           <div className="float-slow absolute -left-3 top-8 hidden w-44 rounded-2xl border border-white/12 bg-[#082740]/90 p-4 backdrop-blur-xl sm:block">
             <div className="flex items-center justify-between text-[10px] text-[#8ba7ba]"><span>الحجوزات</span><span className="latin">{percentage}%</span></div>
             <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[#C32828]" style={{ width: `${percentage}%` }} /></div>
-            <p className="mt-3 text-xs font-bold text-white"><span className="latin">{featuredCourse.registrations}</span> شخصاً أكد حضوره</p>
+            <p className="mt-3 text-xs font-bold text-white"><span className="latin">{course.registrations}</span> شخصاً أكد حضوره</p>
           </div>
         </div>
       </div>
 
       <div className="relative z-10 mx-auto grid max-w-[1240px] gap-3 px-5 pb-14 sm:grid-cols-2 sm:px-8 lg:grid-cols-4">
-        {facts.map(({ icon: Icon, label, value }) => (
+        {getFacts(course).map(({ icon: Icon, label, value }) => (
           <div key={label} className="group flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.035] p-4 transition duration-300 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.06]">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0d3554] text-[#C32828]"><Icon size={19} /></span>
             <span><span className="block text-[10px] text-[#6f8da4]">{label}</span><span className="mt-1 block text-[11px] font-bold text-white">{value}</span></span>

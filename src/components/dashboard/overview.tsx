@@ -1,13 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowUpLeft, CalendarDays, CheckCircle2, Clock3, MoreHorizontal, UserRoundCheck, UsersRound } from "lucide-react";
-import { dashboardCourses, registrations } from "@/lib/demo-data";
-
-const stats = [
-  { label: "إجمالي التسجيلات", value: "346", change: "+18.4%", note: "مقارنة بالشهر الماضي", icon: UsersRound, tone: "blue" },
-  { label: "الدورات النشطة", value: "03", change: "+1", note: "دورة جديدة هذا الشهر", icon: CalendarDays, tone: "red" },
-  { label: "نسبة الحضور", value: "78%", change: "+6.2%", note: "آخر ثلاث دورات", icon: UserRoundCheck, tone: "green" },
-  { label: "وصول الرسائل", value: "96.8%", change: "+1.4%", note: "بريد وواتساب", icon: CheckCircle2, tone: "violet" },
-];
+import { listDashboardCourses, listDashboardRegistrations } from "@/lib/data/courses";
 
 const toneMap: Record<string, string> = {
   blue: "bg-[#eaf5fc] text-[#1574ad]",
@@ -22,7 +15,15 @@ const statusMap: Record<string, string> = {
   slate: "bg-[#eef2f4] text-[#617585]",
 };
 
-export function Overview() {
+export async function Overview() {
+  const dashboardCourses = await listDashboardCourses();
+  const registrations = await listDashboardRegistrations();
+  const stats = [
+  { label: "إجمالي التسجيلات", value: String(registrations.length), change: "+18.4%", note: "مقارنة بالشهر الماضي", icon: UsersRound, tone: "blue" },
+  { label: "الدورات النشطة", value: String(dashboardCourses.filter((course) => course.status !== "مسودة").length).padStart(2, "0"), change: "+1", note: "دورة جديدة هذا الشهر", icon: CalendarDays, tone: "red" },
+  { label: "نسبة الحضور", value: "—", change: "+6.2%", note: "آخر ثلاث دورات", icon: UserRoundCheck, tone: "green" },
+  { label: "وصول الرسائل", value: "—", change: "+1.4%", note: "بريد وواتساب", icon: CheckCircle2, tone: "violet" },
+];
   return (
     <div className="mx-auto max-w-[1450px]">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
