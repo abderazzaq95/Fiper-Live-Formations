@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Activity, LockKeyhole, ShieldCheck } from "lucide-react";
 import { FiperLogo } from "@/components/brand/fiper-logo";
 import { LoginForm } from "@/components/auth/login-form";
@@ -30,6 +31,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           <h2 className="mt-7 text-3xl font-extrabold tracking-[-0.045em] text-white">مرحباً بعودتك</h2>
           <p className="mt-3 text-xs leading-6 text-[#7896ac]">استخدم حساب Fiper المصرح له للوصول إلى لوحة التحكم.</p>
           <LoginForm nextPath={nextPath} preview={isAdminPreview()} configurationError={configurationError} />
+          <Link href={`/get-access${nextPath !== "/admin" ? `?next=${encodeURIComponent(nextPath)}` : ""}`} className="mt-5 flex h-12 items-center justify-center rounded-2xl border border-[#C32828]/30 bg-[#C32828]/8 text-[10px] font-bold text-[#f08a8a] transition hover:border-[#C32828] hover:bg-[#C32828]/15 hover:text-white">Get Access · Create Admin account</Link>
         </div>
       </section>
     </main>
