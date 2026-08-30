@@ -11,14 +11,19 @@ export function FiperLogo({ compact = false, href = "/", darkText = false }: Fip
   return (
     <Link href={href} className="group inline-flex items-center gap-3" aria-label="Fiper Live Academy">
       <Image
-        src="/brand/fiper-mark-original.png"
+        src="/brand/fiper-mark.png"
         alt=""
         width={44}
         height={44}
         className="h-10 w-10 rounded-[13px] object-cover shadow-[0_10px_28px_rgba(195,40,40,.24)] transition duration-300 group-hover:-translate-y-0.5 group-hover:shadow-[0_14px_34px_rgba(195,40,40,.32)]"
       />
       {!compact && (
-        <Image src="/brand/fiper-word-original.png" alt="Fiper" width={78} height={33} className={darkText ? "h-8 w-[78px] object-contain brightness-0" : "h-8 w-[78px] object-contain"} />
+        <span className={`flex flex-col leading-none ${darkText ? "text-[#071d2f]" : "text-white"}`}>
+          <span className="latin text-[22px] font-extrabold tracking-[-0.045em]">Fiper</span>
+          <span className={`latin mt-1 text-[7px] font-bold tracking-[0.24em] ${darkText ? "text-[#6f8595]" : "text-[#8daac1]"}`}>
+            LIVE ACADEMY
+          </span>
+        </span>
       )}
     </Link>
   );
