@@ -94,12 +94,13 @@ export function RegistrationForm({ courseId, compact = false }: RegistrationForm
         </div>
         <div>
           <label htmlFor={`phone-${compact}`} className={labelClass}>رقم واتساب</label>
-          <div className="flex gap-2">
-            <div className="relative w-[106px] shrink-0">
-              <select aria-label="رمز الدولة" value={phoneCode} onChange={(event) => { const value = event.target.value; setPhoneCode(value); const country = countries.find((item) => item.dial === value); if (country) setSelectedCountry(country.name); }} className="latin h-13 w-full appearance-none rounded-2xl border border-white/10 bg-[#06233a] pl-7 pr-2 text-xs font-semibold text-white focus:border-[#3e8ec7] focus:outline-none">
+          <div className="flex gap-2" dir="ltr">
+            <div className="relative w-[116px] shrink-0">
+              <select aria-label="رمز الدولة" value={phoneCode} onChange={(event) => { const value = event.target.value; setPhoneCode(value); const country = countries.find((item) => item.dial === value); if (country) setSelectedCountry(country.name); }} className="latin h-13 w-full appearance-none rounded-2xl border border-white/10 bg-[#06233a] pl-8 pr-7 text-transparent [&>option]:text-white focus:border-[#3e8ec7] focus:outline-none">
                 {countries.map((country) => <option key={`${country.name}-${country.dial}`} value={country.dial}>{country.flag} {country.dial}</option>)}
               </select>
-              <ChevronDown size={14} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[#8daac1]" />
+              <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3 flex items-center gap-1.5 text-xs font-semibold text-white"><span className="text-base leading-none">{countries.find((country) => country.dial === phoneCode)?.flag ?? "🌐"}</span><span className="latin">{phoneCode}</span></span>
+              <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#8daac1]" />
             </div>
             <input id={`phone-${compact}`} name="phone" type="tel" required minLength={6} autoComplete="tel" inputMode="tel" dir="ltr" placeholder="50 000 0000" className={`${inputClass} latin min-w-0 flex-1 text-right`} />
           </div>

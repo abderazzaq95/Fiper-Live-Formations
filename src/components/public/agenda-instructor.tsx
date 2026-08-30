@@ -45,7 +45,7 @@ export function AgendaInstructor() {
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
                 <div className="absolute left-8 top-8 h-28 w-28 rounded-full border border-white/8" />
                 <div className="absolute right-10 top-20 h-16 w-16 rounded-full border border-[#C32828]/15" />
-                <div className="relative mx-auto mb-0 flex h-[90%] w-[90%] items-center justify-center rounded-[24px] bg-gradient-to-b from-[#164f76] to-[#061e33] shadow-[0_-20px_80px_rgba(57,143,204,.14)]">
+                <div className="relative mx-auto mb-0 flex h-[95%] w-[95%] items-center justify-center rounded-[24px] bg-gradient-to-b from-[#164f76] to-[#061e33] shadow-[0_-20px_80px_rgba(57,143,204,.14)]">
                   {featuredCourse.instructor.image ? <Image src={featuredCourse.instructor.image} alt={featuredCourse.instructor.name} fill sizes="(max-width: 1024px) 80vw, 320px" className="object-cover object-top" /> : <span className="text-6xl font-black tracking-[-0.08em] text-white/90">{featuredCourse.instructor.initials}</span>}
                 </div>
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#031a2d] to-transparent px-6 pb-6 pt-20">
