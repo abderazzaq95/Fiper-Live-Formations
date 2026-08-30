@@ -5,7 +5,8 @@ type JsonRecord = Record<string, unknown>;
 function record(value: unknown): JsonRecord { return value && typeof value === "object" ? value as JsonRecord : {}; }
 function first(value: unknown): JsonRecord | undefined { return Array.isArray(value) ? value.find((item): item is JsonRecord => Boolean(item && typeof item === "object")) : value && typeof value === "object" ? value as JsonRecord : undefined; }
 function text(value: unknown, fallback = "") { return typeof value === "string" && value.trim() ? value : fallback; }
-function escapeHtml(value: string) { return value.replace(/[&<>\"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '\"': "&quot;", "'": "&#039;" }[char] ?? char)); }
+function escapeHtml(value: string) { return value.replace(/[&<>\"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char] ?? char)); }
+function formatStartsAt(value: string, timezone: string) { const timestamp = Date.parse(value); if (!Number.isFinite(timestamp)) return value || "—"; try { return new Intl.DateTimeFormat("ar", { dateStyle: "full", timeStyle: "short", timeZone: timezone || "UTC" }).format(new Date(timestamp)); } catch { return new Intl.DateTimeFormat("ar", { dateStyle: "full", timeStyle: "short", timeZone: "UTC" }).format(new Date(timestamp)); } }
 
 async function sendResend(to: string, name: string, title: string, startsAt: string) {
   const apiKey = process.env.RESEND_API_KEY;
@@ -17,8 +18,8 @@ async function sendResend(to: string, name: string, title: string, startsAt: str
     body: JSON.stringify({
       from,
       to: [to],
-      subject: `Registration confirmed â€” ${title}`,
-      html: `<div dir="rtl"><p>Ù…Ø±Ø­Ø¨Ø§Ù‹ ${escapeHtml(name)}ØŒ</p><p>ØªÙ… ØªØ£ÙƒÙŠØ¯ ØªØ³Ø¬ÙŠÙ„Ùƒ ÙÙŠ Ø¯ÙˆØ±Ø© <strong>${escapeHtml(title)}</strong>.</p><p>Ù…ÙˆØ¹Ø¯ Ø§Ù„Ø¯ÙˆØ±Ø©: ${escapeHtml(startsAt)}</p><p>Ø³Ù†Ø±Ø³Ù„ Ù„Ùƒ Ø±Ø§Ø¨Ø· Ø§Ù„Ø¯Ø®ÙˆÙ„ ÙˆØ§Ù„ØªØ°ÙƒÙŠØ±Ø§Øª Ù‚Ø¨Ù„ Ø§Ù„Ù…ÙˆØ¹Ø¯.</p></div>`,
+      subject: `Registration confirmed - ${title}`,
+      html: `<div dir="rtl" lang="ar"><p>\u0645\u0631\u062d\u0628\u0627 ${escapeHtml(name)}\u060c</p><p>\u062a\u0645 \u062a\u0623\u0643\u064a\u062f \u062a\u0633\u062c\u064a\u0644\u0643 \u0641\u064a \u062f\u0648\u0631\u0629 <strong>${escapeHtml(title)}</strong>.</p><p>\u0645\u0648\u0639\u062f \u0627\u0644\u062f\u0648\u0631\u0629: ${escapeHtml(startsAt)}</p><p>\u0633\u0646\u0631\u0633\u0644 \u0644\u0643 \u0631\u0627\u0628\u0637 \u0627\u0644\u062f\u062e\u0648\u0644 \u0648\u0627\u0644\u062a\u0630\u0643\u064a\u0631\u0627\u062a \u0642\u0628\u0644 \u0627\u0644\u0645\u0648\u0639\u062f.</p><p>Fiper</p></div>`,
     }),
   });
   const body = await response.json().catch(() => ({})) as JsonRecord;
@@ -60,7 +61,7 @@ async function ensureDelivery(supabase: ReturnType<typeof createAdminClient>, re
 
 async function processDelivery(supabase: ReturnType<typeof createAdminClient>, delivery: JsonRecord) {
   const id = text(delivery.id);
-  const { data: registrationData, error } = await supabase.from("registrations").select("id,full_name,email,phone_e164,whatsapp_consent,course_sessions(starts_at,courses(course_translations(title,locale)))").eq("id", text(delivery.registration_id)).maybeSingle();
+  const { data: registrationData, error } = await supabase.from("registrations").select("id,full_name,email,phone_e164,whatsapp_consent,course_sessions(starts_at,timezone,courses(course_translations(title,locale)))").eq("id", text(delivery.registration_id)).maybeSingle();
   if (error || !registrationData) return { id, state: "failed", reason: "Registration not found" };
   const registration = record(registrationData);
   const session = first(registration.course_sessions);
@@ -69,7 +70,7 @@ async function processDelivery(supabase: ReturnType<typeof createAdminClient>, d
   const translation = translations.map(record).find((item) => text(item.locale) === "ar") ?? record(translations[0]);
   const name = text(registration.full_name, "Participant");
   const title = text(translation.title, "Fiper course");
-  const startsAt = text(session?.starts_at, "the scheduled time");
+  const startsAt = formatStartsAt(text(session?.starts_at, ""), text(session?.timezone, "UTC"));
   const channel = text(delivery.channel) as "email" | "whatsapp";
   const result = channel === "email" ? await sendResend(text(registration.email), name, title, startsAt) : await sendTwilio(text(registration.phone_e164), name, title, startsAt);
   if (!result.configured) return { id, state: "queued", reason: result.reason };
