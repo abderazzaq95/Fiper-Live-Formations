@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Check, Eye, ImagePlus, Loader2, Save, Send, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Eye, ImagePlus, Loader2, Plus, Save, Send, Sparkles, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { featuredCourse } from "@/lib/demo-data";
 import type { CourseEditorData } from "@/lib/data/courses";
@@ -14,6 +14,8 @@ function Field({ label, children, hint }: { label: string; children: React.React
 
 const inputClass = "h-11 w-full rounded-xl border border-[#dce5eb] bg-[#fafbfc] px-4 text-[10px] text-[#203b4e] placeholder:text-[#a5b3bc] focus:border-[#8eb8d2] focus:bg-white focus:outline-none";
 
+type EditableFaq = { question: string; answer: string };
+
 export function CourseEditor({ courseId, initial, isNew = false }: { courseId: string; initial: CourseEditorData | null; isNew?: boolean }) {
   const course = initial ? { ...featuredCourse, title: initial.title, eyebrow: initial.eyebrow, description: initial.description, slug: initial.slug, instructor: { ...featuredCourse.instructor, name: initial.instructor.name, role: initial.instructor.title, bio: initial.instructor.bio } } : featuredCourse;
   const session = initial?.session;
@@ -21,6 +23,7 @@ export function CourseEditor({ courseId, initial, isNew = false }: { courseId: s
   const startTimeValue = session?.startsAt ? session.startsAt.slice(11, 16) : "20:00";
   const endTimeValue = session?.endsAt ? session.endsAt.slice(11, 16) : "21:30";
   const [activeTab, setActiveTab] = useState("المحتوى");
+  const [faqItems, setFaqItems] = useState<EditableFaq[]>(() => initial?.faqs ?? []);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -46,6 +49,7 @@ export function CourseEditor({ courseId, initial, isNew = false }: { courseId: s
       instructorName: value("instructor-name", course.instructor.name),
       instructorTitle: value("instructor-title", course.instructor.role),
       instructorBio: value("instructor-bio", course.instructor.bio),
+      faqs: faqItems.filter((item) => item.question.trim() && item.answer.trim()),
     };
     try {
       const response = await fetch("/api/admin/courses/" + encodeURIComponent(courseId), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -82,7 +86,18 @@ export function CourseEditor({ courseId, initial, isNew = false }: { courseId: s
               <Field label="اسم الدورة"><input id="course-title" className={inputClass} defaultValue={isNew ? "" : course.title} placeholder="مثال: أساسيات التداول..." /></Field>
               <Field label="العبارة التعريفية"><input id="course-eyebrow" className={inputClass} defaultValue={isNew ? "" : course.eyebrow} /></Field>
               <Field label="الوصف المختصر" hint="يفضل ألا يتجاوز 180 حرفاً"><textarea id="course-description" className="min-h-28 w-full resize-y rounded-xl border border-[#dce5eb] bg-[#fafbfc] p-4 text-[10px] leading-6 focus:border-[#8eb8d2] focus:bg-white focus:outline-none" defaultValue={isNew ? "" : course.description} /></Field>
-              <div className="grid gap-4 sm:grid-cols-2"><Field label="عنوان زر التسجيل"><input className={inputClass} defaultValue="احجز مقعدك المجاني" /></Field><Field label="الرابط المختصر"><div className="flex" dir="ltr"><span className="flex h-11 items-center rounded-l-xl border border-r-0 border-[#dce5eb] bg-[#f0f4f6] px-3 text-[8px] text-[#7f929f]">/courses/</span><input className={`${inputClass} rounded-l-none`} id="course-slug" defaultValue={isNew ? "" : course.slug} /></div></Field></div>
+              <div className="space-y-3 rounded-2xl border border-[#e1e8ed] bg-[#fbfcfd] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div><h3 className="text-[11px] font-bold">الأسئلة الشائعة</h3><p className="mt-1 text-[8px] text-[#91a2ae]">أضف الأسئلة والأجوبة التي ستظهر للزوار قبل التسجيل.</p></div>
+                  <button type="button" onClick={() => setFaqItems((items) => [...items, { question: "", answer: "" }])} className="flex h-9 items-center gap-1.5 rounded-lg bg-[#102f47] px-3 text-[9px] font-bold text-white"><Plus size={13} /> إضافة سؤال</button>
+                </div>
+                {faqItems.length === 0 && <p className="rounded-xl border border-dashed border-[#cbd9e1] px-4 py-5 text-center text-[9px] text-[#91a2ae]">لا توجد أسئلة بعد. أضف أول سؤال.</p>}
+                {faqItems.map((faq, index) => <div key={index} className="space-y-3 rounded-xl border border-[#dce5eb] bg-white p-4">
+                  <div className="flex items-center justify-between"><span className="text-[9px] font-bold text-[#607686]">سؤال {index + 1}</span><button type="button" onClick={() => setFaqItems((items) => items.filter((_, itemIndex) => itemIndex !== index))} aria-label="حذف السؤال" className="text-[#C32828]"><Trash2 size={14} /></button></div>
+                  <input className={inputClass} value={faq.question} onChange={(event) => setFaqItems((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, question: event.target.value } : item))} placeholder="مثال: هل الدورة مناسبة للمبتدئين؟" />
+                  <textarea className="min-h-20 w-full resize-y rounded-xl border border-[#dce5eb] bg-[#fafbfc] p-3 text-[10px] leading-6 focus:border-[#8eb8d2] focus:bg-white focus:outline-none" value={faq.answer} onChange={(event) => setFaqItems((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, answer: event.target.value } : item))} placeholder="اكتب الإجابة هنا..." />
+                </div>)}
+              </div>              <div className="grid gap-4 sm:grid-cols-2"><Field label="عنوان زر التسجيل"><input className={inputClass} defaultValue="احجز مقعدك المجاني" /></Field><Field label="الرابط المختصر"><div className="flex" dir="ltr"><span className="flex h-11 items-center rounded-l-xl border border-r-0 border-[#dce5eb] bg-[#f0f4f6] px-3 text-[8px] text-[#7f929f]">/courses/</span><input className={`${inputClass} rounded-l-none`} id="course-slug" defaultValue={isNew ? "" : course.slug} /></div></Field></div>
               <Field label="صورة الغلاف"><button className="flex min-h-32 w-full flex-col items-center justify-center rounded-2xl border border-dashed border-[#b9cbd6] bg-[#f8fafb] text-[#7890a0] transition hover:border-[#6fa6c8] hover:bg-[#f3f8fb]"><ImagePlus size={22} /><span className="mt-3 text-[9px] font-bold">اسحب الصورة هنا أو اختر ملفاً</span><small className="mt-1 text-[8px]">PNG, JPG أو WebP · حتى 5MB</small></button></Field>
             </div>
           )}

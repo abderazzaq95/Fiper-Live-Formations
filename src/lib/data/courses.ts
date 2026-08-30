@@ -193,6 +193,7 @@ export type CourseEditorData = {
   title: string;
   eyebrow: string;
   description: string;
+  faqs: Array<{ question: string; answer: string }>;
   instructor: { id: string; name: string; title: string; bio: string };
   session: { id: string; startsAt: string; endsAt: string; timezone: string; deliveryType: string; platform: string; capacity: number; registrationOpen: boolean; waitlistEnabled: boolean; meetUrl: string };
 };
@@ -202,7 +203,7 @@ export async function getCourseEditorData(id: string): Promise<CourseEditorData 
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id,slug,state,default_locale,instructor_id,course_translations(locale,title,eyebrow,description),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url),instructors(id,name,title,bio)")
+      .select("id,slug,state,default_locale,instructor_id,course_translations(locale,title,eyebrow,description,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url),instructors(id,name,title,bio)")
       .eq("id", id)
       .maybeSingle();
     if (error || !data) return null;
@@ -218,6 +219,7 @@ export async function getCourseEditorData(id: string): Promise<CourseEditorData 
       title: asText(translation.title),
       eyebrow: asText(translation.eyebrow),
       description: asText(translation.description),
+      faqs: asArray(translation.faqs).map((item) => ({ question: asText(item.question), answer: asText(item.answer) })).filter((item) => item.question && item.answer),
       instructor: { id: asText(instructor.id), name: asText(instructor.name), title: asText(instructor.title), bio: asText(instructor.bio) },
       session: {
         id: asText(session.id),

@@ -7,6 +7,7 @@ const updateSchema = z.object({
   title: z.string().trim().min(1).max(180),
   eyebrow: z.string().trim().max(180).default(""),
   description: z.string().trim().max(2000).default(""),
+  faqs: z.array(z.object({ question: z.string().trim().min(1).max(300), answer: z.string().trim().min(1).max(2000) })).max(30).default([]),
   slug: z.string().trim().min(1).max(120),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
@@ -64,6 +65,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
     title: value.title,
     eyebrow: value.eyebrow,
     description: value.description,
+    faqs: value.faqs,
   }, { onConflict: "course_id,locale" });
   if (translationError) return Response.json({ message: "Unable to update course content." }, { status: 500 });
 
