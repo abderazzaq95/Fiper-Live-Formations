@@ -206,6 +206,7 @@ export type CourseEditorData = {
   description: string
   coverPath: string;
   faqs: Array<{ question: string; answer: string }>;
+  registrationCount: number;
   instructor: { id: string; name: string; title: string; bio: string; image: string };
   session: { id: string; startsAt: string; endsAt: string; timezone: string; deliveryType: string; platform: string; capacity: number; registrationOpen: boolean; waitlistEnabled: boolean; meetUrl: string };
 };
@@ -224,6 +225,8 @@ export async function getCourseEditorData(id: string): Promise<CourseEditorData 
     const translation = translations.find((item) => item.locale === row.default_locale) ?? translations[0] ?? {};
     const session = asArray(row.course_sessions)[0] ?? {};
     const instructor = firstRecord(row.instructors) ?? {};
+    const editorSessionId = asText(session.id);
+    const { count: registrationCount } = editorSessionId ? await supabase.from("registrations").select("id", { count: "exact", head: true }).eq("session_id", editorSessionId).in("status", ["confirmed", "attended"]) : { count: 0 };
     return {
       id: asText(row.id),
       slug: asText(row.slug),
@@ -233,6 +236,7 @@ export async function getCourseEditorData(id: string): Promise<CourseEditorData 
       description: asText(translation.description),
       coverPath: asText(row.cover_path),
       faqs: asArray(translation.faqs).map((item) => ({ question: asText(item.question), answer: asText(item.answer) })).filter((item) => item.question && item.answer),
+      registrationCount: registrationCount ?? 0,
       instructor: { id: asText(instructor.id), name: asText(instructor.name), title: asText(instructor.title), bio: asText(instructor.bio), image: asText(instructor.photo_path) },
       session: {
         id: asText(session.id),

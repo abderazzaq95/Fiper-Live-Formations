@@ -21,6 +21,8 @@ type AssetKind = "cover" | "instructor";
 export function CourseEditor({ courseId, initial, isNew = false }: { courseId: string; initial: CourseEditorData | null; isNew?: boolean }) {
   const course = initial ? { ...featuredCourse, title: initial.title, eyebrow: initial.eyebrow, description: initial.description, slug: initial.slug, coverImage: initial.coverPath || featuredCourse.coverImage, instructor: { ...featuredCourse.instructor, name: initial.instructor.name, role: initial.instructor.title, bio: initial.instructor.bio, image: initial.instructor.image || featuredCourse.instructor.image } } : featuredCourse;
   const session = initial?.session;
+  const registrationCount = initial?.registrationCount ?? 0;
+  const capacity = session?.capacity ?? 200;
   const dateValue = session?.startsAt ? session.startsAt.slice(0, 10) : "2026-09-06";
   const startTimeValue = session?.startsAt ? session.startsAt.slice(11, 16) : "20:00";
   const endTimeValue = session?.endsAt ? session.endsAt.slice(11, 16) : "21:30";
@@ -143,7 +145,7 @@ export function CourseEditor({ courseId, initial, isNew = false }: { courseId: s
 
         <aside className="space-y-4">
           <div className="rounded-[22px] border border-[#dfe7ec] bg-white p-5"><div className="flex items-center gap-2"><Sparkles size={16} className="text-[#C32828]" /><h3 className="text-[11px] font-bold">جودة الصفحة</h3></div><div className="mt-5 flex items-center gap-4"><div className="latin flex h-14 w-14 items-center justify-center rounded-full border-[5px] border-[#32b886] text-sm font-bold">92</div><p className="text-[9px] leading-5 text-[#718695]">المحتوى مكتمل وجاهز للنشر. أضف صورة المحاضر الأصلية لاحقاً.</p></div></div>
-          <div className="rounded-[22px] bg-[#082943] p-5 text-white"><p className="text-[9px] font-bold text-[#7ea0b7]">ملخص مباشر</p><h3 className="mt-3 text-sm font-bold leading-6">{course.title}</h3><div className="mt-5 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full w-[73%] bg-[#C32828]" /></div><p className="latin mt-3 text-[9px] text-[#7ea0b7]">146 / 200 registrations</p></div>
+          <div className="rounded-[22px] bg-[#082943] p-5 text-white"><p className="text-[9px] font-bold text-[#7ea0b7]">ملخص مباشر</p><h3 className="mt-3 text-sm font-bold leading-6">{course.title}</h3><div className="mt-5 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full bg-[#C32828]" style={{ width: `${capacity ? Math.min(100, (registrationCount / capacity) * 100) : 0}%` }} /></div><p className="latin mt-3 text-[9px] text-[#7ea0b7]">{registrationCount} / {capacity} registrations</p></div>
         </aside>
       </div>
     </div>
