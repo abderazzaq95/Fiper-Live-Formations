@@ -31,6 +31,7 @@ export type AttendanceRow = {
   id: string;
   name: string;
   email: string;
+  course: string;
   status: "attended" | "absent" | "pending";
   joinedAt: string;
   leftAt: string;
@@ -52,7 +53,7 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("registrations")
-      .select("id,full_name,email,status,course_sessions(starts_at),attendance_sessions(id,joined_at,left_at,duration_seconds,match_method,created_at)")
+      .select("id,full_name,email,status,course_sessions(starts_at,courses(default_locale,course_translations(locale,title))),attendance_sessions(id,joined_at,left_at,duration_seconds,match_method,created_at)")
       .order("registered_at", { ascending: false });
     if (error || !data) return { rows: [], attended: 0, absent: 0, pending: 0, averageMinutes: 0, lastSync: "—" };
 
@@ -62,12 +63,17 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
       const durationMinutes = Math.max(0, Math.round((Number(attendance?.duration_seconds) || 0) / 60));
       const joinedAt = text(attendance?.joined_at);
       const session = firstRecord(row.course_sessions);
+      const courseRecord = firstRecord(session?.courses);
+      const translations = Array.isArray(courseRecord?.course_translations) ? courseRecord.course_translations.map(asRecord) : [];
+      const courseTranslation = translations.find((item) => text(item.locale) === text(courseRecord?.default_locale, "ar")) ?? translations[0];
+      const course = text(courseTranslation?.title, text(courseRecord?.id, "—"));
       const startsAt = text(session?.starts_at);
       const isPending = !joinedAt && durationMinutes === 0 && Boolean(startsAt) && new Date(startsAt).getTime() > Date.now();
       return {
         id: text(row.id),
         name: text(row.full_name, "—"),
         email: text(row.email, "—"),
+        course,
         status: joinedAt || durationMinutes > 0 ? "attended" : isPending ? "pending" : "absent",
         joinedAt: formatTime(joinedAt),
         leftAt: formatTime(text(attendance?.left_at)),
