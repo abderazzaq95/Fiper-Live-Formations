@@ -24,12 +24,14 @@ export async function getDashboardIdentity(): Promise<DashboardIdentity | null> 
   const claims = data?.claims;
   const subject = typeof claims?.sub === "string" ? claims.sub : null;
   if (!subject) return null;
+  const appMetadata = claims && typeof claims.app_metadata === "object" && claims.app_metadata ? claims.app_metadata as Record<string, unknown> : null;
+  const claimRole = appMetadata?.role === "admin" ? "admin" : null;
   const { data: profile } = await supabase.from("profiles").select("full_name, role").eq("id", subject).single();
   return {
     id: subject,
     name: profile?.full_name ?? String(claims?.email ?? "Fiper User"),
     email: String(claims?.email ?? ""),
-    role: profile?.role === "admin" ? "admin" : "user",
+    role: profile?.role === "admin" || claimRole === "admin" ? "admin" : "user",
   };
 }
 

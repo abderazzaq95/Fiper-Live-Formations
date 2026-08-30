@@ -21,6 +21,7 @@ export async function POST(request: Request) {
     password: parsed.data.password,
     email_confirm: true,
     user_metadata: { full_name: parsed.data.name, dashboard_access: true },
+    app_metadata: { role: "admin", dashboard_access: true },
   });
   if (error || !data.user) {
     if (error?.message?.toLowerCase().includes("already") || error?.code === "email_exists") return Response.json({ message: "An account with this email already exists. Please sign in." }, { status: 409 });
@@ -28,10 +29,13 @@ export async function POST(request: Request) {
     return Response.json({ message: "Unable to create the account right now." }, { status: 400 });
   }
   const { error: profileError } = await supabase.from("profiles").upsert({ id: data.user.id, full_name: parsed.data.name, role: "admin" }, { onConflict: "id" });
-  if (profileError) {
+  if (profileError && profileError.code !== "PGRST205") {
     await supabase.auth.admin.deleteUser(data.user.id);
     console.error("dashboard_profile_create_failed", { code: profileError.code, message: profileError.message });
     return Response.json({ message: "Unable to prepare Admin access right now." }, { status: 500 });
+  }
+  if (profileError?.code === "PGRST205") {
+    console.warn("dashboard_profiles_table_missing", { userId: data.user.id });
   }
   return Response.json({ ok: true, email: parsed.data.email });
 }
