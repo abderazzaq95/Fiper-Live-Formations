@@ -88,16 +88,16 @@ begin
   end if;
 
   if exists (
-    select 1 from public.registrations
-    where session_id = v_session.id
-      and (lower(email) = lower(trim(p_email)) or phone_e164 = p_phone_e164)
+    select 1 from public.registrations as r
+    where r.session_id = v_session.id
+      and (lower(r.email) = lower(trim(p_email)) or r.phone_e164 = p_phone_e164)
   ) then
     raise exception using errcode = '23505', message = 'already_registered';
   end if;
 
   select count(*) into v_confirmed_count
-  from public.registrations
-  where session_id = v_session.id and status in ('confirmed', 'attended');
+  from public.registrations as r
+  where r.session_id = v_session.id and r.status in ('confirmed', 'attended');
 
   if v_confirmed_count >= v_session.capacity then
     if not v_session.waitlist_enabled then

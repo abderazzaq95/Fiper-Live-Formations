@@ -10,7 +10,9 @@ export default async function ConfirmationPage({ searchParams }: PageProps<"/con
   const params = await searchParams;
   const waitlisted = params.status === "waitlisted";
   const name = typeof params.name === "string" ? params.name : "مرحباً بك";
-
+  const calendarStart = new Date(featuredCourse.isoStart).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  const calendarEnd = new Date(new Date(featuredCourse.isoStart).getTime() + 90 * 60 * 1000).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  const calendarHref = "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + encodeURIComponent(featuredCourse.title) + "&dates=" + calendarStart + "/" + calendarEnd + "&details=" + encodeURIComponent(featuredCourse.description) + "&location=" + encodeURIComponent(featuredCourse.platform);
   return (
     <main className="noise-grid flex min-h-screen flex-col bg-[#031a2d]">
       <header className="mx-auto flex h-20 w-full max-w-[1120px] items-center px-5 sm:px-8"><FiperLogo /></header>
@@ -31,9 +33,9 @@ export default async function ConfirmationPage({ searchParams }: PageProps<"/con
             </p>
 
             {!waitlisted && (
-              <button className="mt-8 flex h-13 items-center justify-center gap-2 rounded-2xl bg-[#C32828] px-6 text-xs font-bold text-white transition hover:bg-[#A92121]">
+              <a href={calendarHref} target="_blank" rel="noreferrer" aria-label="Add course to calendar" className="mt-8 flex h-13 items-center justify-center gap-2 rounded-2xl bg-[#C32828] px-6 text-xs font-bold text-white transition hover:bg-[#A92121]">
                 <CalendarPlus size={17} /> أضف الموعد إلى تقويمك
-              </button>
+              </a>
             )}
             <Link href="/" className="mt-7 inline-flex items-center gap-2 text-xs font-semibold text-[#91adc2] transition hover:text-white"><ArrowRight size={15} /> العودة إلى صفحة الدورة</Link>
           </section>

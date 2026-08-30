@@ -74,6 +74,12 @@ export async function POST(request: Request) {
     if (error.code === "23505" || error.message.includes("already_registered")) {
       return Response.json({ message: "أنت مسجل بالفعل في هذه الدورة. تحقق من رسائل التأكيد." }, { status: 409 });
     }
+    if (error.message.includes("registration_closed")) {
+      return Response.json({ message: "\u0627\u0644\u062a\u0633\u062c\u064a\u0644 \u0645\u063a\u0644\u0642 \u062d\u0627\u0644\u064a\u0627\u064b \u0644\u0647\u0630\u0647 \u0627\u0644\u062f\u0648\u0631\u0629." }, { status: 409 });
+    }
+    if (error.message.includes("course_full")) {
+      return Response.json({ message: "\u0627\u0643\u062a\u0645\u0644\u062a \u0645\u0642\u0627\u0639\u062f \u0627\u0644\u062f\u0648\u0631\u0629. \u062a\u062d\u0642\u0642 \u0645\u0646 \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631." }, { status: 409 });
+    }
     console.error("registration_failed", { code: error.code, message: error.message });
     return Response.json({ message: "تعذر حفظ التسجيل الآن. يرجى المحاولة بعد لحظات." }, { status: 500 });
   }
