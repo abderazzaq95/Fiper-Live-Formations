@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Activity, LockKeyhole, ShieldCheck } from "lucide-react";
+import { Activity, ArrowRight, LockKeyhole, ShieldCheck, UserPlus } from "lucide-react";
 import { FiperLogo } from "@/components/brand/fiper-logo";
 import { LoginForm } from "@/components/auth/login-form";
 import { isAdminPreview } from "@/lib/auth";
@@ -31,7 +31,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           <h2 className="mt-7 text-3xl font-extrabold tracking-[-0.045em] text-white">مرحباً بعودتك</h2>
           <p className="mt-3 text-xs leading-6 text-[#7896ac]">استخدم حساب Fiper المصرح له للوصول إلى لوحة التحكم.</p>
           <LoginForm nextPath={nextPath} preview={isAdminPreview()} configurationError={configurationError} />
-          <Link href={`/get-access${nextPath !== "/admin" ? `?next=${encodeURIComponent(nextPath)}` : ""}`} className="mt-5 flex h-12 items-center justify-center rounded-2xl border border-[#C32828]/30 bg-[#C32828]/8 text-[10px] font-bold text-[#f08a8a] transition hover:border-[#C32828] hover:bg-[#C32828]/15 hover:text-white">Get Access · Create Admin account</Link>
+          <Link href={`/get-access${nextPath !== "/admin" ? `?next=${encodeURIComponent(nextPath)}` : ""}`} className="group relative mt-6 flex min-h-14 items-center justify-center gap-3 overflow-hidden rounded-2xl border border-[#C32828]/60 bg-gradient-to-r from-[#C32828]/20 via-[#C32828]/10 to-[#0d3554] px-5 text-xs font-extrabold text-white shadow-[0_12px_30px_rgba(195,40,40,.14)] transition hover:-translate-y-0.5 hover:border-[#f06b6b] hover:from-[#C32828]/35 hover:to-[#12476e] hover:shadow-[0_16px_36px_rgba(195,40,40,.24)]"><span className="absolute inset-y-0 right-0 w-1/3 bg-[#C32828]/10 blur-2xl transition group-hover:bg-[#C32828]/20" /><UserPlus size={18} className="relative text-[#ff8d8d]" /><span className="relative">Get Access <span className="mx-1 text-[#9cb6c8]">·</span> Create Admin account</span><ArrowRight size={16} className="relative text-[#ff8d8d] transition group-hover:-translate-x-1" /></Link>
         </div>
       </section>
     </main>
