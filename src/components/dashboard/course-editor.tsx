@@ -27,25 +27,25 @@ export function CourseEditor({ courseId, initial, isNew = false }: { courseId: s
   async function save() {
     setSaving(true);
     setSaved(false);
-    const value = (id: string) => (document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null)?.value ?? "";
+    const value = (id: string, fallback = "") => (document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null)?.value ?? fallback;
     const payload = {
-      title: value("course-title"),
-      eyebrow: value("course-eyebrow"),
-      description: value("course-description"),
-      slug: value("course-slug"),
-      date: value("course-date"),
-      startTime: value("course-start-time"),
-      endTime: value("course-end-time"),
-      timezone: value("course-timezone"),
+      title: value("course-title", course.title),
+      eyebrow: value("course-eyebrow", course.eyebrow),
+      description: value("course-description", course.description),
+      slug: value("course-slug", course.slug),
+      date: value("course-date", dateValue),
+      startTime: value("course-start-time", startTimeValue),
+      endTime: value("course-end-time", endTimeValue),
+      timezone: value("course-timezone", session?.timezone ?? "Africa/Casablanca"),
       deliveryType: "online",
       platform: "Google Meet",
-      meetUrl: value("course-meet-url"),
-      capacity: Number(value("course-capacity") || 0),
-      registrationOpen: value("course-registration-open") === "open",
+      meetUrl: value("course-meet-url", session?.meetUrl ?? ""),
+      capacity: Number(value("course-capacity", String(session?.capacity ?? 200)) || 0),
+      registrationOpen: value("course-registration-open", session?.registrationOpen ? "open" : "closed") === "open",
       waitlistEnabled: true,
-      instructorName: value("instructor-name"),
-      instructorTitle: value("instructor-title"),
-      instructorBio: value("instructor-bio"),
+      instructorName: value("instructor-name", course.instructor.name),
+      instructorTitle: value("instructor-title", course.instructor.role),
+      instructorBio: value("instructor-bio", course.instructor.bio),
     };
     try {
       const response = await fetch("/api/admin/courses/" + encodeURIComponent(courseId), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
