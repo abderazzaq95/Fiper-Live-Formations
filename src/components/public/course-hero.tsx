@@ -72,16 +72,16 @@ export function CourseHero() {
             <div className="relative aspect-[1.22/1] overflow-hidden rounded-[23px] bg-[#d9eaf6]">
               <Image src="/brand/hero-reference.png" alt="منصة Fiper لتحليل الأسواق على الحاسوب والهاتف" fill priority sizes="(max-width: 1024px) 100vw, 46vw" className="object-cover object-center" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#021525] via-transparent to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 p-2 sm:p-6">
-                <div className="rounded-2xl border border-white/10 bg-[#031a2d]/85 p-2.5 sm:p-4 backdrop-blur-xl">
+              <div className="absolute inset-x-0 bottom-0 p-2 sm:p-4">
+                <div className="rounded-2xl border border-white/10 bg-[#031a2d]/85 p-2.5 sm:p-3 backdrop-blur-xl">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="text-[10px] font-semibold text-[#7594ab]">الانطلاقة بعد</p>
                       <p className="mt-1 text-xs font-bold text-white sm:text-sm">{featuredCourse.dateLabel}</p>
                     </div>
-                    <span className="rounded-xl border border-[#C32828]/25 bg-[#C32828]/10 px-3 py-2 text-[10px] font-bold text-[#E6A2A2]">مباشر</span>
+                    <span className="rounded-xl border border-[#C32828]/25 bg-[#C32828]/10 px-2 py-1.5 text-[10px] sm:px-3 sm:py-2 font-bold text-[#E6A2A2]">مباشر</span>
                   </div>
-                  <div className="mt-2 sm:mt-4"><Countdown target={featuredCourse.isoStart} /></div>
+                  <div className="mt-2 sm:mt-3"><Countdown target={featuredCourse.isoStart} /></div>
                 </div>
               </div>
             </div>
