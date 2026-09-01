@@ -15,6 +15,7 @@ export type Course = {
   capacity: number;
   registrations: number;
   status: CourseStatus;
+  registrationOpen?: boolean;
   coverImage?: string;
   instructor: { name: string; role: string; bio: string; initials: string; image?: string };
 };

@@ -22,9 +22,9 @@ function formatDateTime(value: string | null | undefined) {
   return new Intl.DateTimeFormat("ar", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
-function formatTime(value: string | null | undefined) {
+function formatTime(value: string | null | undefined, timeZone: string) {
   if (!value) return "—";
-  return new Intl.DateTimeFormat("ar", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(value));
+  return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone }).format(new Date(value));
 }
 
 export type AttendanceRow = {
@@ -34,7 +34,9 @@ export type AttendanceRow = {
   course: string;
   status: "attended" | "absent" | "pending";
   joinedAt: string;
+  joinedAtTurkey: string;
   leftAt: string;
+  leftAtTurkey: string;
   durationMinutes: number;
   matchMethod: string;
 };
@@ -75,8 +77,10 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
         email: text(row.email, "—"),
         course,
         status: joinedAt || durationMinutes > 0 ? "attended" : isPending ? "pending" : "absent",
-        joinedAt: formatTime(joinedAt),
-        leftAt: formatTime(text(attendance?.left_at)),
+        joinedAt: formatTime(joinedAt, "Europe/Berlin"),
+        joinedAtTurkey: formatTime(joinedAt, "Europe/Istanbul"),
+        leftAt: formatTime(text(attendance?.left_at), "Europe/Berlin"),
+        leftAtTurkey: formatTime(text(attendance?.left_at), "Europe/Istanbul"),
         durationMinutes,
         matchMethod: text(attendance?.match_method, "pending"),
       } satisfies AttendanceRow;

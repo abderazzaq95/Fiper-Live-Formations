@@ -2,12 +2,12 @@ import { AgendaInstructor } from "@/components/public/agenda-instructor";
 import { CourseHero } from "@/components/public/course-hero";
 import { LearningSections } from "@/components/public/learning-sections";
 import { RegistrationSection } from "@/components/public/registration-section";
-import { getPublicCourse } from "@/lib/data/courses";
+import { getPublicCourseById } from "@/lib/data/courses";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
-  const { course, outcomes, agenda, audience, faqs } = await getPublicCourse();
+export default async function Home({ searchParams }: { searchParams: Promise<{ courseId?: string }> }) {
+  const { course, outcomes, agenda, audience, faqs } = await getPublicCourseById((await searchParams).courseId ?? "");
 
   return (
     <main>

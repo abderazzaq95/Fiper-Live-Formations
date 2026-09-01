@@ -61,7 +61,7 @@ export function RegistrationSection({ course, faqs }: { course: Course; faqs: Pu
               <div><p className="text-sm font-bold text-white">بيانات التسجيل</p><p className="mt-1 text-[10px] text-[#6f8ba0]">جميع الحقول مطلوبة</p></div>
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#123754] text-[#62d5aa]"><ShieldCheck size={19} /></span>
             </div>
-            <RegistrationForm courseId={course.id} />
+            {course.registrationOpen === false ? <div className="rounded-2xl border border-[#e4a7a7]/30 bg-[#3a1c29] p-6 text-center text-sm font-bold text-white">التسجيل مغلق حالياً لهذه الدورة.</div> : <RegistrationForm courseId={course.id} />}
           </div>
         </div>
       </section>

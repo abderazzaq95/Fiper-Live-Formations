@@ -20,8 +20,9 @@ export type DashboardCourse = {
   date: string;
   registrations: number;
   capacity: number;
-  status: "مفتوح" | "قائمة انتظار" | "مسودة" | "مكتملة";
-  tone: "green" | "amber" | "slate";
+  registrationOpen: boolean;
+  status: "مفتوح" | "مغلق" | "قائمة انتظار" | "مسودة" | "مكتملة";
+  tone: "green" | "amber" | "slate" | "red";
 };
 
 export type DashboardRegistration = {
@@ -84,6 +85,7 @@ function mapPublicData(row: JsonRecord, translation: JsonRecord | undefined, ses
     capacity,
     registrations: registrationCount,
     status: row.state === "published" ? "open" : "draft",
+    registrationOpen: session?.registration_open !== false,
     instructor: {
       name: asText(instructor?.name, featuredCourse.instructor.name),
       role: asText(instructor?.title, featuredCourse.instructor.role),
@@ -112,7 +114,7 @@ export async function getPublicCourse(): Promise<PublicCourseData> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id,slug,state,default_locale,instructor_id,cover_path,course_translations(locale,title,eyebrow,description,outcomes,agenda,audience,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity),instructors(name,title,bio,photo_path)")
+      .select("id,slug,state,default_locale,instructor_id,cover_path,course_translations(locale,title,eyebrow,description,outcomes,agenda,audience,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open),instructors(name,title,bio,photo_path)")
       .eq("state", "published")
       .order("published_at", { ascending: false })
       .limit(1)
@@ -151,7 +153,7 @@ export async function getPublicCourseById(id: string): Promise<PublicCourseData>
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id,slug,state,default_locale,instructor_id,cover_path,course_translations(locale,title,eyebrow,description,outcomes,agenda,audience,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity),instructors(name,title,bio,photo_path)")
+      .select("id,slug,state,default_locale,instructor_id,cover_path,course_translations(locale,title,eyebrow,description,outcomes,agenda,audience,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open),instructors(name,title,bio,photo_path)")
       .eq("id", id)
       .maybeSingle();
 
@@ -187,8 +189,8 @@ export async function listDashboardCourses(): Promise<DashboardCourse[]> {
       const capacity = typeof session?.capacity === "number" ? session.capacity : 0;
       const state = asText(row.state);
       const isOpen = session?.registration_open === true;
-      const status = state === "draft" ? "مسودة" : count >= capacity && capacity > 0 ? "قائمة انتظار" : state === "completed" ? "مكتملة" : isOpen ? "مفتوح" : "مسودة";
-      return { id: asText(row.id), title: asText(translation?.title, "دورة بدون عنوان"), date: formatDate(asText(session?.starts_at)), registrations: count, capacity, status, tone: status === "قائمة انتظار" ? "amber" : status === "مسودة" ? "slate" : "green" };
+      const status = state === "draft" ? "مسودة" : state === "completed" ? "مكتملة" : count >= capacity && capacity > 0 && isOpen ? "قائمة انتظار" : isOpen ? "مفتوح" : "مغلق";
+      return { id: asText(row.id), title: asText(translation?.title, "دورة بدون عنوان"), date: formatDate(asText(session?.starts_at)), registrations: count, capacity, registrationOpen: isOpen, status, tone: status === "قائمة انتظار" ? "amber" : status === "مسودة" ? "slate" : status === "مغلق" ? "red" : "green" };
     });
   } catch {
     return [];
