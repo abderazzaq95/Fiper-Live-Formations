@@ -34,6 +34,7 @@ export async function POST(_request: Request, context: RouteContext<"/api/admin/
     cover_path: text(source.cover_path) || null,
     created_by: identity.id === "preview" ? null : identity.id,
     published_at: null,
+    is_featured: false,
   };
 
   const { error: courseError } = await supabase.from("courses").insert(coursePayload);
@@ -43,6 +44,7 @@ export async function POST(_request: Request, context: RouteContext<"/api/admin/
     course_id: newId,
     locale: text(translation.locale, text(source.default_locale, "ar")),
     title: text(translation.title, "نسخة من الدورة"),
+    hero_heading: text(translation.hero_heading, "افهم السوق. تداول بوضوح."),
     eyebrow: text(translation.eyebrow),
     description: text(translation.description),
     outcomes: translation.outcomes ?? [],

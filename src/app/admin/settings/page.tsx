@@ -1,5 +1,7 @@
 import { CalendarDays, CheckCircle2, KeyRound, Mail, MessageCircleMore, Plus, ShieldCheck, UserCog } from "lucide-react";
 import { requireDashboardIdentity } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 const integrations = [
   { name: "Callbell WhatsApp", description: "إرسال التأكيدات والتذكيرات وتتبع حالة الوصول.", status: "جاهز للربط", icon: MessageCircleMore, tone: "bg-[#eaf8f3] text-[#168a65]", button: "إضافة المفاتيح" },
@@ -8,7 +10,20 @@ const integrations = [
 ];
 
 export default async function SettingsPage() {
-  await requireDashboardIdentity("admin");
+  const identity = await requireDashboardIdentity("admin");
+  const supabase = await createClient();
+  const { data: profiles } = await supabase.from("profiles").select("id,full_name,role,updated_at").order("created_at", { ascending: true });
+  const emailById = new Map<string, string>();
+  const lastLoginById = new Map<string, string>();
+  const serviceUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (serviceUrl && serviceKey) {
+    const admin = createSupabaseClient(serviceUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const result = await admin.auth.admin.listUsers({ perPage: 1000 });
+    for (const user of result.data.users ?? []) { if (user.email) emailById.set(user.id, user.email); if (user.last_sign_in_at) lastLoginById.set(user.id, user.last_sign_in_at); }
+  }
+  const users = (profiles ?? []).map((profile) => ({ id: profile.id, name: profile.full_name, email: emailById.get(profile.id) ?? "—", role: profile.role, lastLogin: lastLoginById.get(profile.id) ?? profile.updated_at ?? "—" }));
+  if (!users.length) users.push({ id: identity.id, name: identity.name, email: identity.email, role: identity.role, lastLogin: "الآن" });
   return (
     <div className="mx-auto max-w-[1180px]">
       <div><p className="text-[10px] font-bold text-[#C32828]">الإدارة</p><h1 className="mt-2 text-2xl font-bold tracking-[-0.035em] sm:text-3xl">الإعدادات والتكاملات</h1><p className="mt-2 text-xs text-[#788d9c]">إدارة الخدمات الخارجية، المستخدمين، وحماية مساحة العمل.</p></div>
@@ -28,7 +43,7 @@ export default async function SettingsPage() {
 
       <section className="mt-5 overflow-hidden rounded-[22px] border border-[#dfe7ec] bg-white">
         <div className="flex items-center justify-between border-b border-[#e8eef2] p-5 sm:px-7"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f2effc] text-[#7059c8]"><UserCog size={18} /></span><div><h2 className="text-sm font-bold">المستخدمون والصلاحيات</h2><p className="mt-1 text-[9px] text-[#91a2ae]">دوران فقط: Admin وUser.</p></div></div><button className="flex h-10 items-center gap-2 rounded-xl bg-[#102f47] px-4 text-[9px] font-bold text-white"><Plus size={14} /> إضافة مستخدم</button></div>
-        <div className="overflow-x-auto"><table className="w-full min-w-[650px] text-right"><thead className="bg-[#f8fafb] text-[9px] text-[#7f929f]"><tr><th className="px-7 py-3">المستخدم</th><th className="px-4 py-3">الدور</th><th className="px-4 py-3">آخر دخول</th><th className="px-4 py-3">الحالة</th></tr></thead><tbody className="divide-y divide-[#edf2f5]"><tr className="text-[9px]"><td className="px-7 py-4"><strong className="block text-[10px]">Khalid Admin</strong><small className="latin mt-1 block text-[8px] text-[#91a2ae]">admin@fiper.me</small></td><td className="px-4 py-4"><span className="latin rounded-full bg-[#fff0f1] px-3 py-1.5 text-[8px] font-bold text-[#C32828]">ADMIN</span></td><td className="px-4 py-4 text-[#718695]">الآن</td><td className="px-4 py-4"><span className="flex items-center gap-2 text-[#168a65]"><CheckCircle2 size={13} /> نشط</span></td></tr><tr className="text-[9px]"><td className="px-7 py-4"><strong className="block text-[10px]">Course Operator</strong><small className="latin mt-1 block text-[8px] text-[#91a2ae]">courses@fiper.me</small></td><td className="px-4 py-4"><span className="latin rounded-full bg-[#eaf5fc] px-3 py-1.5 text-[8px] font-bold text-[#1574ad]">USER</span></td><td className="px-4 py-4 text-[#718695]">منذ يومين</td><td className="px-4 py-4"><span className="flex items-center gap-2 text-[#168a65]"><CheckCircle2 size={13} /> نشط</span></td></tr></tbody></table></div>
+        <div className="overflow-x-auto"><table className="w-full min-w-[650px] text-right"><thead className="bg-[#f8fafb] text-[9px] text-[#7f929f]"><tr><th className="px-7 py-3">المستخدم</th><th className="px-4 py-3">الدور</th><th className="px-4 py-3">آخر دخول</th><th className="px-4 py-3">الحالة</th></tr></thead><tbody className="divide-y divide-[#edf2f5]">{users.map((user) => <tr key={user.id} className="text-[9px]"><td className="px-7 py-4"><strong className="block text-[10px]">{user.name}</strong><small className="latin mt-1 block text-[8px] text-[#91a2ae]">{user.email}</small></td><td className="px-4 py-4"><span className={`latin rounded-full px-3 py-1.5 text-[8px] font-bold ${user.role === "admin" ? "bg-[#fff0f1] text-[#C32828]" : "bg-[#eaf5fc] text-[#1574ad]"}`}>{user.role.toUpperCase()}</span></td><td className="px-4 py-4 text-[#718695]">{user.lastLogin === "الآن" ? user.lastLogin : new Intl.DateTimeFormat("ar", { dateStyle: "medium", timeStyle: "short" }).format(new Date(user.lastLogin))}</td><td className="px-4 py-4"><span className="flex items-center gap-2 text-[#168a65]"><CheckCircle2 size={13} /> نشط</span></td></tr>)}</tbody></table></div>
       </section>
 
       <section className="mt-5 rounded-[22px] border border-[#dfe7ec] bg-white p-5 sm:p-7"><div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-[#eaf8f3] text-[#168a65]"><ShieldCheck size={19} /></span><div><h2 className="text-sm font-bold">الأمان والخصوصية</h2><p className="mt-1 text-[9px] text-[#91a2ae]">المصادقة متعددة العوامل وسجل التدقيق جاهزان للتفعيل مع Supabase Auth.</p></div></div><div className="mt-6 grid gap-3 sm:grid-cols-3">{["MFA لحسابات Admin","سجل كامل للتغييرات","تقييد تصدير البيانات"].map((item) => <div key={item} className="flex items-center gap-2 rounded-xl bg-[#f7f9fa] p-4 text-[9px] font-bold"><CheckCircle2 size={14} className="text-[#168a65]" />{item}</div>)}</div></section>

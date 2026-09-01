@@ -5,6 +5,7 @@ import { z } from "zod";
 
 const updateSchema = z.object({
   title: z.string().trim().min(1).max(180),
+  heroHeading: z.string().trim().min(1).max(300).default("افهم السوق. تداول بوضوح."),
   eyebrow: z.string().trim().max(180).default(""),
   description: z.string().trim().max(2000).default(""),
   faqs: z.array(z.object({ question: z.string().trim().min(1).max(300), answer: z.string().trim().min(1).max(2000) })).max(30).default([]),
@@ -13,10 +14,12 @@ const updateSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
   endTime: z.string().regex(/^\d{2}:\d{2}$/),
-  timezone: z.string().min(1).max(80),
+  timezone: z.enum(["Europe/Berlin", "Europe/Istanbul", "Asia/Qatar", "Africa/Casablanca", "Asia/Dubai"]),
   deliveryType: z.enum(["online", "onsite"]).default("online"),
   platform: z.string().trim().max(120).default(""),
   meetUrl: z.string().trim().max(500).default(""),
+  venueName: z.string().trim().max(240).default(""),
+  venueAddress: z.string().trim().max(500).default(""),
   capacity: z.number().int().positive().max(100000),
   registrationOpen: z.boolean(),
   waitlistEnabled: z.boolean().default(true),
@@ -26,8 +29,9 @@ const updateSchema = z.object({
 });
 
 function offsetForTimezone(timezone: string) {
+  if (timezone === "Europe/Istanbul" || timezone === "Asia/Qatar") return "+03:00";
   if (timezone === "Asia/Dubai") return "+04:00";
-  if (timezone === "Europe/Paris") return "+02:00";
+  if (timezone === "Europe/Berlin" || timezone === "Europe/Paris") return "+02:00";
   return "+01:00";
 }
 
@@ -58,7 +62,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   const value = parsed.data;
   const locale = existing.default_locale ?? "ar";
   const now = new Date().toISOString();
-  const courseUpdate = { slug: value.slug, updated_at: now, ...(value.publish ? { state: "published", published_at: now } : {}) };
+  const courseUpdate = { slug: value.slug, updated_at: now, state: value.publish ? "published" : "draft", published_at: value.publish ? now : null };
   const { error: courseError } = await supabase.from("courses").update(courseUpdate).eq("id", id);
   if (courseError) return Response.json({ message: "Unable to update the course." }, { status: 500 });
 
@@ -66,6 +70,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
     course_id: id,
     locale,
     title: value.title,
+    hero_heading: value.heroHeading,
     eyebrow: value.eyebrow,
     description: value.description,
     faqs: value.faqs,
@@ -82,6 +87,8 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
     delivery_type: value.deliveryType,
     platform: value.platform || null,
     meet_url: value.meetUrl || null,
+    venue_name: value.deliveryType === "onsite" ? value.venueName || null : null,
+    venue_address: value.deliveryType === "onsite" ? value.venueAddress || null : null,
     capacity: value.capacity,
     registration_open: value.registrationOpen,
     waitlist_enabled: value.waitlistEnabled,
@@ -104,5 +111,6 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
 
   revalidatePath("/");
   revalidatePath("/admin/courses");
+  revalidatePath(`/admin/courses/${id}`);
   return Response.json({ ok: true });
 }

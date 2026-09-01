@@ -35,6 +35,8 @@ export function CourseEditor({ courseId, initial, isNew = false }: { courseId: s
   const [faqItems, setFaqItems] = useState<EditableFaq[]>(() => initial?.faqs ?? []);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [draftValues, setDraftValues] = useState<Record<string, string>>({});
+  const timezoneValue = ["Europe/Berlin", "Europe/Istanbul", "Asia/Qatar"].includes(session?.timezone ?? "") ? session?.timezone : "Europe/Berlin";
 
   async function uploadAsset(file: File, kind: AssetKind) {
     setUploading(kind);
@@ -58,19 +60,22 @@ export function CourseEditor({ courseId, initial, isNew = false }: { courseId: s
   async function save(publish = false) {
     setSaving(true);
     setSaved(false);
-    const value = (id: string, fallback = "") => (document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null)?.value ?? fallback;
+    const value = (id: string, fallback = "") => draftValues[id] ?? (document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null)?.value ?? fallback;
     const payload = {
       title: value("course-title", course.title),
+      heroHeading: value("course-hero-heading", initial?.heroHeading ?? featuredCourse.heroHeading),
       eyebrow: value("course-eyebrow", course.eyebrow),
       description: value("course-description", course.description),
       slug: value("course-slug", course.slug),
       date: value("course-date", dateValue),
       startTime: value("course-start-time", startTimeValue),
       endTime: value("course-end-time", endTimeValue),
-      timezone: value("course-timezone", session?.timezone ?? "Africa/Casablanca"),
+      timezone: value("course-timezone", timezoneValue ?? "Europe/Berlin"),
       deliveryType,
       platform: deliveryType === "online" ? "Google Meet" : "حضوري",
       meetUrl: value("course-meet-url", session?.meetUrl ?? ""),
+      venueName: value("course-venue-name", session?.venueName ?? ""),
+      venueAddress: value("course-venue-address", session?.venueAddress ?? ""),
       capacity: Number(value("course-capacity", String(session?.capacity ?? 200)) || 0),
       registrationOpen: value("course-registration-open", session?.registrationOpen ? "open" : "closed") === "open",
       waitlistEnabled: true,
@@ -91,7 +96,7 @@ export function CourseEditor({ courseId, initial, isNew = false }: { courseId: s
   }
 
   return (
-    <div className="mx-auto max-w-[1240px]">
+    <div className="mx-auto max-w-[1240px]" onChange={(event) => { const target = event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement; if (target.id) setDraftValues((values) => ({ ...values, [target.id]: target.value })); }}>
       <div className="flex flex-col gap-4 border-b border-[#dce5eb] pb-6 sm:flex-row sm:items-center">
         <Link href="/admin/courses" className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#dce5eb] bg-white text-[#5e7484]"><ArrowRight size={17} /></Link>
         <div><div className="flex items-center gap-2"><h1 className="text-xl font-bold sm:text-2xl">{isNew ? "إنشاء دورة جديدة" : "تعديل الدورة"}</h1>{!isNew && <span className="rounded-full bg-[#eaf8f3] px-3 py-1 text-[8px] font-bold text-[#168a65]">منشورة</span>}</div><p className="mt-1 text-[9px] text-[#8598a6]">تظهر التغييرات المنشورة تلقائياً في صفحة التسجيل.</p></div>
@@ -112,6 +117,7 @@ export function CourseEditor({ courseId, initial, isNew = false }: { courseId: s
             <div className="space-y-6">
               <div><h2 className="text-sm font-bold">محتوى صفحة الدورة</h2><p className="mt-1 text-[9px] text-[#91a2ae]">اكتب رسالة واضحة ومحددة؛ التغييرات تبقى مسودة حتى النشر.</p></div>
               <Field label="اسم الدورة"><input id="course-title" className={inputClass} defaultValue={isNew ? "" : course.title} placeholder="مثال: أساسيات التداول..." /></Field>
+                            <Field label="العنوان الرئيسي للصفحة"><textarea id="course-hero-heading" className="min-h-20 w-full resize-y rounded-xl border border-[#dce5eb] bg-[#fafbfc] p-4 text-[10px] leading-6 focus:border-[#8eb8d2] focus:bg-white focus:outline-none" defaultValue={isNew ? featuredCourse.heroHeading : initial?.heroHeading ?? featuredCourse.heroHeading} /></Field>
               <Field label="العبارة التعريفية"><input id="course-eyebrow" className={inputClass} defaultValue={isNew ? "" : course.eyebrow} /></Field>
               <Field label="الوصف المختصر" hint="يفضل ألا يتجاوز 180 حرفاً"><textarea id="course-description" className="min-h-28 w-full resize-y rounded-xl border border-[#dce5eb] bg-[#fafbfc] p-4 text-[10px] leading-6 focus:border-[#8eb8d2] focus:bg-white focus:outline-none" defaultValue={isNew ? "" : course.description} /></Field>
               <div className="space-y-3 rounded-2xl border border-[#e1e8ed] bg-[#fbfcfd] p-4">
@@ -130,7 +136,7 @@ export function CourseEditor({ courseId, initial, isNew = false }: { courseId: s
             </div>
           )}
           {activeTab === "الموعد والمكان" && (
-            <div className="space-y-6"><div><h2 className="text-sm font-bold">موعد ومكان الدورة</h2><p className="mt-1 text-[9px] text-[#91a2ae]">سيعاد جدولة التذكيرات تلقائياً عند تغيير الموعد.</p></div><div className="grid gap-4 sm:grid-cols-2"><Field label="التاريخ"><input id="course-date" type="date" className={inputClass} defaultValue={dateValue} /></Field><Field label="وقت البداية"><input id="course-start-time" type="time" className={inputClass} defaultValue={startTimeValue} /></Field><Field label="وقت النهاية"><input id="course-end-time" type="time" className={inputClass} defaultValue={endTimeValue} /></Field><Field label="المنطقة الزمنية"><select id="course-timezone" className={inputClass} defaultValue={session?.timezone ?? "Africa/Casablanca"}><option value="Africa/Casablanca">المغرب · Casablanca</option><option value="Asia/Dubai">الإمارات · Dubai</option></select></Field></div><Field label="نوع الدورة"><div className="grid grid-cols-2 gap-3"><button type="button" onClick={() => setDeliveryType("online")} className={`rounded-xl p-4 text-[10px] font-bold transition ${deliveryType === "online" ? "border-2 border-[#1779b5] bg-[#edf7fd] text-[#126a9e]" : "border border-[#dce5eb] text-[#6c8190] hover:border-[#8eb8d2]"}`}>أونلاين</button><button type="button" onClick={() => setDeliveryType("onsite")} className={`rounded-xl p-4 text-[10px] font-bold transition ${deliveryType === "onsite" ? "border-2 border-[#1779b5] bg-[#edf7fd] text-[#126a9e]" : "border border-[#dce5eb] text-[#6c8190] hover:border-[#8eb8d2]"}`}>حضورية</button></div></Field><Field label="رابط Google Meet"><input id="course-meet-url" className={inputClass} dir="ltr" defaultValue={session?.meetUrl ?? ""} placeholder="سيتم إنشاؤه عند ربط Google Calendar" /></Field></div>
+            <div className="space-y-6"><div><h2 className="text-sm font-bold">موعد ومكان الدورة</h2><p className="mt-1 text-[9px] text-[#91a2ae]">سيعاد جدولة التذكيرات تلقائياً عند تغيير الموعد.</p></div><div className="grid gap-4 sm:grid-cols-2"><Field label="التاريخ"><input id="course-date" type="date" className={inputClass} defaultValue={dateValue} /></Field><Field label="وقت البداية"><input id="course-start-time" type="time" className={inputClass} defaultValue={startTimeValue} /></Field><Field label="وقت النهاية"><input id="course-end-time" type="time" className={inputClass} defaultValue={endTimeValue} /></Field><Field label="المنطقة الزمنية"><select id="course-timezone" className={inputClass} defaultValue={timezoneValue}><option value="Europe/Berlin">ألمانيا · Berlin</option><option value="Europe/Istanbul">تركيا · Istanbul</option><option value="Asia/Qatar">قطر · Doha</option></select></Field></div><Field label="نوع الدورة"><div className="grid grid-cols-2 gap-3"><button type="button" onClick={() => setDeliveryType("online")} className={`rounded-xl p-4 text-[10px] font-bold transition ${deliveryType === "online" ? "border-2 border-[#1779b5] bg-[#edf7fd] text-[#126a9e]" : "border border-[#dce5eb] text-[#6c8190] hover:border-[#8eb8d2]"}`}>أونلاين</button><button type="button" onClick={() => setDeliveryType("onsite")} className={`rounded-xl p-4 text-[10px] font-bold transition ${deliveryType === "onsite" ? "border-2 border-[#1779b5] bg-[#edf7fd] text-[#126a9e]" : "border border-[#dce5eb] text-[#6c8190] hover:border-[#8eb8d2]"}`}>حضورية</button></div></Field><Field label="رابط Google Meet"><input id="course-meet-url" className={inputClass} dir="ltr" defaultValue={session?.meetUrl ?? ""} placeholder="سيتم إنشاؤه عند ربط Google Calendar" /></Field>{deliveryType === "onsite" && <div className="grid gap-4 sm:grid-cols-2"><Field label="اسم المكان"><input id="course-venue-name" className={inputClass} defaultValue={session?.venueName ?? ""} /></Field><Field label="العنوان"><input id="course-venue-address" className={inputClass} defaultValue={session?.venueAddress ?? ""} /></Field></div>}</div>
           )}
           {activeTab === "التسجيل" && (
             <div className="space-y-6"><div><h2 className="text-sm font-bold">قواعد التسجيل والسعة</h2><p className="mt-1 text-[9px] text-[#91a2ae]">تطبق هذه القواعد على كل تسجيل جديد فوراً.</p></div><div className="grid gap-4 sm:grid-cols-2"><Field label="الحد الأقصى للمقاعد"><input id="course-capacity" type="number" className={inputClass} defaultValue={session?.capacity ?? 200} /></Field><Field label="حالة التسجيل"><select id="course-registration-open" className={inputClass} defaultValue={session?.registrationOpen ? "open" : "closed"}><option value="open">مفتوح</option><option>مغلق</option><option>مؤجل</option></select></Field></div>{["تفعيل قائمة الانتظار عند اكتمال المقاعد","منع التسجيل المكرر بالبريد أو الهاتف","إرسال تأكيد فوري بعد التسجيل"].map((option) => <label key={option} className="flex items-center justify-between rounded-2xl border border-[#e1e8ed] p-4 text-[10px] font-bold"><span>{option}</span><input type="checkbox" defaultChecked className="h-4 w-4 accent-[#C32828]" /></label>)}</div>

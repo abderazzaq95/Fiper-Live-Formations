@@ -15,6 +15,7 @@ function getFacts(course: Course) {
 
 export function CourseHero({ course = featuredCourse }: { course?: Course }) {
   const percentage = Math.round((course.registrations / course.capacity) * 100);
+  const heroLines = course.heroHeading.split(/\r?\n/).filter(Boolean);
 
   return (
     <section className="noise-grid relative min-h-screen overflow-hidden bg-[#031a2d]">
@@ -45,11 +46,7 @@ export function CourseHero({ course = featuredCourse }: { course?: Course }) {
             <Sparkles size={13} />
           </div>
           <h1 className="max-w-2xl bg-gradient-to-b from-white via-white to-[#b9d4e7] bg-clip-text text-[40px] font-extrabold leading-[1.32] tracking-[-0.055em] text-transparent sm:text-[54px] lg:text-[62px]">
-            افهم السوق.
-            <span className="relative mt-1 block text-[#dceeff]">
-              تداول بوضوح.
-              <span className="absolute -bottom-2 right-0 h-1.5 w-24 rounded-full bg-[#C32828]" />
-            </span>
+            {heroLines.map((line, index) => <span key={`${line}-${index}`} className={index === 0 ? "" : "relative mt-1 block text-[#dceeff]"}>{line}{index < heroLines.length - 1 ? "." : ""}{index === heroLines.length - 1 && <span className="absolute -bottom-2 right-0 h-1.5 w-24 rounded-full bg-[#C32828]" />}</span>)}
           </h1>
           <h2 className="mt-9 max-w-xl text-lg font-bold leading-8 text-white sm:text-xl">{course.title}</h2>
           <p className="mt-4 max-w-xl text-sm leading-8 text-[#91adc2] sm:text-base">{course.description}</p>
