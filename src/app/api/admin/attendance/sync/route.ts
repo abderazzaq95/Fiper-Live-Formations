@@ -26,17 +26,40 @@ function meetingCode(value: string) {
   }
 }
 
-function normalizeName(value: string) {
-  return value.normalize("NFKC").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+function normalizeEmail(value: string) {
+  return value.trim().toLocaleLowerCase();
 }
 
-function participantDisplayName(participant: JsonRecord) {
-  const signedIn = record(participant.signedinUser);
-  const anonymous = record(participant.anonymousUser);
-  const phone = record(participant.phoneUser);
-  return text(signedIn.displayName, text(anonymous.displayName, text(phone.displayName)));
+function participantResourceId(participant: JsonRecord) {
+  const resourceName = text(participant.name);
+  return resourceName.split("/").filter(Boolean).pop() ?? "";
 }
 
+async function participantEmail(participant: JsonRecord, token: string) {
+  const personId = participantResourceId(participant);
+  if (!personId) return "";
+  const params = new URLSearchParams({ personFields: "emailAddresses" });
+  params.append("sources", "READ_SOURCE_TYPE_PROFILE");
+  params.append("sources", "READ_SOURCE_TYPE_CONTACT");
+  params.append("sources", "READ_SOURCE_TYPE_OTHER_CONTACT");
+  const response = await fetch(`https://people.googleapis.com/v1/people/${encodeURIComponent(personId)}?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+  const data = await response.json().catch(() => ({}));
+  if (response.status === 404) return "";
+  if (response.status === 401 || response.status === 403) throw new Error("Google People API email access is not authorized. Reconnect with contacts.readonly and userinfo.email scopes.");
+  if (!response.ok) return "";
+  const emails = Array.isArray(data.emailAddresses) ? data.emailAddresses : [];
+  const value = emails.map((item: unknown) => text(record(item).value)).find(Boolean) ?? "";
+  return normalizeEmail(value);
+}
+
+function findRegistrationByEmail(email: string, registrations: JsonRecord[], used: Set<string>) {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return undefined;
+  return registrations.find((registration) => {
+    const id = text(registration.id);
+    return Boolean(id) && !used.has(id) && normalizeEmail(text(registration.email)) === normalized;
+  });
+}
 async function accessToken() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -73,18 +96,6 @@ async function listParticipants(conferenceName: string, token: string) {
   } while (pageToken);
   return participants;
 }
-
-function findRegistration(participantName: string, registrations: JsonRecord[], used: Set<string>) {
-  const normalized = normalizeName(participantName);
-  if (!normalized) return undefined;
-  return registrations.find((registration) => {
-    const id = text(registration.id);
-    if (!id || used.has(id)) return false;
-    const candidate = normalizeName(text(registration.full_name));
-    return candidate === normalized || (candidate.length >= 4 && (candidate.includes(normalized) || normalized.includes(candidate)));
-  });
-}
-
 async function saveAttendance(supabase: Awaited<ReturnType<typeof createClient>>, registrationId: string, participant: JsonRecord) {
   const joinedAt = text(participant.earliestStartTime);
   if (!joinedAt) return false;
@@ -96,7 +107,7 @@ async function saveAttendance(supabase: Awaited<ReturnType<typeof createClient>>
   if (existingError) throw existingError;
   if (existing?.manually_overridden) return false;
 
-  const payload = { registration_id: registrationId, meet_participant_id: text(participant.name), joined_at: joinedAt, left_at: leftAt, duration_seconds: durationSeconds, match_method: "name" };
+  const payload = { registration_id: registrationId, meet_participant_id: text(participant.name), joined_at: joinedAt, left_at: leftAt, duration_seconds: durationSeconds, match_method: "email" };
   if (existing?.id) {
     const { error } = await supabase.from("attendance_sessions").update(payload).eq("id", existing.id);
     if (error) throw error;
@@ -141,7 +152,8 @@ export async function POST() {
       const participants = await listParticipants(text(conference.name), token);
       const used = new Set<string>();
       for (const participant of participants) {
-        const matched = findRegistration(participantDisplayName(participant), group, used);
+        const email = await participantEmail(participant, token);
+        const matched = findRegistrationByEmail(email, group, used);
         if (!matched) continue;
         const id = text(matched.id);
         used.add(id);
