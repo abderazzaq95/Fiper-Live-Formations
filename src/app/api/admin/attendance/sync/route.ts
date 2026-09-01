@@ -30,6 +30,19 @@ function normalizeEmail(value: string) {
   return value.trim().toLocaleLowerCase();
 }
 
+function normalizeName(value: string) {
+  return value
+    .normalize("NFKC")
+    .replace(/[\u064B-\u065F\u0670]/g, "")
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function participantDisplayName(participant: JsonRecord) {
+  return text(participant.displayName) || text(record(participant.signedinUser).displayName) || text(record(participant.anonymousUser).displayName);
+}
+
 function participantResourceId(participant: JsonRecord) {
   const resourceName = text(participant.name);
   return resourceName.split("/").filter(Boolean).pop() ?? "";
@@ -45,7 +58,7 @@ async function participantEmail(participant: JsonRecord, token: string) {
   const response = await fetch(`https://people.googleapis.com/v1/people/${encodeURIComponent(personId)}?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
   const data = await response.json().catch(() => ({}));
   if (response.status === 404) return "";
-  if (response.status === 401 || response.status === 403) throw new Error("Google People API email access is not authorized. Reconnect with contacts.readonly and userinfo.email scopes.");
+  if (response.status === 401 || response.status === 403) return "";
   if (!response.ok) return "";
   const emails = Array.isArray(data.emailAddresses) ? data.emailAddresses : [];
   const value = emails.map((item: unknown) => text(record(item).value)).find(Boolean) ?? "";
@@ -60,6 +73,16 @@ function findRegistrationByEmail(email: string, registrations: JsonRecord[], use
     return Boolean(id) && !used.has(id) && normalizeEmail(text(registration.email)) === normalized;
   });
 }
+
+function findRegistrationByName(name: string, registrations: JsonRecord[], used: Set<string>) {
+  const normalized = normalizeName(name);
+  if (!normalized) return undefined;
+  return registrations.find((registration) => {
+    const id = text(registration.id);
+    return Boolean(id) && !used.has(id) && normalizeName(text(registration.full_name)) === normalized;
+  });
+}
+
 async function accessToken() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -96,7 +119,7 @@ async function listParticipants(conferenceName: string, token: string) {
   } while (pageToken);
   return participants;
 }
-async function saveAttendance(supabase: Awaited<ReturnType<typeof createClient>>, registrationId: string, participant: JsonRecord) {
+async function saveAttendance(supabase: Awaited<ReturnType<typeof createClient>>, registrationId: string, participant: JsonRecord, matchMethod: "name" | "email") {
   const joinedAt = text(participant.earliestStartTime);
   if (!joinedAt) return false;
   const leftAt = text(participant.latestEndTime) || null;
@@ -107,7 +130,7 @@ async function saveAttendance(supabase: Awaited<ReturnType<typeof createClient>>
   if (existingError) throw existingError;
   if (existing?.manually_overridden) return false;
 
-  const payload = { registration_id: registrationId, meet_participant_id: text(participant.name), joined_at: joinedAt, left_at: leftAt, duration_seconds: durationSeconds, match_method: "email" };
+  const payload = { registration_id: registrationId, meet_participant_id: text(participant.name), joined_at: joinedAt, left_at: leftAt, duration_seconds: durationSeconds, match_method: matchMethod };
   if (existing?.id) {
     const { error } = await supabase.from("attendance_sessions").update(payload).eq("id", existing.id);
     if (error) throw error;
@@ -152,12 +175,13 @@ export async function POST() {
       const participants = await listParticipants(text(conference.name), token);
       const used = new Set<string>();
       for (const participant of participants) {
-        const email = await participantEmail(participant, token);
-        const matched = findRegistrationByEmail(email, group, used);
+        const matchedByName = findRegistrationByName(participantDisplayName(participant), group, used);
+        const email = matchedByName ? "" : await participantEmail(participant, token);
+        const matched = matchedByName ?? findRegistrationByEmail(email, group, used);
         if (!matched) continue;
         const id = text(matched.id);
         used.add(id);
-        if (await saveAttendance(supabase, id, participant)) synced += 1;
+        if (await saveAttendance(supabase, id, participant, matchedByName ? "name" : "email")) synced += 1;
       }
     }
 
