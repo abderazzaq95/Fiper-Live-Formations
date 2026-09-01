@@ -4,6 +4,7 @@ export type Course = {
   id: string;
   slug: string;
   title: string;
+  heroHeading: string;
   eyebrow: string;
   description: string;
   dateLabel: string;
@@ -24,6 +25,7 @@ export const featuredCourse: Course = {
   id: "crs_forex_001",
   slug: "forex-foundations",
   title: "أساسيات التداول في أسواق الفوركس",
+  heroHeading: "افهم السوق. تداول بوضوح.",
   eyebrow: "دورة تدريبية مباشرة ومجانية",
   description: "من قراءة حركة السعر إلى بناء خطة تداول واضحة — تجربة عملية تمنحك الأساس الصحيح لفهم السوق وإدارة قراراتك بثقة.",
   dateLabel: "الأحد، 6 سبتمبر 2026",

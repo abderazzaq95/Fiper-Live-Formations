@@ -31,7 +31,7 @@ export default async function CoursesPage() {
             <div className={`relative h-32 overflow-visible p-5 ${index === 0 ? "bg-[#082943]" : index === 1 ? "bg-[#102d45]" : "bg-[#17374e]"}`}>
               <div className="absolute -left-10 -top-16 h-40 w-40 rounded-full border-[28px] border-white/[0.035]" />
               <div className="absolute bottom-0 right-0 h-16 w-full bg-[linear-gradient(110deg,transparent_20%,rgba(42,134,194,.2)_21%,transparent_22%,transparent_48%,rgba(195,40,40,.15)_49%,transparent_50%)]" />
-              <div className="relative flex items-start justify-between"><span className={`rounded-full px-3 py-1.5 text-[8px] font-bold ${statusMap[course.tone]}`}>{course.status}</span><CourseCardActions courseId={course.id} registrationOpen={course.registrationOpen} variant="menu" /></div>
+              <div className="relative flex items-start justify-between"><span className="rounded-full bg-[#fff6df] px-3 py-1.5 text-[8px] font-bold text-[#a36b00]">{course.featured ? "دورة مميزة" : ""}</span><span className={`rounded-full px-3 py-1.5 text-[8px] font-bold ${statusMap[course.tone]}`}>{course.status}</span><CourseCardActions courseId={course.id} registrationOpen={course.registrationOpen} featured={course.featured} variant="menu" /></div>
               <span className="latin absolute bottom-4 left-5 text-[9px] font-semibold text-white/35">FIPER ACADEMY</span>
             </div>
             <div className="p-5">
@@ -43,7 +43,7 @@ export default async function CoursesPage() {
               <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-[#e9eff3]"><div className={`h-full rounded-full ${course.registrations >= course.capacity ? "bg-[#e0a11b]" : "bg-[#1779b5]"}`} style={{ width: `${Math.min(100, (course.registrations / course.capacity) * 100)}%` }} /></div>
               <div className="mt-5 flex items-center gap-2 border-t border-[#edf2f5] pt-4">
                 <Link href={`/admin/courses/${course.id}`} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#102f47] py-3 text-[9px] font-bold text-white">تعديل الدورة <ArrowLeft size={13} /></Link>
-                <CourseCardActions courseId={course.id} registrationOpen={course.registrationOpen} variant="quick" />
+                <CourseCardActions courseId={course.id} registrationOpen={course.registrationOpen} featured={course.featured} variant="quick" />
               </div>
             </div>
           </article>

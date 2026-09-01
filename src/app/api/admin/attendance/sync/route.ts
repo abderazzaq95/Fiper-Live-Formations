@@ -119,18 +119,28 @@ async function listParticipants(conferenceName: string, token: string) {
   } while (pageToken);
   return participants;
 }
-async function saveAttendance(supabase: Awaited<ReturnType<typeof createClient>>, registrationId: string, participant: JsonRecord, matchMethod: "name" | "email") {
+async function saveAttendance(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  registrationId: string | null,
+  sessionId: string,
+  participant: JsonRecord,
+  matchMethod: "name" | "email" | "unregistered",
+  participantName: string,
+  participantEmail: string,
+) {
   const joinedAt = text(participant.earliestStartTime);
   if (!joinedAt) return false;
   const leftAt = text(participant.latestEndTime) || null;
   const joinedMs = Date.parse(joinedAt);
   const leftMs = leftAt ? Date.parse(leftAt) : Date.now();
   const durationSeconds = Number.isFinite(joinedMs) && Number.isFinite(leftMs) ? Math.max(0, Math.round((leftMs - joinedMs) / 1000)) : 0;
-  const { data: existing, error: existingError } = await supabase.from("attendance_sessions").select("id,manually_overridden").eq("registration_id", registrationId).maybeSingle();
+  let existingQuery = supabase.from("attendance_sessions").select("id,manually_overridden").eq("session_id", sessionId).eq("meet_participant_id", text(participant.name));
+  existingQuery = registrationId ? existingQuery.eq("registration_id", registrationId) : existingQuery.is("registration_id", null);
+  const { data: existing, error: existingError } = await existingQuery.maybeSingle();
   if (existingError) throw existingError;
   if (existing?.manually_overridden) return false;
 
-  const payload = { registration_id: registrationId, meet_participant_id: text(participant.name), joined_at: joinedAt, left_at: leftAt, duration_seconds: durationSeconds, match_method: matchMethod };
+  const payload = { registration_id: registrationId, session_id: sessionId || null, participant_name: participantName || null, participant_email: participantEmail || null, meet_participant_id: text(participant.name), joined_at: joinedAt, left_at: leftAt, duration_seconds: durationSeconds, match_method: matchMethod };
   if (existing?.id) {
     const { error } = await supabase.from("attendance_sessions").update(payload).eq("id", existing.id);
     if (error) throw error;
@@ -140,7 +150,6 @@ async function saveAttendance(supabase: Awaited<ReturnType<typeof createClient>>
   }
   return true;
 }
-
 export async function POST() {
   const identity = await getDashboardIdentity();
   if (!identity) return Response.json({ message: "Unauthorized" }, { status: 401 });
@@ -175,13 +184,17 @@ export async function POST() {
       const participants = await listParticipants(text(conference.name), token);
       const used = new Set<string>();
       for (const participant of participants) {
-        const matchedByName = findRegistrationByName(participantDisplayName(participant), group, used);
+        const name = participantDisplayName(participant);
+        const matchedByName = findRegistrationByName(name, group, used);
         const email = matchedByName ? "" : await participantEmail(participant, token);
         const matched = matchedByName ?? findRegistrationByEmail(email, group, used);
-        if (!matched) continue;
-        const id = text(matched.id);
-        used.add(id);
-        if (await saveAttendance(supabase, id, participant, matchedByName ? "name" : "email")) synced += 1;
+        if (matched) {
+          const id = text(matched.id);
+          used.add(id);
+          if (await saveAttendance(supabase, id, text(record(group[0]?.session).id), participant, matchedByName ? "name" : "email", name, email)) synced += 1;
+        } else if (await saveAttendance(supabase, null, text(record(group[0]?.session).id), participant, "unregistered", name, email)) {
+          synced += 1;
+        }
       }
     }
 

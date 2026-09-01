@@ -21,6 +21,7 @@ export type DashboardCourse = {
   registrations: number;
   capacity: number;
   registrationOpen: boolean;
+  featured: boolean;
   status: "مفتوح" | "مغلق" | "قائمة انتظار" | "مسودة" | "مكتملة";
   tone: "green" | "amber" | "slate" | "red";
 };
@@ -58,6 +59,7 @@ function formatDate(value: string | null | undefined) {
 
 function mapPublicData(row: JsonRecord, translation: JsonRecord | undefined, session: JsonRecord | undefined, instructor: JsonRecord | undefined, registrationCount = 0): PublicCourseData {
   const title = asText(translation?.title, featuredCourse.title);
+  const heroHeading = asText(translation?.hero_heading, featuredCourse.heroHeading);
   const eyebrow = asText(translation?.eyebrow, featuredCourse.eyebrow);
   const description = asText(translation?.description, featuredCourse.description);
   const startsAt = asText(session?.starts_at, featuredCourse.isoStart);
@@ -74,6 +76,7 @@ function mapPublicData(row: JsonRecord, translation: JsonRecord | undefined, ses
     slug: asText(row.slug, featuredCourse.slug),
     coverImage: asText(row.cover_path, featuredCourse.coverImage),
     title,
+    heroHeading,
     eyebrow,
     description,
     isoStart: startsAt,
@@ -114,8 +117,9 @@ export async function getPublicCourse(): Promise<PublicCourseData> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id,slug,state,default_locale,instructor_id,cover_path,course_translations(locale,title,eyebrow,description,outcomes,agenda,audience,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open),instructors(name,title,bio,photo_path)")
+      .select("id,slug,state,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open),instructors(name,title,bio,photo_path)")
       .eq("state", "published")
+      .order("is_featured", { ascending: false })
       .order("published_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -153,7 +157,7 @@ export async function getPublicCourseById(id: string): Promise<PublicCourseData>
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id,slug,state,default_locale,instructor_id,cover_path,course_translations(locale,title,eyebrow,description,outcomes,agenda,audience,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open),instructors(name,title,bio,photo_path)")
+      .select("id,slug,state,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open),instructors(name,title,bio,photo_path)")
       .eq("id", id)
       .maybeSingle();
 
@@ -173,7 +177,7 @@ export async function getPublicCourseById(id: string): Promise<PublicCourseData>
 export async function listDashboardCourses(): Promise<DashboardCourse[]> {
   try {
     const supabase = await createClient();
-    const { data: courses, error } = await supabase.from("courses").select("id,default_locale,state,course_translations(locale,title),course_sessions(id,starts_at,capacity,registration_open)").order("created_at", { ascending: false });
+    const { data: courses, error } = await supabase.from("courses").select("id,default_locale,state,is_featured,course_translations(locale,title),course_sessions(id,starts_at,capacity,registration_open)").order("created_at", { ascending: false });
     if (error || !courses) return [];
 
     const sessionIds = courses.flatMap((course) => asArray((course as JsonRecord).course_sessions).map((session) => asText(session.id))).filter(Boolean);
@@ -190,7 +194,7 @@ export async function listDashboardCourses(): Promise<DashboardCourse[]> {
       const state = asText(row.state);
       const isOpen = session?.registration_open === true;
       const status = state === "draft" ? "مسودة" : state === "completed" ? "مكتملة" : count >= capacity && capacity > 0 && isOpen ? "قائمة انتظار" : isOpen ? "مفتوح" : "مغلق";
-      return { id: asText(row.id), title: asText(translation?.title, "دورة بدون عنوان"), date: formatDate(asText(session?.starts_at)), registrations: count, capacity, registrationOpen: isOpen, status, tone: status === "قائمة انتظار" ? "amber" : status === "مسودة" ? "slate" : status === "مغلق" ? "red" : "green" };
+      return { id: asText(row.id), featured: row.is_featured === true, title: asText(translation?.title, "دورة بدون عنوان"), date: formatDate(asText(session?.starts_at)), registrations: count, capacity, registrationOpen: isOpen, status, tone: status === "قائمة انتظار" ? "amber" : status === "مسودة" ? "slate" : status === "مغلق" ? "red" : "green" };
     });
   } catch {
     return [];
@@ -233,11 +237,12 @@ export type CourseEditorData = {
   title: string;
   eyebrow: string;
   description: string
+  heroHeading: string
   coverPath: string;
   faqs: Array<{ question: string; answer: string }>;
   registrationCount: number;
   instructor: { id: string; name: string; title: string; bio: string; image: string };
-  session: { id: string; startsAt: string; endsAt: string; timezone: string; deliveryType: string; platform: string; capacity: number; registrationOpen: boolean; waitlistEnabled: boolean; meetUrl: string };
+  session: { id: string; startsAt: string; endsAt: string; timezone: string; deliveryType: string; platform: string; capacity: number; registrationOpen: boolean; waitlistEnabled: boolean; meetUrl: string; venueName: string; venueAddress: string };
 };
 
 export async function getCourseEditorData(id: string): Promise<CourseEditorData | null> {
@@ -245,7 +250,7 @@ export async function getCourseEditorData(id: string): Promise<CourseEditorData 
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id,slug,state,default_locale,instructor_id,cover_path,course_translations(locale,title,eyebrow,description,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url),instructors(id,name,title,bio,photo_path)")
+      .select("id,slug,state,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address),instructors(id,name,title,bio,photo_path)")
       .eq("id", id)
       .maybeSingle();
     if (error || !data) return null;
@@ -261,6 +266,7 @@ export async function getCourseEditorData(id: string): Promise<CourseEditorData 
       slug: asText(row.slug),
       state: asText(row.state),
       title: asText(translation.title),
+      heroHeading: asText(translation.hero_heading, featuredCourse.heroHeading),
       eyebrow: asText(translation.eyebrow),
       description: asText(translation.description),
       coverPath: asText(row.cover_path),
@@ -278,6 +284,8 @@ export async function getCourseEditorData(id: string): Promise<CourseEditorData 
         registrationOpen: session.registration_open === true,
         waitlistEnabled: session.waitlist_enabled !== false,
         meetUrl: asText(session.meet_url),
+        venueName: asText(session.venue_name),
+        venueAddress: asText(session.venue_address),
       },
     };
   } catch {

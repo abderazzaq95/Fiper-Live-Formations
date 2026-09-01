@@ -59,7 +59,7 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
       .order("registered_at", { ascending: false });
     if (error || !data) return { rows: [], attended: 0, absent: 0, pending: 0, averageMinutes: 0, lastSync: "—" };
 
-    const rows = data.map((item) => {
+    const rows: AttendanceRow[] = data.map((item) => {
       const row = asRecord(item);
       const attendance = firstRecord(row.attendance_sessions);
       const durationMinutes = Math.max(0, Math.round((Number(attendance?.duration_seconds) || 0) / 60));
@@ -72,36 +72,45 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
       const startsAt = text(session?.starts_at);
       const isPending = !joinedAt && durationMinutes === 0 && Boolean(startsAt) && new Date(startsAt).getTime() > Date.now();
       return {
-        id: text(row.id),
-        name: text(row.full_name, "—"),
-        email: text(row.email, "—"),
-        course,
+        id: text(row.id), name: text(row.full_name, "—"), email: text(row.email, "—"), course,
         status: joinedAt || durationMinutes > 0 ? "attended" : isPending ? "pending" : "absent",
-        joinedAt: formatTime(joinedAt, "Europe/Berlin"),
-        joinedAtTurkey: formatTime(joinedAt, "Europe/Istanbul"),
-        leftAt: formatTime(text(attendance?.left_at), "Europe/Berlin"),
-        leftAtTurkey: formatTime(text(attendance?.left_at), "Europe/Istanbul"),
-        durationMinutes,
-        matchMethod: text(attendance?.match_method, "pending"),
+        joinedAt: formatTime(joinedAt, "Europe/Berlin"), joinedAtTurkey: formatTime(joinedAt, "Europe/Istanbul"),
+        leftAt: formatTime(text(attendance?.left_at), "Europe/Berlin"), leftAtTurkey: formatTime(text(attendance?.left_at), "Europe/Istanbul"),
+        durationMinutes, matchMethod: text(attendance?.match_method, "pending"),
       } satisfies AttendanceRow;
     });
+
+    const { data: unmatched } = await supabase
+      .from("attendance_sessions")
+      .select("id,participant_name,participant_email,joined_at,left_at,duration_seconds,match_method,course_sessions(starts_at,courses(default_locale,course_translations(locale,title)))")
+      .is("registration_id", null)
+      .order("created_at", { ascending: false });
+    for (const item of unmatched ?? []) {
+      const row = asRecord(item);
+      const session = firstRecord(row.course_sessions);
+      const courseRecord = firstRecord(session?.courses);
+      const translations = Array.isArray(courseRecord?.course_translations) ? courseRecord.course_translations.map(asRecord) : [];
+      const courseTranslation = translations.find((translation) => text(translation.locale) === text(courseRecord?.default_locale, "ar")) ?? translations[0];
+      const joinedAt = text(row.joined_at);
+      const durationMinutes = Math.max(0, Math.round((Number(row.duration_seconds) || 0) / 60));
+      rows.push({
+        id: text(row.id), name: text(row.participant_name, "غير مسجل"), email: text(row.participant_email, "غير معروف"),
+        course: text(courseTranslation?.title, "—"), status: joinedAt || durationMinutes > 0 ? "attended" : "absent",
+        joinedAt: formatTime(joinedAt, "Europe/Berlin"), joinedAtTurkey: formatTime(joinedAt, "Europe/Istanbul"),
+        leftAt: formatTime(text(row.left_at), "Europe/Berlin"), leftAtTurkey: formatTime(text(row.left_at), "Europe/Istanbul"),
+        durationMinutes, matchMethod: "unregistered",
+      });
+    }
+
     const attended = rows.filter((row) => row.status === "attended").length;
     const durations = rows.filter((row) => row.durationMinutes > 0).map((row) => row.durationMinutes);
     const pending = rows.filter((row) => row.status === "pending").length;
     const { data: latest } = await supabase.from("attendance_sessions").select("created_at").order("created_at", { ascending: false }).limit(1).maybeSingle();
-    return {
-      rows,
-      attended,
-      absent: rows.filter((row) => row.status === "absent").length,
-      pending,
-      averageMinutes: durations.length ? Math.round(durations.reduce((sum, value) => sum + value, 0) / durations.length) : 0,
-      lastSync: latest?.created_at ? formatDateTime(latest.created_at) : "not synced yet",
-    };
+    return { rows, attended, absent: rows.filter((row) => row.status === "absent").length, pending, averageMinutes: durations.length ? Math.round(durations.reduce((sum, value) => sum + value, 0) / durations.length) : 0, lastSync: latest?.created_at ? formatDateTime(latest.created_at) : "not synced yet" };
   } catch {
     return { rows: [], attended: 0, absent: 0, pending: 0, averageMinutes: 0, lastSync: "—" };
   }
 }
-
 export type DeliveryRow = {
   id: string;
   channel: "email" | "whatsapp";
