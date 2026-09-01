@@ -67,7 +67,10 @@ export function CourseCardActions({ courseId, registrationOpen, featured, varian
 
   if (variant === "menu") {
     return (
-      <div className="relative">
+      <div className="relative flex items-center gap-1.5">
+        <button type="button" aria-label={featured ? "إلغاء تمييز الدورة" : "تعيين كدورة مميزة"} title={featured ? "الدورة المميزة" : "تعيين كدورة مميزة"} onClick={() => void toggleFeatured()} disabled={busy !== null} className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${featured ? "bg-[#d99b1e] text-white" : "bg-black/15 text-white/80 hover:bg-black/30"}`}>
+          <Star size={15} className={featured ? "fill-current" : ""} />
+        </button>
         <button type="button" aria-label="خيارات الدورة" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-black/15 text-white/80 transition hover:bg-black/30">
           {busy ? <Loader2 size={15} className="animate-spin" /> : <MoreHorizontal size={17} />}
         </button>
