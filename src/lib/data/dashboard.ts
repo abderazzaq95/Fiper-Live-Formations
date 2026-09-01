@@ -197,3 +197,44 @@ export async function getDashboardReport(): Promise<ReportData> {
     return { total: 0, confirmed: 0, attended: 0, attendanceRate: 0, sources: [] };
   }
 }
+
+export type RegistrationGrowthPoint = {
+  date: string;
+  label: string;
+  count: number;
+};
+
+export async function getDashboardRegistrationGrowth(days = 30): Promise<RegistrationGrowthPoint[]> {
+  const safeDays = Math.max(7, Math.min(90, days));
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+  const start = new Date(end);
+  start.setDate(start.getDate() - safeDays + 1);
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("registrations")
+      .select("registered_at")
+      .gte("registered_at", start.toISOString())
+      .lte("registered_at", end.toISOString())
+      .order("registered_at", { ascending: true });
+    if (error) return [];
+    const totals = new Map<string, number>();
+    for (const item of data ?? []) {
+      const value = text(asRecord(item).registered_at);
+      if (!value) continue;
+      const key = new Date(value).toISOString().slice(0, 10);
+      totals.set(key, (totals.get(key) ?? 0) + 1);
+    }
+    let cumulative = 0;
+    return Array.from({ length: safeDays }, (_, index) => {
+      const date = new Date(start);
+      date.setDate(start.getDate() + index);
+      const key = date.toISOString().slice(0, 10);
+      cumulative += totals.get(key) ?? 0;
+      return { date: key, label: new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short" }).format(date).toUpperCase(), count: cumulative };
+    });
+  } catch {
+    return [];
+  }
+}

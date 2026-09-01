@@ -18,7 +18,8 @@ export type DashboardCourse = {
   id: string;
   title: string;
   date: string;
-  registrations: number;
+    startsAt: string;
+registrations: number;
   capacity: number;
   registrationOpen: boolean;
   featured: boolean;
@@ -80,6 +81,7 @@ function mapPublicData(row: JsonRecord, translation: JsonRecord | undefined, ses
     eyebrow,
     description,
     isoStart: startsAt,
+    isoEnd: endDate.toISOString(),
     dateLabel: formatDate(startsAt),
     timeLabel: new Intl.DateTimeFormat("ar", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: asText(session?.timezone, "Africa/Casablanca") }).format(startDate),
     duration: String(durationMinutes) + " دقيقة",
@@ -117,31 +119,41 @@ export async function getPublicCourse(): Promise<PublicCourseData> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id,slug,state,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open),instructors(name,title,bio,photo_path)")
+      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open),instructors(name,title,bio,photo_path)")
       .eq("state", "published")
       .order("is_featured", { ascending: false })
       .order("published_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(50);
 
-    if (error || !data) return { course: featuredCourse, outcomes: learningOutcomes, agenda: demoAgenda, audience: demoAudience, faqs: demoFaqs };
+    if (error || !data?.length) return { course: featuredCourse, outcomes: learningOutcomes, agenda: demoAgenda, audience: demoAudience, faqs: demoFaqs };
 
-    const row = data as unknown as JsonRecord;
+    const rows = data as unknown as JsonRecord[];
+    const now = Date.now();
+    const candidates = rows.map((row) => {
+      const session = firstRecord(asArray(row.course_sessions));
+      const start = new Date(asText(session?.starts_at, featuredCourse.isoStart)).getTime();
+      const endValue = asText(session?.ends_at);
+      const end = endValue ? new Date(endValue).getTime() : start + 90 * 60 * 1000;
+      return { row, session, start, end, featured: row.is_featured === true };
+    });
+    const selected = candidates.filter((candidate) => candidate.end > now).sort((a, b) => Number(b.featured) - Number(a.featured) || a.start - b.start)[0] ?? candidates.sort((a, b) => Number(b.featured) - Number(a.featured) || b.start - a.start)[0];
+    if (!selected) return { course: featuredCourse, outcomes: learningOutcomes, agenda: demoAgenda, audience: demoAudience, faqs: demoFaqs };
+
+    const row = selected.row;
     const translations = asArray(row.course_translations);
     const locale = asText(row.default_locale, "ar");
     const translation = translations.find((item) => item.locale === locale) ?? translations[0];
-    const sessions = asArray(row.course_sessions);
     const instructor = firstRecord(row.instructors);
     let registrationCount = 0;
     const serviceUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const sessionId = asText(sessions[0]?.id);
+    const sessionId = asText(selected.session?.id);
     if (serviceUrl && serviceKey && sessionId) {
       const admin = createSupabaseClient(serviceUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
       const result = await admin.from("registrations").select("id", { count: "exact", head: true }).eq("session_id", sessionId).in("status", ["confirmed", "attended"]);
       registrationCount = result.count ?? 0;
     }
-    return mapPublicData(row, translation, sessions[0], instructor, registrationCount);
+    return mapPublicData(row, translation, selected.session, instructor, registrationCount);
   } catch {
     return { course: featuredCourse, outcomes: learningOutcomes, agenda: demoAgenda, audience: demoAudience, faqs: demoFaqs };
   }
@@ -157,7 +169,7 @@ export async function getPublicCourseById(id: string): Promise<PublicCourseData>
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id,slug,state,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open),instructors(name,title,bio,photo_path)")
+      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open),instructors(name,title,bio,photo_path)")
       .eq("id", id)
       .maybeSingle();
 
@@ -194,7 +206,7 @@ export async function listDashboardCourses(): Promise<DashboardCourse[]> {
       const state = asText(row.state);
       const isOpen = session?.registration_open === true;
       const status = state === "draft" ? "مسودة" : state === "completed" ? "مكتملة" : count >= capacity && capacity > 0 && isOpen ? "قائمة انتظار" : isOpen ? "مفتوح" : "مغلق";
-      return { id: asText(row.id), featured: row.is_featured === true, title: asText(translation?.title, "دورة بدون عنوان"), date: formatDate(asText(session?.starts_at)), registrations: count, capacity, registrationOpen: isOpen, status, tone: status === "قائمة انتظار" ? "amber" : status === "مسودة" ? "slate" : status === "مغلق" ? "red" : "green" };
+      return { id: asText(row.id), featured: row.is_featured === true, title: asText(translation?.title, "دورة بدون عنوان"), date: formatDate(asText(session?.starts_at)), startsAt: asText(session?.starts_at), registrations: count, capacity, registrationOpen: isOpen, status, tone: status === "قائمة انتظار" ? "amber" : status === "مسودة" ? "slate" : status === "مغلق" ? "red" : "green" };
     });
   } catch {
     return [];
@@ -250,7 +262,7 @@ export async function getCourseEditorData(id: string): Promise<CourseEditorData 
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id,slug,state,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address),instructors(id,name,title,bio,photo_path)")
+      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address),instructors(id,name,title,bio,photo_path)")
       .eq("id", id)
       .maybeSingle();
     if (error || !data) return null;

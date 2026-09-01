@@ -16,6 +16,10 @@ function getFacts(course: Course) {
 export function CourseHero({ course = featuredCourse }: { course?: Course }) {
   const percentage = Math.round((course.registrations / course.capacity) * 100);
   const heroLines = course.heroHeading.split(/\r?\n/).filter(Boolean);
+  const now = new Date().getTime();
+  const startsAt = new Date(course.isoStart).getTime();
+  const endsAt = new Date(course.isoEnd).getTime();
+  const scheduleState = now < startsAt ? "upcoming" : now <= endsAt ? "live" : "ended";
 
   return (
     <section className="noise-grid relative min-h-screen overflow-hidden bg-[#031a2d]">
@@ -75,12 +79,12 @@ export function CourseHero({ course = featuredCourse }: { course?: Course }) {
                 <div className="rounded-2xl border border-white/10 bg-[#031a2d]/85 p-2.5 sm:p-3 backdrop-blur-xl">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <p className="text-[10px] font-semibold text-[#7594ab]">الانطلاقة بعد</p>
+                      <p className="text-[10px] font-semibold text-[#7594ab]">{scheduleState === "upcoming" ? "الانطلاقة بعد" : scheduleState === "live" ? "الحالة الآن" : "حالة الدورة"}</p>
                       <p className="mt-1 text-xs font-bold text-white sm:text-sm">{course.dateLabel}</p>
                     </div>
-                    <span className="rounded-xl border border-[#C32828]/25 bg-[#C32828]/10 px-2 py-1.5 text-[10px] sm:px-3 sm:py-2 font-bold text-[#E6A2A2]">مباشر</span>
+                    <span className={`rounded-xl border px-2 py-1.5 text-[10px] sm:px-3 sm:py-2 font-bold ${scheduleState === "live" ? "border-[#23c99a]/25 bg-[#23c99a]/10 text-[#8af0cb]" : scheduleState === "ended" ? "border-white/15 bg-white/10 text-[#a9bdca]" : "border-[#C32828]/25 bg-[#C32828]/10 text-[#E6A2A2]"}`}>{scheduleState === "live" ? "مباشر" : scheduleState === "ended" ? "انتهت" : "قادمة"}</span>
                   </div>
-                  <div className="mt-2 sm:mt-3"><Countdown target={course.isoStart} /></div>
+                  <div className="mt-2 sm:mt-3">{scheduleState === "upcoming" ? <Countdown target={course.isoStart} /> : <div className="flex h-[66px] items-center justify-center rounded-2xl border border-white/10 bg-[#031a2d]/75 px-3 text-center text-sm font-bold text-white">{scheduleState === "live" ? "الدورة جارية الآن" : "انتهت هذه الدورة"}</div>}</div>
                 </div>
               </div>
             </div>

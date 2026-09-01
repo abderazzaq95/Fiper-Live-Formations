@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowUpLeft, CalendarDays, CheckCircle2, Clock3, MoreHorizontal, UserRoundCheck, UsersRound } from "lucide-react";
 import { listDashboardCourses, listDashboardRegistrations } from "@/lib/data/courses";
+import { getDashboardRegistrationGrowth } from "@/lib/data/dashboard";
 
 const toneMap: Record<string, string> = {
   blue: "bg-[#eaf5fc] text-[#1574ad]",
@@ -16,8 +17,14 @@ const statusMap: Record<string, string> = {
 };
 
 export async function Overview() {
-  const dashboardCourses = await listDashboardCourses();
-  const registrations = await listDashboardRegistrations();
+  const [dashboardCourses, registrations, growth] = await Promise.all([listDashboardCourses(), listDashboardRegistrations(), getDashboardRegistrationGrowth(30)]);
+  const nextCourse = dashboardCourses.filter((course) => course.status !== "مسودة" && course.startsAt && new Date(course.startsAt).getTime() > new Date().getTime()).sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())[0];
+  const daysUntilNext = nextCourse ? Math.max(0, Math.ceil((new Date(nextCourse.startsAt).getTime() - new Date().getTime()) / 86_400_000)) : null;
+  const growthValues = growth.map((point) => point.count);
+  const maxGrowth = Math.max(1, ...growthValues);
+  const chartPoints = growth.length > 1 ? growth.map((point, index) => `${(index / (growth.length - 1)) * 720},${210 - (point.count / maxGrowth) * 180}`).join(" ") : "0,210 720,210";
+  const areaPoints = `${chartPoints} 720,220 0,220`;
+  const todayLabel = new Intl.DateTimeFormat("ar", { dateStyle: "full" }).format(new Date());
   const stats = [
   { label: "إجمالي التسجيلات", value: String(registrations.length), change: "+18.4%", note: "مقارنة بالشهر الماضي", icon: UsersRound, tone: "blue" },
   { label: "الدورات النشطة", value: String(dashboardCourses.filter((course) => course.status !== "مسودة").length).padStart(2, "0"), change: "+1", note: "دورة جديدة هذا الشهر", icon: CalendarDays, tone: "red" },
@@ -27,8 +34,8 @@ export async function Overview() {
   return (
     <div className="mx-auto max-w-[1450px]">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div><p className="text-[10px] font-bold text-[#C32828]">الخميس، 27 أغسطس 2026</p><h1 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-[#102536] sm:text-3xl">ملخص لوحة التحكم</h1><p className="mt-2 text-xs text-[#788d9c]">إليك ملخص أداء دورات Fiper اليوم.</p></div>
-        <div className="flex items-center gap-2 rounded-xl border border-[#dce5eb] bg-white px-4 py-3 text-[10px] font-semibold text-[#5c7282]"><Clock3 size={15} className="text-[#C32828]" /> الدورة القادمة بعد 9 أيام</div>
+        <div><p className="text-[10px] font-bold text-[#C32828]">{todayLabel}</p><h1 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-[#102536] sm:text-3xl">ملخص لوحة التحكم</h1><p className="mt-2 text-xs text-[#788d9c]">إليك ملخص أداء دورات Fiper اليوم.</p></div>
+        <div className="flex items-center gap-2 rounded-xl border border-[#dce5eb] bg-white px-4 py-3 text-[10px] font-semibold text-[#5c7282]"><Clock3 size={15} className="text-[#C32828]" /> {daysUntilNext === null ? "لا توجد دورة قادمة" : `الدورة القادمة بعد ${daysUntilNext} يوم`}</div>
       </div>
 
       <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -49,14 +56,14 @@ export async function Overview() {
             <select aria-label="فترة التقرير" className="rounded-xl border border-[#dfe7ec] bg-[#f8fafb] px-3 py-2 text-[9px] text-[#5c7282]"><option>آخر 30 يوماً</option><option>آخر 7 أيام</option></select>
           </div>
           <div className="mt-6 overflow-hidden rounded-2xl bg-[#f8fafb] p-3 sm:p-5">
-            <svg viewBox="0 0 720 220" className="h-[230px] w-full" role="img" aria-label="رسم يوضح نمو التسجيلات">
+            <svg viewBox="0 0 720 220" className="h-[230px] w-full" role="img" aria-label="نمو التسجيلات الفعلي">
               <defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1779b5" stopOpacity=".24" /><stop offset="100%" stopColor="#1779b5" stopOpacity="0" /></linearGradient></defs>
               {[30, 75, 120, 165, 210].map((y) => <line key={y} x1="0" x2="720" y1={y} y2={y} stroke="#dce7ed" strokeWidth="1" strokeDasharray="4 6" />)}
-              <path d="M0 188 C55 175 82 182 122 156 S205 148 244 129 S322 142 365 105 S445 105 486 78 S565 95 610 57 S675 44 720 25 L720 220 L0 220 Z" fill="url(#area)" />
-              <path d="M0 188 C55 175 82 182 122 156 S205 148 244 129 S322 142 365 105 S445 105 486 78 S565 95 610 57 S675 44 720 25" fill="none" stroke="#1779b5" strokeWidth="4" strokeLinecap="round" />
-              <circle cx="610" cy="57" r="6" fill="white" stroke="#C32828" strokeWidth="4" />
+              <polygon points={areaPoints} fill="url(#area)" />
+              <polyline points={chartPoints} fill="none" stroke="#1779b5" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+              {growth.length > 0 && <circle cx={(growth.length - 1) / Math.max(1, growth.length - 1) * 720} cy={210 - (growth[growth.length - 1].count / maxGrowth) * 180} r="6" fill="white" stroke="#C32828" strokeWidth="4" />}
             </svg>
-            <div className="latin flex justify-between px-2 text-[8px] text-[#91a2ae]"><span>01 AUG</span><span>08 AUG</span><span>15 AUG</span><span>22 AUG</span><span>27 AUG</span></div>
+            <div className="latin flex justify-between px-2 text-[8px] text-[#91a2ae]">{growth.length ? <><span>{growth[0].label}</span><span>{growth[Math.floor(growth.length * .25)].label}</span><span>{growth[Math.floor(growth.length * .5)].label}</span><span>{growth[Math.floor(growth.length * .75)].label}</span><span>{growth[growth.length - 1].label}</span></> : <span>لا توجد تسجيلات في الفترة المحددة</span>}</div>
           </div>
         </section>
 

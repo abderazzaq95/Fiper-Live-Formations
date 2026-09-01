@@ -9,6 +9,7 @@ export type Course = {
   description: string;
   dateLabel: string;
   isoStart: string;
+  isoEnd: string;
   timeLabel: string;
   duration: string;
   type: "online" | "onsite";
@@ -30,6 +31,7 @@ export const featuredCourse: Course = {
   description: "من قراءة حركة السعر إلى بناء خطة تداول واضحة — تجربة عملية تمنحك الأساس الصحيح لفهم السوق وإدارة قراراتك بثقة.",
   dateLabel: "الأحد، 6 سبتمبر 2026",
   isoStart: "2026-09-06T20:00:00+01:00",
+  isoEnd: "2026-09-06T21:30:00+01:00",
   timeLabel: "20:00 بتوقيت المغرب",
   duration: "90 دقيقة",
   type: "online",
