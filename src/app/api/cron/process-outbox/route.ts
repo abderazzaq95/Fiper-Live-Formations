@@ -19,8 +19,8 @@ async function sendResend(to: string, name: string, title: string, startsAt: str
     body: JSON.stringify({
       from,
       to: [to],
-      subject: templateKey === "meeting_reminder" ? `Meeting link - ${title}` : `Registration confirmed - ${title}`,
-      html: templateKey === "meeting_reminder" ? `<div dir="rtl" lang="ar"><p>Hello ${escapeHtml(name)},</p><p>${escapeHtml(title)}</p><p>${escapeHtml(startsAt)}</p>${reminderHtml}<p>Fiper</p></div>` : `<div dir="rtl" lang="ar"><p>\u0645\u0631\u062d\u0628\u0627 ${escapeHtml(name)}\u060c</p><p>\u062a\u0645 \u062a\u0623\u0643\u064a\u062f \u062a\u0633\u062c\u064a\u0644\u0643 \u0641\u064a \u062f\u0648\u0631\u0629 <strong>${escapeHtml(title)}</strong>.</p><p>\u0645\u0648\u0639\u062f \u0627\u0644\u062f\u0648\u0631\u0629: ${escapeHtml(startsAt)}</p><p>\u0633\u0646\u0631\u0633\u0644 \u0644\u0643 \u0631\u0627\u0628\u0637 \u0627\u0644\u062f\u062e\u0648\u0644 \u0648\u0627\u0644\u062a\u0630\u0643\u064a\u0631\u0627\u062a \u0642\u0628\u0644 \u0627\u0644\u0645\u0648\u0639\u062f.</p><p>Fiper</p></div>`,
+      subject: templateKey !== "registration_confirmation" ? `Meeting link - ${title}` : `Registration confirmed - ${title}`,
+      html: templateKey !== "registration_confirmation" ? `<div dir="rtl" lang="ar"><p>Hello ${escapeHtml(name)},</p><p>${escapeHtml(title)}</p><p>${escapeHtml(startsAt)}</p>${reminderHtml}<p>Fiper</p></div>` : `<div dir="rtl" lang="ar"><p>\u0645\u0631\u062d\u0628\u0627 ${escapeHtml(name)}\u060c</p><p>\u062a\u0645 \u062a\u0623\u0643\u064a\u062f \u062a\u0633\u062c\u064a\u0644\u0643 \u0641\u064a \u062f\u0648\u0631\u0629 <strong>${escapeHtml(title)}</strong>.</p><p>\u0645\u0648\u0639\u062f \u0627\u0644\u062f\u0648\u0631\u0629: ${escapeHtml(startsAt)}</p><p>\u0633\u0646\u0631\u0633\u0644 \u0644\u0643 \u0631\u0627\u0628\u0637 \u0627\u0644\u062f\u062e\u0648\u0644 \u0648\u0627\u0644\u062a\u0630\u0643\u064a\u0631\u0627\u062a \u0642\u0628\u0644 \u0627\u0644\u0645\u0648\u0639\u062f.</p><p>Fiper</p></div>`,
     }),
   });
   const body = await response.json().catch(() => ({})) as JsonRecord;
@@ -34,12 +34,12 @@ async function sendTwilio(to: string, name: string, title: string, startsAt: str
   const from = process.env.TWILIO_WHATSAPP_FROM;
   if (!sid || !token || !from) return { configured: false as const, reason: "Twilio is not configured (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_WHATSAPP_FROM are required)." };
   const body = new URLSearchParams({ From: from.startsWith("whatsapp:") ? from : `whatsapp:${from}`, To: `whatsapp:${to}` });
-  const contentSid = templateKey === "meeting_reminder" ? process.env.TWILIO_WHATSAPP_REMINDER_CONTENT_SID : process.env.TWILIO_WHATSAPP_CONTENT_SID;
+  const contentSid = templateKey !== "registration_confirmation" ? process.env.TWILIO_WHATSAPP_REMINDER_CONTENT_SID : process.env.TWILIO_WHATSAPP_CONTENT_SID;
   if (contentSid) {
     body.set("ContentSid", contentSid);
     body.set("ContentVariables", JSON.stringify({ "1": name, "2": title, "3": startsAt, "4": meetUrl }));
   } else {
-    body.set("Body", templateKey === "meeting_reminder" ? `Meeting link for ${title} at ${startsAt}: ${meetUrl}` : `Registration confirmed for ${name}: ${title}. Time: ${startsAt}.`);
+    body.set("Body", templateKey !== "registration_confirmation" ? `Meeting link for ${title} at ${startsAt}: ${meetUrl}` : `Registration confirmed for ${name}: ${title}. Time: ${startsAt}.`);
   }
   const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(sid)}/Messages.json`, {
     method: "POST",
@@ -81,6 +81,33 @@ async function processDelivery(supabase: ReturnType<typeof createAdminClient>, d
   return { id, state: "sent" };
 }
 
+function localMorningTimestamp(startAtMs: number, timezone: string) {
+  const format = new Intl.DateTimeFormat("en-US", { timeZone: timezone || "UTC", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+  const parts = Object.fromEntries(format.formatToParts(new Date(startAtMs)).filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+  const naive = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), 9, 0, 0);
+  const offsetParts = Object.fromEntries(format.formatToParts(new Date(naive)).filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+  const localAsUtc = Date.UTC(Number(offsetParts.year), Number(offsetParts.month) - 1, Number(offsetParts.day), Number(offsetParts.hour), Number(offsetParts.minute), Number(offsetParts.second));
+  return naive - (localAsUtc - naive);
+}
+
+async function scheduleReminders(supabase: ReturnType<typeof createAdminClient>, registration: JsonRecord) {
+  if (text(registration.status) !== "confirmed") return;
+  const session = first(registration.course_sessions);
+  const startsAtMs = Date.parse(text(session?.starts_at));
+  const meetUrl = text(session?.meet_url);
+  if (!meetUrl || !Number.isFinite(startsAtMs) || startsAtMs <= Date.now()) return;
+  const timezone = text(session?.timezone, "UTC");
+  const reminders = [
+    ["course_reminder_24h", startsAtMs - 24 * 60 * 60 * 1000],
+    ["course_reminder_day", localMorningTimestamp(startsAtMs, timezone)],
+    ["meeting_reminder", startsAtMs - 10 * 60 * 1000],
+  ] as const;
+  for (const [templateKey, timestamp] of reminders) {
+    const scheduledFor = new Date(Math.max(Date.now(), timestamp)).toISOString();
+    await ensureDelivery(supabase, registration, "email", templateKey, scheduledFor);
+    if (registration.whatsapp_consent) await ensureDelivery(supabase, registration, "whatsapp", templateKey, scheduledFor);
+  }
+}
 async function run() {
   const supabase = createAdminClient();
   const { data: events } = await supabase.from("outbox_events").select("id,aggregate_id,payload,attempts").is("processed_at", null).lte("available_at", new Date().toISOString()).order("created_at", { ascending: true }).limit(25);
@@ -93,30 +120,14 @@ async function run() {
     const row = record(registration);
     await ensureDelivery(supabase, row, "email");
     if (row.whatsapp_consent) await ensureDelivery(supabase, row, "whatsapp");
-    if (text(row.status) === "confirmed") {
-      const session = first(row.course_sessions);
-      const startsAtMs = Date.parse(text(session?.starts_at));
-      const meetUrl = text(session?.meet_url);
-      if (meetUrl && Number.isFinite(startsAtMs) && startsAtMs > Date.now()) {
-        const reminderAt = new Date(Math.max(Date.now(), startsAtMs - 10 * 60 * 1000)).toISOString();
-        await ensureDelivery(supabase, row, "email", "meeting_reminder", reminderAt);
-        if (row.whatsapp_consent) await ensureDelivery(supabase, row, "whatsapp", "meeting_reminder", reminderAt);
-      }
-    }
+    await scheduleReminders(supabase, row);
     await supabase.from("outbox_events").update({ processed_at: new Date().toISOString(), attempts: Number(event.attempts ?? 0) + 1 }).eq("id", event.id);
     created += 1;
   }
   // Reconcile reminders on every run as well, so adding a Meet URL after registration still schedules it.
   const { data: confirmedRegistrations } = await supabase.from("registrations").select("id,email,phone_e164,whatsapp_consent,status,course_sessions(starts_at,meet_url)").eq("status", "confirmed").limit(200);
   for (const registration of confirmedRegistrations ?? []) {
-    const row = record(registration);
-    const session = first(row.course_sessions);
-    const startsAtMs = Date.parse(text(session?.starts_at));
-    const meetUrl = text(session?.meet_url);
-    if (!meetUrl || !Number.isFinite(startsAtMs) || startsAtMs <= Date.now()) continue;
-    const reminderAt = new Date(Math.max(Date.now(), startsAtMs - 10 * 60 * 1000)).toISOString();
-    await ensureDelivery(supabase, row, "email", "meeting_reminder", reminderAt);
-    if (row.whatsapp_consent) await ensureDelivery(supabase, row, "whatsapp", "meeting_reminder", reminderAt);
+    await scheduleReminders(supabase, record(registration));
   }
   const { data: queued } = await supabase.from("message_deliveries").select("id,registration_id,channel,template_key,state,attempt_count").in("state", ["scheduled", "queued"]).lte("scheduled_for", new Date().toISOString()).order("created_at", { ascending: true }).limit(50);
   const results = [];
