@@ -102,8 +102,10 @@ async function scheduleReminders(supabase: ReturnType<typeof createAdminClient>,
     ["course_reminder_day", localMorningTimestamp(startsAtMs, timezone)],
     ["meeting_reminder", startsAtMs - 10 * 60 * 1000],
   ] as const;
+  const now = Date.now();
   for (const [templateKey, timestamp] of reminders) {
-    const scheduledFor = new Date(Math.max(Date.now(), timestamp)).toISOString();
+    if (timestamp <= now) continue;
+    const scheduledFor = new Date(timestamp).toISOString();
     await ensureDelivery(supabase, registration, "email", templateKey, scheduledFor);
     if (registration.whatsapp_consent) await ensureDelivery(supabase, registration, "whatsapp", templateKey, scheduledFor);
   }
@@ -129,9 +131,10 @@ async function run() {
   for (const registration of confirmedRegistrations ?? []) {
     await scheduleReminders(supabase, record(registration));
   }
-  const { data: queued } = await supabase.from("message_deliveries").select("id,registration_id,channel,template_key,state,attempt_count").in("state", ["scheduled", "queued"]).lte("scheduled_for", new Date().toISOString()).order("created_at", { ascending: true }).limit(50);
+  const { data: queued } = await supabase.from("message_deliveries").select("id,registration_id,channel,template_key,state,scheduled_for,attempt_count").in("state", ["scheduled", "queued"]).lte("scheduled_for", new Date().toISOString()).order("created_at", { ascending: true }).limit(50);
   const results = [];
   for (const delivery of queued ?? []) {
+    if (text(delivery.template_key) !== "registration_confirmation" && Date.parse(text(delivery.scheduled_for)) < Date.now()) continue;
     try { results.push(await processDelivery(supabase, record(delivery))); } catch (error) { const reason = error instanceof Error ? error.message : "Provider request failed"; await supabase.from("message_deliveries").update({ state: "failed", failure_reason: reason, attempt_count: Number(delivery.attempt_count ?? 0) + 1, updated_at: new Date().toISOString() }).eq("id", delivery.id); results.push({ id: delivery.id, state: "failed", reason }); }
   }
   return { processedEvents: created, deliveries: results };
