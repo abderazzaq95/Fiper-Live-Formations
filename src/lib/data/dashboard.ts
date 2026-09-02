@@ -27,11 +27,22 @@ function formatTime(value: string | null | undefined, timeZone: string) {
   return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone }).format(new Date(value));
 }
 
+function localDateKey(value: string | null | undefined, timeZone: string) {
+  if (!value) return "";
+  return new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone }).format(new Date(value));
+}
+
+function formatCourseDate(value: string | null | undefined) {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat("ar", { dateStyle: "medium", timeZone: "Europe/Berlin" }).format(new Date(value));
+}
+
 export type AttendanceRow = {
   id: string;
   name: string;
   email: string;
   course: string;
+  courseDate: string;
   status: "attended" | "absent" | "pending";
   joinedAt: string;
   joinedAtTurkey: string;
@@ -61,22 +72,28 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
 
     const rows: AttendanceRow[] = data.map((item) => {
       const row = asRecord(item);
-      const attendance = firstRecord(row.attendance_sessions);
-      const durationMinutes = Math.max(0, Math.round((Number(attendance?.duration_seconds) || 0) / 60));
-      const joinedAt = text(attendance?.joined_at);
+      const attendanceRecords = Array.isArray(row.attendance_sessions) ? row.attendance_sessions.map(asRecord) : [];
       const session = firstRecord(row.course_sessions);
       const courseRecord = firstRecord(session?.courses);
+      const startsAt = text(session?.starts_at);
+      const courseAttendance = attendanceRecords
+        .filter((item) => {
+          const joinedAt = text(item.joined_at);
+          return !joinedAt || !startsAt || localDateKey(joinedAt, "Europe/Berlin") === localDateKey(startsAt, "Europe/Berlin");
+        })
+        .sort((a, b) => text(b.joined_at).localeCompare(text(a.joined_at)))[0];
+      const durationMinutes = Math.max(0, Math.round((Number(courseAttendance?.duration_seconds) || 0) / 60));
+      const joinedAt = text(courseAttendance?.joined_at);
       const translations = Array.isArray(courseRecord?.course_translations) ? courseRecord.course_translations.map(asRecord) : [];
       const courseTranslation = translations.find((item) => text(item.locale) === text(courseRecord?.default_locale, "ar")) ?? translations[0];
       const course = text(courseTranslation?.title, text(courseRecord?.id, "—"));
-      const startsAt = text(session?.starts_at);
       const isPending = !joinedAt && durationMinutes === 0 && Boolean(startsAt) && new Date(startsAt).getTime() > Date.now();
       return {
-        id: text(row.id), name: text(row.full_name, "—"), email: text(row.email, "—"), course,
+        id: text(row.id), name: text(row.full_name, "—"), email: text(row.email, "—"), course, courseDate: formatCourseDate(startsAt),
         status: joinedAt || durationMinutes > 0 ? "attended" : isPending ? "pending" : "absent",
         joinedAt: formatTime(joinedAt, "Europe/Berlin"), joinedAtTurkey: formatTime(joinedAt, "Europe/Istanbul"),
-        leftAt: formatTime(text(attendance?.left_at), "Europe/Berlin"), leftAtTurkey: formatTime(text(attendance?.left_at), "Europe/Istanbul"),
-        durationMinutes, matchMethod: text(attendance?.match_method, "pending"),
+        leftAt: formatTime(text(courseAttendance?.left_at), "Europe/Berlin"), leftAtTurkey: formatTime(text(courseAttendance?.left_at), "Europe/Istanbul"),
+        durationMinutes, matchMethod: text(courseAttendance?.match_method, "pending"),
       } satisfies AttendanceRow;
     });
 
@@ -92,10 +109,12 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
       const translations = Array.isArray(courseRecord?.course_translations) ? courseRecord.course_translations.map(asRecord) : [];
       const courseTranslation = translations.find((translation) => text(translation.locale) === text(courseRecord?.default_locale, "ar")) ?? translations[0];
       const joinedAt = text(row.joined_at);
+      const startsAt = text(session?.starts_at);
+      if (joinedAt && startsAt && localDateKey(joinedAt, "Europe/Berlin") !== localDateKey(startsAt, "Europe/Berlin")) continue;
       const durationMinutes = Math.max(0, Math.round((Number(row.duration_seconds) || 0) / 60));
       rows.push({
         id: text(row.id), name: text(row.participant_name, "غير مسجل"), email: text(row.participant_email, "غير معروف"),
-        course: text(courseTranslation?.title, "—"), status: joinedAt || durationMinutes > 0 ? "attended" : "absent",
+        course: text(courseTranslation?.title, "—"), courseDate: formatCourseDate(startsAt), status: joinedAt || durationMinutes > 0 ? "attended" : "absent",
         joinedAt: formatTime(joinedAt, "Europe/Berlin"), joinedAtTurkey: formatTime(joinedAt, "Europe/Istanbul"),
         leftAt: formatTime(text(row.left_at), "Europe/Berlin"), leftAtTurkey: formatTime(text(row.left_at), "Europe/Istanbul"),
         durationMinutes, matchMethod: "unregistered",
