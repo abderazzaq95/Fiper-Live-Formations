@@ -1,5 +1,12 @@
-import { UsersRound } from "lucide-react";
-import { RegistrationsTable } from "@/components/dashboard/registrations-table";
+import { RegistrationsDashboard } from "@/components/dashboard/registrations-dashboard";
 import { listDashboardRegistrations } from "@/lib/data/courses";
-const t={eyebrow:"\u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0645\u0634\u0627\u0631\u0643\u064a\u0646",title:"\u0627\u0644\u062a\u0633\u062c\u064a\u0644\u0627\u062a",desc:"\u062a\u0627\u0628\u0639 \u062d\u0627\u0644\u0629 \u0643\u0644 \u0645\u0634\u0627\u0631\u0643\u060c \u0648\u0627\u0628\u062d\u062b \u0648\u0641\u0644\u062a\u0631 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a." ,total:"\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0645\u0633\u062c\u0644\u064a\u0646",confirmed:"\u0627\u0644\u0645\u0624\u0643\u062f\u0648\u0646",wait:"\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631"} as const;
-export default async function RegistrationsPage(){const registrations=await listDashboardRegistrations();const confirmed=registrations.filter(p=>p.status==="\u0645\u0624\u0643\u062f").length;const waitlisted=registrations.filter(p=>p.status==="\u0642\u0627\u0626\u0645\u0629 \u0627\u0646\u062a\u0638\u0627\u0631").length;const cards=[[t.total,String(registrations.length),"bg-[#eaf5fc] text-[#1574ad]"],[t.confirmed,String(confirmed),"bg-[#eaf8f3] text-[#168a65]"],[t.wait,String(waitlisted),"bg-[#fff6df] text-[#a36b00]"]] as const;return <div className="mx-auto max-w-[1450px]"><div><p className="text-[10px] font-bold text-[#C32828]">{t.eyebrow}</p><h1 className="mt-2 text-2xl font-bold tracking-[-0.035em] sm:text-3xl">{t.title}</h1><p className="mt-2 text-xs text-[#788d9c]">{t.desc}</p></div><div className="mt-7 grid gap-4 sm:grid-cols-3">{cards.map(([label,value,tone])=><div key={label} className="flex items-center gap-4 rounded-[18px] border border-[#dfe7ec] bg-white p-5"><span className={`flex h-11 w-11 items-center justify-center rounded-[14px] ${tone}`}><UsersRound size={19}/></span><span><small className="text-[9px] text-[#7f929f]">{label}</small><strong className="latin mt-1 block text-xl">{value}</strong></span></div>)}</div><RegistrationsTable registrations={registrations}/></div>}
+
+const t = { eyebrow: "قاعدة المشاركين", title: "التسجيلات", desc: "تابع حالة كل مشارك، وابحث وفلتر البيانات." } as const;
+
+export default async function RegistrationsPage() {
+  const registrations = await listDashboardRegistrations();
+  return <div className="mx-auto max-w-[1450px]">
+    <div><p className="text-[10px] font-bold text-[#C32828]">{t.eyebrow}</p><h1 className="mt-2 text-2xl font-bold tracking-[-0.035em] sm:text-3xl">{t.title}</h1><p className="mt-2 text-xs text-[#788d9c]">{t.desc}</p></div>
+    <div className="mt-7"><RegistrationsDashboard registrations={registrations} /></div>
+  </div>;
+}
