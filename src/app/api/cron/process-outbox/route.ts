@@ -65,7 +65,7 @@ async function ensureDelivery(supabase: ReturnType<typeof createAdminClient>, re
 
 async function processDelivery(supabase: ReturnType<typeof createAdminClient>, delivery: JsonRecord) {
   const id = text(delivery.id);
-  const { data: registrationData, error } = await supabase.from("registrations").select("id,full_name,email,phone_e164,whatsapp_consent,course_sessions(starts_at,timezone,meet_url,courses(course_translations(title,locale)))").eq("id", text(delivery.registration_id)).maybeSingle();
+  const { data: registrationData, error } = await supabase.from("registrations").select("id,full_name,email,phone_e164,whatsapp_consent,course_sessions(starts_at,timezone,meet_url,courses(state,is_featured,course_translations(title,locale)))").eq("id", text(delivery.registration_id)).maybeSingle();
   if (error || !registrationData) return { id, state: "failed", reason: "Registration not found" };
   const registration = record(registrationData);
   const session = first(registration.course_sessions);
@@ -77,6 +77,11 @@ async function processDelivery(supabase: ReturnType<typeof createAdminClient>, d
   const startsAt = formatStartsAt(text(session?.starts_at, ""), text(session?.timezone, "UTC"));
   const meetUrl = text(session?.meet_url);
   const templateKey = text(delivery.template_key, "registration_confirmation");
+  if (templateKey !== "registration_confirmation" && (text(course?.state) !== "published" || course?.is_featured !== true)) {
+    const reason = "Course is not featured and published";
+    await supabase.from("message_deliveries").update({ state: "cancelled", failure_reason: reason, updated_at: new Date().toISOString() }).eq("id", id);
+    return { id, state: "cancelled", reason };
+  }
   const channel = text(delivery.channel) as "email" | "whatsapp";
   const result = channel === "email" ? await sendResend(text(registration.email), name, title, startsAt, templateKey, meetUrl) : await sendTwilio(text(registration.phone_e164), name, title, startsAt, templateKey, meetUrl);
   if (!result.configured) return { id, state: "queued", reason: result.reason };
@@ -96,6 +101,8 @@ function localMorningTimestamp(startAtMs: number, timezone: string) {
 async function scheduleReminders(supabase: ReturnType<typeof createAdminClient>, registration: JsonRecord) {
   if (text(registration.status) !== "confirmed") return;
   const session = first(registration.course_sessions);
+  const course = first(session?.courses);
+  if (text(course?.state) !== "published" || course?.is_featured !== true) return;
   const startsAtMs = Date.parse(text(session?.starts_at));
   const meetUrl = text(session?.meet_url);
   if (!meetUrl || !Number.isFinite(startsAtMs) || startsAtMs <= Date.now()) return;
@@ -120,7 +127,7 @@ async function run() {
   for (const event of events ?? []) {
     const payload = record(event.payload);
     const registrationId = text(payload.registration_id, text(event.aggregate_id));
-    const { data: registration } = await supabase.from("registrations").select("id,email,phone_e164,whatsapp_consent,status,course_sessions(starts_at,meet_url)").eq("id", registrationId).maybeSingle();
+    const { data: registration } = await supabase.from("registrations").select("id,email,phone_e164,whatsapp_consent,status,course_sessions(starts_at,meet_url,courses(state,is_featured))").eq("id", registrationId).maybeSingle();
     if (!registration) { await supabase.from("outbox_events").update({ processed_at: new Date().toISOString() }).eq("id", event.id); continue; }
     const row = record(registration);
     await ensureDelivery(supabase, row, "email");
@@ -130,7 +137,7 @@ async function run() {
     created += 1;
   }
   // Reconcile reminders on every run as well, so adding a Meet URL after registration still schedules it.
-  const { data: confirmedRegistrations } = await supabase.from("registrations").select("id,email,phone_e164,whatsapp_consent,status,course_sessions(starts_at,meet_url)").eq("status", "confirmed").limit(200);
+  const { data: confirmedRegistrations } = await supabase.from("registrations").select("id,email,phone_e164,whatsapp_consent,status,course_sessions(starts_at,meet_url,courses(state,is_featured))").eq("status", "confirmed").limit(200);
   for (const registration of confirmedRegistrations ?? []) {
     await scheduleReminders(supabase, record(registration));
   }
