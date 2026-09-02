@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getDashboardIdentity } from "@/lib/auth";
 import { z } from "zod";
 
@@ -35,6 +36,42 @@ function offsetForTimezone(timezone: string) {
   return "+01:00";
 }
 
+function localMorningTimestamp(startAtMs: number, timezone: string) {
+  const format = new Intl.DateTimeFormat("en-US", { timeZone: timezone || "UTC", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+  const parts = Object.fromEntries(format.formatToParts(new Date(startAtMs)).filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+  const naive = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), 9, 0, 0);
+  const offsetParts = Object.fromEntries(format.formatToParts(new Date(naive)).filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+  const localAsUtc = Date.UTC(Number(offsetParts.year), Number(offsetParts.month) - 1, Number(offsetParts.day), Number(offsetParts.hour), Number(offsetParts.minute), Number(offsetParts.second));
+  return naive - (localAsUtc - naive);
+}
+
+async function reschedulePendingReminders(sessionId: string, startsAt: string, timezone: string, meetUrl: string) {
+  try {
+    const admin = createAdminClient();
+    const { data: registrations } = await admin.from("registrations").select("id").eq("session_id", sessionId).eq("status", "confirmed");
+    const registrationIds = (registrations ?? []).map((registration: { id: string }) => registration.id).filter(Boolean);
+    if (!registrationIds.length) return;
+    const { data: deliveries } = await admin.from("message_deliveries").select("id,template_key,state").in("registration_id", registrationIds).in("state", ["scheduled", "queued"]);
+    const startMs = Date.parse(startsAt);
+    const now = Date.now();
+    const timestamps: Record<string, number> = Number.isFinite(startMs) ? {
+      course_reminder_24h: startMs - 24 * 60 * 60 * 1000,
+      course_reminder_day: localMorningTimestamp(startMs, timezone),
+      meeting_reminder: startMs - 10 * 60 * 1000,
+    } : {};
+    for (const delivery of deliveries ?? []) {
+      const templateKey = String(delivery.template_key ?? "");
+      const timestamp = timestamps[templateKey];
+      if (!meetUrl || !timestamp || timestamp <= now) {
+        await admin.from("message_deliveries").update({ state: "cancelled", failure_reason: "Schedule changed; reminder is no longer due", updated_at: new Date().toISOString() }).eq("id", delivery.id);
+        continue;
+      }
+      await admin.from("message_deliveries").update({ state: "scheduled", scheduled_for: new Date(timestamp).toISOString(), failure_reason: null, updated_at: new Date().toISOString() }).eq("id", delivery.id);
+    }
+  } catch (error) {
+    console.error("reminders_reschedule_failed", error);
+  }
+}
 function toIso(date: string, time: string, timezone: string) {
   return new Date(date + "T" + time + ":00" + offsetForTimezone(timezone)).toISOString();
 }
@@ -98,6 +135,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
     ? await supabase.from("course_sessions").update(sessionPayload).eq("id", sessionId)
     : await supabase.from("course_sessions").insert(sessionPayload);
   if (sessionResult.error) return Response.json({ message: "Unable to update the course schedule." }, { status: 500 });
+  if (sessionId) await reschedulePendingReminders(sessionId, sessionPayload.starts_at, sessionPayload.timezone, sessionPayload.meet_url ?? "");
 
   if (existing.instructor_id) {
     const { error: instructorError } = await supabase.from("instructors").update({
