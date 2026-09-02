@@ -8,26 +8,45 @@ function text(value: unknown, fallback = "") { return typeof value === "string" 
 function escapeHtml(value: string) { return value.replace(/[&<>\"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char] ?? char)); }
 function formatStartsAt(value: string, timezone: string) { const timestamp = Date.parse(value); if (!Number.isFinite(timestamp)) return value || "—"; try { return new Intl.DateTimeFormat("ar", { dateStyle: "full", timeStyle: "short", timeZone: timezone || "UTC" }).format(new Date(timestamp)); } catch { return new Intl.DateTimeFormat("ar", { dateStyle: "full", timeStyle: "short", timeZone: "UTC" }).format(new Date(timestamp)); } }
 
-async function sendResend(to: string, name: string, title: string, startsAt: string, templateKey: string, meetUrl: string) {
+function timezoneLabel(timezone: string) {
+  const labels: Record<string, string> = {
+    "Europe/Berlin": "ألمانيا (برلين)",
+    "Europe/Istanbul": "تركيا (إسطنبول)",
+    "Asia/Qatar": "قطر (الدوحة)",
+    "Africa/Casablanca": "المغرب (الدار البيضاء)",
+    "Asia/Dubai": "الإمارات (دبي)",
+    "Europe/Paris": "فرنسا (باريس)",
+    "Europe/London": "المملكة المتحدة (لندن)",
+  };
+  return labels[timezone] ?? `التوقيت المحلي للدورة (${timezone || "UTC"})`;
+}
+
+function reminderLead(templateKey: string) {
+  if (templateKey === "course_reminder_24h") return "تذكير: لديك دورة غداً:";
+  if (templateKey === "course_reminder_day") return "تذكير: لديك دورة اليوم:";
+  if (templateKey === "meeting_reminder") return "تبدأ الدورة خلال 10 دقائق:";
+  return "تذكير بالدورة:";
+}
+
+async function sendResend(to: string, name: string, title: string, startsAt: string, sourceTimezone: string, saudiStartsAt: string, templateKey: string, meetUrl: string) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
   if (!apiKey || !from) return { configured: false as const, reason: "Resend is not configured (RESEND_API_KEY and RESEND_FROM_EMAIL are required)." };
-  const reminderHtml = meetUrl ? `<p><a href="${escapeHtml(meetUrl)}">Meeting link: ${escapeHtml(meetUrl)}</a></p>` : `<p>Meeting link is not available yet.</p>`;
+  const reminderHtml = meetUrl ? `<p>رابط الدخول: <a href="${escapeHtml(meetUrl)}">${escapeHtml(meetUrl)}</a></p>` : `<p>رابط الدخول غير متاح حتى الآن.</p>`;
+  const isRegistrationConfirmation = templateKey === "registration_confirmation";
+  const subject = isRegistrationConfirmation ? `تأكيد التسجيل - ${title}` : `تذكير بالدورة - ${title}`;
+  const html = isRegistrationConfirmation
+    ? `<div dir="rtl" lang="ar"><p>مرحباً ${escapeHtml(name)} 👋</p><p>تم تأكيد تسجيلك في دورة <strong>${escapeHtml(title)}</strong>.</p><p>موعد الدورة:</p><p>${escapeHtml(timezoneLabel(sourceTimezone))}: ${escapeHtml(startsAt)}</p><p>بتوقيت السعودية: ${escapeHtml(saudiStartsAt)}</p><p>سنرسل لك رابط الدخول والتذكيرات قبل الموعد.</p><p>أكاديمية Fiper</p></div>`
+    : `<div dir="rtl" lang="ar"><p>مرحباً ${escapeHtml(name)} 👋</p><p>${reminderLead(templateKey)}</p><p><strong>${escapeHtml(title)}</strong></p><p>موعد الدورة:</p><p>${escapeHtml(timezoneLabel(sourceTimezone))}: ${escapeHtml(startsAt)}</p><p>بتوقيت السعودية: ${escapeHtml(saudiStartsAt)}</p>${reminderHtml}<p>أكاديمية Fiper</p></div>`;
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      subject: templateKey !== "registration_confirmation" ? `Meeting link - ${title}` : `Registration confirmed - ${title}`,
-      html: templateKey !== "registration_confirmation" ? `<div dir="rtl" lang="ar"><p>Hello ${escapeHtml(name)},</p><p>${escapeHtml(title)}</p><p>${escapeHtml(startsAt)}</p>${reminderHtml}<p>Fiper</p></div>` : `<div dir="rtl" lang="ar"><p>\u0645\u0631\u062d\u0628\u0627 ${escapeHtml(name)}\u060c</p><p>\u062a\u0645 \u062a\u0623\u0643\u064a\u062f \u062a\u0633\u062c\u064a\u0644\u0643 \u0641\u064a \u062f\u0648\u0631\u0629 <strong>${escapeHtml(title)}</strong>.</p><p>\u0645\u0648\u0639\u062f \u0627\u0644\u062f\u0648\u0631\u0629: ${escapeHtml(startsAt)}</p><p>\u0633\u0646\u0631\u0633\u0644 \u0644\u0643 \u0631\u0627\u0628\u0637 \u0627\u0644\u062f\u062e\u0648\u0644 \u0648\u0627\u0644\u062a\u0630\u0643\u064a\u0631\u0627\u062a \u0642\u0628\u0644 \u0627\u0644\u0645\u0648\u0639\u062f.</p><p>Fiper</p></div>`,
-    }),
+    body: JSON.stringify({ from, to: [to], subject, html }),
   });
   const body = await response.json().catch(() => ({})) as JsonRecord;
   if (!response.ok) throw new Error(text(body.message, `Resend returned ${response.status}`));
   return { configured: true as const, id: text(body.id) };
 }
-
 async function sendTwilio(to: string, name: string, title: string, startsAt: string, templateKey: string, meetUrl: string) {
   const sid = process.env.TWILIO_ACCOUNT_SID;
   const token = process.env.TWILIO_AUTH_TOKEN;
@@ -74,7 +93,10 @@ async function processDelivery(supabase: ReturnType<typeof createAdminClient>, d
   const translation = translations.map(record).find((item) => text(item.locale) === "ar") ?? record(translations[0]);
   const name = text(registration.full_name, "Participant");
   const title = text(translation.title, "Fiper course");
-  const startsAt = formatStartsAt(text(session?.starts_at, ""), text(session?.timezone, "UTC"));
+  const sourceTimezone = text(session?.timezone, "UTC");
+  const startsAtIso = text(session?.starts_at, "");
+  const startsAt = formatStartsAt(startsAtIso, sourceTimezone);
+  const saudiStartsAt = formatStartsAt(startsAtIso, "Asia/Riyadh");
   const meetUrl = text(session?.meet_url);
   const templateKey = text(delivery.template_key, "registration_confirmation");
   if (templateKey !== "registration_confirmation" && (text(course?.state) !== "published" || course?.is_featured !== true)) {
@@ -83,7 +105,7 @@ async function processDelivery(supabase: ReturnType<typeof createAdminClient>, d
     return { id, state: "cancelled", reason };
   }
   const channel = text(delivery.channel) as "email" | "whatsapp";
-  const result = channel === "email" ? await sendResend(text(registration.email), name, title, startsAt, templateKey, meetUrl) : await sendTwilio(text(registration.phone_e164), name, title, startsAt, templateKey, meetUrl);
+  const result = channel === "email" ? await sendResend(text(registration.email), name, title, startsAt, sourceTimezone, saudiStartsAt, templateKey, meetUrl) : await sendTwilio(text(registration.phone_e164), name, title, startsAt, templateKey, meetUrl);
   if (!result.configured) return { id, state: "queued", reason: result.reason };
   await supabase.from("message_deliveries").update({ state: "sent", sent_at: new Date().toISOString(), provider_message_id: result.id || null, provider_payload: { provider: channel === "email" ? "resend" : "twilio" }, failure_reason: null, attempt_count: Number(delivery.attempt_count) + 1, updated_at: new Date().toISOString() }).eq("id", id);
   return { id, state: "sent" };
