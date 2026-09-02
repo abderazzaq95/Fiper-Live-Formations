@@ -53,7 +53,10 @@ async function sendTwilio(to: string, name: string, title: string, startsAt: str
 
 async function ensureDelivery(supabase: ReturnType<typeof createAdminClient>, registration: JsonRecord, channel: "email" | "whatsapp", templateKey = "registration_confirmation", scheduledFor = new Date().toISOString()) {
   const registrationId = text(registration.id);
-  const key = `${registrationId}:${templateKey}:${channel}`;
+  // Reminder deliveries must be unique per scheduled occurrence so a rescheduled course gets a new reminder.
+  // Registration confirmations remain one-time per registration/channel.
+  const occurrence = templateKey === "registration_confirmation" ? "" : `:${new Date(scheduledFor).toISOString()}`;
+  const key = `${registrationId}:${templateKey}:${channel}${occurrence}`;
   const { data: existing } = await supabase.from("message_deliveries").select("id,state,attempt_count").eq("idempotency_key", key).maybeSingle();
   if (existing) return existing as JsonRecord;
   const { data } = await supabase.from("message_deliveries").insert({ registration_id: registrationId, channel, template_key: templateKey, provider: channel === "email" ? "resend" : "twilio", state: new Date(scheduledFor).getTime() <= Date.now() ? "queued" : "scheduled", scheduled_for: scheduledFor, idempotency_key: key }).select("id,state,attempt_count").single();
