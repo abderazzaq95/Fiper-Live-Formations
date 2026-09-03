@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isCallbellConfigured, sendCallbellTemplate } from "@/lib/integrations/callbell";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -31,7 +32,7 @@ function reminderLead(templateKey: string) {
 async function sendResend(to: string, name: string, title: string, startsAt: string, sourceTimezone: string, saudiStartsAt: string, templateKey: string, meetUrl: string) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
-  if (!apiKey || !from) return { configured: false as const, reason: "Resend is not configured (RESEND_API_KEY and RESEND_FROM_EMAIL are required)." };
+  if (!apiKey || !from) return { configured: false as const, provider: "resend" as const, reason: "Resend is not configured (RESEND_API_KEY and RESEND_FROM_EMAIL are required)." };
   const reminderHtml = meetUrl ? `<p>رابط الدخول: <a href="${escapeHtml(meetUrl)}">${escapeHtml(meetUrl)}</a></p>` : `<p>رابط الدخول غير متاح حتى الآن.</p>`;
   const isRegistrationConfirmation = templateKey === "registration_confirmation";
   const subject = isRegistrationConfirmation ? `تأكيد التسجيل - ${title}` : `تذكير بالدورة - ${title}`;
@@ -45,13 +46,13 @@ async function sendResend(to: string, name: string, title: string, startsAt: str
   });
   const body = await response.json().catch(() => ({})) as JsonRecord;
   if (!response.ok) throw new Error(text(body.message, `Resend returned ${response.status}`));
-  return { configured: true as const, id: text(body.id) };
+  return { configured: true as const, provider: "resend" as const, id: text(body.id) };
 }
 async function sendTwilio(to: string, name: string, title: string, startsAt: string, templateKey: string, meetUrl: string) {
   const sid = process.env.TWILIO_ACCOUNT_SID;
   const token = process.env.TWILIO_AUTH_TOKEN;
   const from = process.env.TWILIO_WHATSAPP_FROM;
-  if (!sid || !token || !from) return { configured: false as const, reason: "Twilio is not configured (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_WHATSAPP_FROM are required)." };
+  if (!sid || !token || !from) return { configured: false as const, provider: "twilio" as const, reason: "Twilio is not configured (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_WHATSAPP_FROM are required)." };
   const body = new URLSearchParams({ From: from.startsWith("whatsapp:") ? from : `whatsapp:${from}`, To: `whatsapp:${to}` });
   const contentSid = templateKey !== "registration_confirmation" ? process.env.TWILIO_WHATSAPP_REMINDER_CONTENT_SID : process.env.TWILIO_WHATSAPP_CONTENT_SID;
   if (contentSid) {
@@ -67,9 +68,29 @@ async function sendTwilio(to: string, name: string, title: string, startsAt: str
   });
   const result = await response.json().catch(() => ({})) as JsonRecord;
   if (!response.ok) throw new Error(text(result.message, `Twilio returned ${response.status}`));
-  return { configured: true as const, id: text(result.sid) };
+  return { configured: true as const, provider: "twilio" as const, id: text(result.sid) };
 }
 
+function callbellTemplateFor(templateKey: string) {
+  const templates: Record<string, string | undefined> = {
+    registration_confirmation: process.env.CALLBELL_TEMPLATE_REGISTRATION,
+    course_reminder_24h: process.env.CALLBELL_TEMPLATE_REMINDER_DAY,
+    course_reminder_day: process.env.CALLBELL_TEMPLATE_REMINDER_TODAY,
+    meeting_reminder: process.env.CALLBELL_TEMPLATE_JOIN_NOW,
+  };
+  return templates[templateKey];
+}
+
+async function sendWhatsApp(to: string, name: string, title: string, startsAt: string, templateKey: string, meetUrl: string, registrationId: string, deliveryId: string) {
+  if (isCallbellConfigured()) {
+    const templateUuid = callbellTemplateFor(templateKey);
+    if (!templateUuid) return { configured: false as const, provider: "callbell" as const, reason: `Callbell template is not configured for ${templateKey}.` };
+    const values = templateKey === "registration_confirmation" ? [name, title, startsAt] : [name, title, startsAt, meetUrl];
+    const result = await sendCallbellTemplate({ to, templateUuid, values, registrationId, deliveryId });
+    return { configured: true as const, provider: "callbell" as const, id: text(result.uuid) };
+  }
+  return sendTwilio(to, name, title, startsAt, templateKey, meetUrl);
+}
 async function ensureDelivery(supabase: ReturnType<typeof createAdminClient>, registration: JsonRecord, channel: "email" | "whatsapp", templateKey = "registration_confirmation", scheduledFor = new Date().toISOString()) {
   const registrationId = text(registration.id);
   // Reminder deliveries must be unique per scheduled occurrence so a rescheduled course gets a new reminder.
@@ -78,7 +99,7 @@ async function ensureDelivery(supabase: ReturnType<typeof createAdminClient>, re
   const key = `${registrationId}:${templateKey}:${channel}${occurrence}`;
   const { data: existing } = await supabase.from("message_deliveries").select("id,state,attempt_count").eq("idempotency_key", key).maybeSingle();
   if (existing) return existing as JsonRecord;
-  const { data } = await supabase.from("message_deliveries").insert({ registration_id: registrationId, channel, template_key: templateKey, provider: channel === "email" ? "resend" : "twilio", state: new Date(scheduledFor).getTime() <= Date.now() ? "queued" : "scheduled", scheduled_for: scheduledFor, idempotency_key: key }).select("id,state,attempt_count").single();
+  const { data } = await supabase.from("message_deliveries").insert({ registration_id: registrationId, channel, template_key: templateKey, provider: channel === "email" ? "resend" : (isCallbellConfigured() ? "callbell" : "twilio"), state: new Date(scheduledFor).getTime() <= Date.now() ? "queued" : "scheduled", scheduled_for: scheduledFor, idempotency_key: key }).select("id,state,attempt_count").single();
   return data as JsonRecord;
 }
 
@@ -105,9 +126,9 @@ async function processDelivery(supabase: ReturnType<typeof createAdminClient>, d
     return { id, state: "cancelled", reason };
   }
   const channel = text(delivery.channel) as "email" | "whatsapp";
-  const result = channel === "email" ? await sendResend(text(registration.email), name, title, startsAt, sourceTimezone, saudiStartsAt, templateKey, meetUrl) : await sendTwilio(text(registration.phone_e164), name, title, startsAt, templateKey, meetUrl);
+  const result = channel === "email" ? await sendResend(text(registration.email), name, title, startsAt, sourceTimezone, saudiStartsAt, templateKey, meetUrl) : await sendWhatsApp(text(registration.phone_e164), name, title, startsAt, templateKey, meetUrl, text(registration.id), id);
   if (!result.configured) return { id, state: "queued", reason: result.reason };
-  await supabase.from("message_deliveries").update({ state: "sent", sent_at: new Date().toISOString(), provider_message_id: result.id || null, provider_payload: { provider: channel === "email" ? "resend" : "twilio" }, failure_reason: null, attempt_count: Number(delivery.attempt_count) + 1, updated_at: new Date().toISOString() }).eq("id", id);
+  await supabase.from("message_deliveries").update({ state: "sent", sent_at: new Date().toISOString(), provider_message_id: result.id || null, provider_payload: { provider: result.provider }, failure_reason: null, attempt_count: Number(delivery.attempt_count) + 1, updated_at: new Date().toISOString() }).eq("id", id);
   return { id, state: "sent" };
 }
 
