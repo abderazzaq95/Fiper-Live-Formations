@@ -183,6 +183,9 @@ function reportParameter(event: JsonRecord, name: string) {
 }
 
 async function listMeetAuditEvents(code: string, startsAt: string, endsAt: string | null, token: string) {
+  // The Meet API accepts the human-readable abc-defg-hij code, while the
+  // Admin Reports API stores and filters meeting_code as abcdefghij.
+  const reportMeetingCode = code.replace(/[^a-z0-9]/gi, "");
   const start = new Date(Date.parse(startsAt) - 6 * 60 * 60 * 1000);
   const endMs = endsAt ? Date.parse(endsAt) + 24 * 60 * 60 * 1000 : Date.now();
   if (!Number.isFinite(start.getTime()) || !Number.isFinite(endMs)) return [];
@@ -194,7 +197,7 @@ async function listMeetAuditEvents(code: string, startsAt: string, endsAt: strin
       maxResults: "1000",
       startTime: start.toISOString(),
       endTime: new Date(Math.min(endMs, Date.now())).toISOString(),
-      filters: `meeting_code==${code}`,
+      filters: `meeting_code==${reportMeetingCode}`,
     });
     if (pageToken) params.set("pageToken", pageToken);
     const response = await fetch(
