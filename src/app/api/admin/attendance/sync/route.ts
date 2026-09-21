@@ -289,7 +289,7 @@ async function saveAttendance(
   return true;
 }
 
-async function removeObsoleteAttendance(
+async function archiveObsoleteAttendance(
   supabase: Awaited<ReturnType<typeof createClient>>,
   sessionId: string,
   activeParticipantIds: Set<string>,
@@ -306,8 +306,11 @@ async function removeObsoleteAttendance(
     .map((row) => text(row.id))
     .filter(Boolean);
   if (!staleIds.length) return 0;
-  const { error: deleteError } = await supabase.from("attendance_sessions").delete().in("id", staleIds);
-  if (deleteError) throw deleteError;
+  const { error: archiveError } = await supabase
+    .from("attendance_sessions")
+    .update({ match_method: "obsolete" })
+    .in("id", staleIds);
+  if (archiveError) throw archiveError;
   return staleIds.length;
 }
 export async function POST() {
@@ -394,7 +397,7 @@ export async function POST() {
           synced += 1;
         }
       }
-      await removeObsoleteAttendance(supabase, text(session.id), activeParticipantIds);
+      await archiveObsoleteAttendance(supabase, text(session.id), activeParticipantIds);
     }
     return Response.json({ message: conferences ? `Meet synchronization completed: ${synced} participant record(s) updated.` : "No conference record was found yet. Start the Meet and try again after someone joins.", synced, conferences });
   } catch (error) {

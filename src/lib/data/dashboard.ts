@@ -79,6 +79,7 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
       const startsAt = text(session?.starts_at);
       const courseAttendance = attendanceRecords
         .filter((item) => {
+          if (text(item.match_method) === "obsolete") return false;
           const joinedAt = text(item.joined_at);
           return !joinedAt || !startsAt || localDateKey(joinedAt, "Europe/Berlin") === localDateKey(startsAt, "Europe/Berlin");
         })
@@ -102,6 +103,7 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
       .from("attendance_sessions")
       .select("id,participant_name,participant_email,joined_at,left_at,duration_seconds,match_method,course_sessions(starts_at,courses(default_locale,course_translations(locale,title)))")
       .is("registration_id", null)
+      .neq("match_method", "obsolete")
       .order("created_at", { ascending: false });
     for (const item of unmatched ?? []) {
       const row = asRecord(item);
@@ -196,13 +198,14 @@ export type ReportData = {
 export async function getDashboardReport(): Promise<ReportData> {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase.from("registrations").select("status,source,attendance_sessions(joined_at,duration_seconds)");
+    const { data, error } = await supabase.from("registrations").select("status,source,attendance_sessions(joined_at,duration_seconds,match_method)");
     if (error || !data) return { total: 0, confirmed: 0, attended: 0, attendanceRate: 0, sources: [] };
     const rows = data.map(asRecord);
     const total = rows.length;
     const confirmed = rows.filter((row) => ["confirmed", "attended"].includes(text(row.status))).length;
     const attended = rows.filter((row) => {
-      const session = firstRecord(row.attendance_sessions);
+      const sessions = Array.isArray(row.attendance_sessions) ? row.attendance_sessions.map(asRecord) : [];
+      const session = sessions.find((item) => text(item.match_method) !== "obsolete");
       return Boolean(session?.joined_at) || Number(session?.duration_seconds) > 0;
     }).length;
     const sourceCounts = new Map<string, number>();
