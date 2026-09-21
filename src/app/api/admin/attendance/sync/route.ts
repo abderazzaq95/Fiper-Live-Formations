@@ -103,12 +103,9 @@ async function accessToken(supabase: Awaited<ReturnType<typeof createClient>>) {
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   if (!clientId || !clientSecret) throw new Error("Google Meet OAuth is not configured in Vercel.");
 
-  // Try the explicitly configured token first, then the token saved by the
-  // dashboard's Google connection. This prevents an old Vercel token from
-  // shadowing a newly connected account.
+  // Prefer the latest dashboard connection. Keep the deployment-level token
+  // only as a fallback for installations that have not connected in-app yet.
   const refreshTokens: string[] = [];
-  const configuredToken = process.env.GOOGLE_REFRESH_TOKEN?.trim();
-  if (configuredToken) refreshTokens.push(configuredToken);
   try {
     const stored = await getStoredGoogleConfig(supabase);
     if (stored.state === "connected" && stored.config?.refreshToken && !refreshTokens.includes(stored.config.refreshToken)) {
@@ -117,6 +114,8 @@ async function accessToken(supabase: Awaited<ReturnType<typeof createClient>>) {
   } catch (error) {
     console.error("google_oauth_stored_config_read_failed", error);
   }
+  const configuredToken = process.env.GOOGLE_REFRESH_TOKEN?.trim();
+  if (configuredToken && !refreshTokens.includes(configuredToken)) refreshTokens.push(configuredToken);
   if (!refreshTokens.length) throw new Error("Google Meet OAuth is not configured in Vercel.");
 
   const failures: string[] = [];
@@ -125,7 +124,7 @@ async function accessToken(supabase: Awaited<ReturnType<typeof createClient>>) {
     const response = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body, cache: "no-store" });
     const data = record(await response.json().catch(() => ({})));
     if (response.ok && typeof data.access_token === "string") return data.access_token;
-    failures.push(`${response.status}:${text(data.error) || "unknown"}`);
+    failures.push(`${response.status}:${text(data.error) || "unknown"}:${text(data.error_description) || "no_description"}`);
   }
   console.error("google_oauth_refresh_failed", failures.join(","));
   throw new Error("Google authorization failed. Please reconnect the Google account.");

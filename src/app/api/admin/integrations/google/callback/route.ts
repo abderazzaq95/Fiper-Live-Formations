@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { getDashboardIdentity } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { encryptGoogleConfig } from "@/lib/integrations/google";
+import { googleOAuthCallbackUri, googleOAuthOrigin } from "@/lib/integrations/google-oauth-url";
 
 const STATE_COOKIE = "fiper_google_oauth_state";
 
@@ -12,13 +13,7 @@ function record(value: unknown): JsonRecord {
 }
 
 function redirectResult(request: Request, result: "connected" | "error") {
-  return Response.redirect(new URL(`/admin/settings?google=${result}`, request.url));
-}
-
-function redirectUri(request: Request) {
-  const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  const origin = configuredOrigin ? new URL(configuredOrigin).origin : new URL(request.url).origin;
-  return `${origin}/api/admin/integrations/google/callback`;
+  return Response.redirect(new URL(`/admin/settings?google=${result}`, googleOAuthOrigin(request)));
 }
 
 export async function GET(request: Request) {
@@ -46,14 +41,19 @@ export async function GET(request: Request) {
         code,
         client_id: clientId,
         client_secret: clientSecret,
-        redirect_uri: redirectUri(request),
+        redirect_uri: googleOAuthCallbackUri(request),
         grant_type: "authorization_code",
       }),
       cache: "no-store",
     });
     const tokenData = record(await tokenResponse.json().catch(() => ({})));
     if (!tokenResponse.ok || typeof tokenData.refresh_token !== "string" || !tokenData.refresh_token) {
-      console.error("google_oauth_token_exchange_failed", tokenResponse.status, tokenData.error);
+      console.error(
+        "google_oauth_token_exchange_failed",
+        tokenResponse.status,
+        tokenData.error,
+        tokenData.error_description,
+      );
       return redirectResult(request, "error");
     }
 

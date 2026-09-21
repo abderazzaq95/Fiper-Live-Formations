@@ -75,12 +75,9 @@ export async function getStoredGoogleConfig(supabase: SupabaseServerClient) {
 }
 
 export async function getGoogleRefreshToken(supabase: SupabaseServerClient) {
-  // Prefer the explicitly configured production token. This allows the
-  // service account token generated in OAuth Playground to be rotated from
-  // Vercel without being shadowed by an older dashboard OAuth connection.
-  const configured = process.env.GOOGLE_REFRESH_TOKEN?.trim();
-  if (configured) return configured;
+  // A dashboard reconnection is the freshest authorization and should replace
+  // a stale deployment-level fallback without requiring an environment edit.
   const stored = await getStoredGoogleConfig(supabase);
   if (stored.state === "connected" && stored.config?.refreshToken) return stored.config.refreshToken;
-  return "";
+  return process.env.GOOGLE_REFRESH_TOKEN?.trim() ?? "";
 }

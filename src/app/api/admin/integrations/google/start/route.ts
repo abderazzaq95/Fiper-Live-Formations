@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { getDashboardIdentity } from "@/lib/auth";
+import { googleOAuthCallbackUri, googleOAuthOrigin } from "@/lib/integrations/google-oauth-url";
 
 const STATE_COOKIE = "fiper_google_oauth_state";
 const SCOPES = [
@@ -12,13 +13,12 @@ const SCOPES = [
   "https://www.googleapis.com/auth/userinfo.email",
 ].join(" ");
 
-function redirectUri(request: Request) {
-  const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  const origin = configuredOrigin ? new URL(configuredOrigin).origin : new URL(request.url).origin;
-  return `${origin}/api/admin/integrations/google/callback`;
-}
-
 export async function GET(request: Request) {
+  const canonicalOrigin = googleOAuthOrigin(request);
+  if (new URL(request.url).origin !== canonicalOrigin) {
+    return Response.redirect(new URL("/api/admin/integrations/google/start", canonicalOrigin));
+  }
+
   const identity = await getDashboardIdentity();
   if (!identity) return Response.redirect(new URL("/login", request.url));
   if (identity.role !== "admin") return Response.redirect(new URL("/admin", request.url));
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: redirectUri(request),
+    redirect_uri: googleOAuthCallbackUri(request),
     response_type: "code",
     access_type: "offline",
     prompt: "consent",
