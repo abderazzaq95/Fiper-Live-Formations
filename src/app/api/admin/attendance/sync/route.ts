@@ -398,7 +398,11 @@ export async function POST() {
     }
     return Response.json({ message: conferences ? `Meet synchronization completed: ${synced} participant record(s) updated.` : "No conference record was found yet. Start the Meet and try again after someone joins.", synced, conferences });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to synchronize Google Meet attendance.";
+    console.error("attendance_sync_failed", error);
+    const details = record(error);
+    const message = error instanceof Error
+      ? error.message
+      : text(details.message) || text(details.details) || "Unable to synchronize Google Meet attendance.";
     return Response.json({ message }, { status: 502 });
   }
 }
