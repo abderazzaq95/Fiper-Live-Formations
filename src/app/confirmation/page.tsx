@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, CalendarPlus, CheckCircle2, Clock3, MailCheck, MessageCircleMore, Users } from "lucide-react";
+import { ArrowRight, CalendarPlus, CheckCircle2, Clock3, MailCheck, MapPin, MessageCircleMore, Users } from "lucide-react";
 import { FiperLogo } from "@/components/brand/fiper-logo";
 import { getPublicCourseById } from "@/lib/data/courses";
 
@@ -40,7 +40,7 @@ export default async function ConfirmationPage({ searchParams }: PageProps<"/con
                 <CalendarPlus size={17} /> أضف الموعد إلى تقويمك
               </a>
             )}
-            <Link href="/" className="mt-7 inline-flex items-center gap-2 text-xs font-semibold text-[#91adc2] transition hover:text-white"><ArrowRight size={15} /> العودة إلى صفحة الدورة</Link>
+            <Link href={`/courses/${encodeURIComponent(course.slug)}`} className="mt-7 inline-flex items-center gap-2 text-xs font-semibold text-[#91adc2] transition hover:text-white"><ArrowRight size={15} /> العودة إلى صفحة الدورة</Link>
           </section>
 
           <aside className="border-t border-white/8 bg-[#041a2d]/75 p-7 sm:p-9 lg:border-r lg:border-t-0">
@@ -50,7 +50,7 @@ export default async function ConfirmationPage({ searchParams }: PageProps<"/con
               <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.035] p-4"><CalendarPlus size={18} className="text-[#C32828]" /><span><small className="block text-[9px] text-[#6f8ba0]">التاريخ</small><strong className="mt-1 block text-[11px]">{course.dateLabel}</strong></span></div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-2 rounded-2xl border border-white/8 bg-white/[0.035] p-4"><Clock3 size={16} className="text-[#C32828]" /><span><small className="block text-[9px] text-[#6f8ba0]">التوقيت</small><strong className="latin mt-1 block text-[11px]">{course.timeLabel}</strong></span></div>
-                <div className="rounded-2xl border border-white/8 bg-white/[0.035] p-4"><small className="block text-[9px] text-[#6f8ba0]">المنصة</small><strong className="latin mt-1 block text-[11px]">{course.platform}</strong></div>
+                <div className="rounded-2xl border border-white/8 bg-white/[0.035] p-4"><small className="block text-[9px] text-[#6f8ba0]">المكان</small><strong className="mt-1 block text-[11px]">{course.type === "onsite" ? (course.venueName || course.venueAddress || "حضوري") : course.platform}</strong>{course.type === "onsite" && course.venueAddress && course.venueName ? <small className="mt-1 block text-[10px] text-[#b8ccda]">{course.venueAddress}</small> : null}{course.type === "onsite" && course.mapsUrl ? <a href={course.mapsUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-[10px] text-[#62d5aa] underline"><MapPin size={12} /> فتح الموقع على Google Maps</a> : null}</div>
               </div>
             </div>
             <div className="mt-8 border-t border-white/8 pt-6">

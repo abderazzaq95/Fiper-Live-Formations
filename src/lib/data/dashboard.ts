@@ -41,6 +41,7 @@ export type AttendanceRow = {
   id: string;
   name: string;
   email: string;
+  phone: string;
   course: string;
   courseDate: string;
   status: "attended" | "absent" | "pending";
@@ -66,7 +67,7 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("registrations")
-      .select("id,full_name,email,status,course_sessions(starts_at,courses(default_locale,course_translations(locale,title))),attendance_sessions(id,joined_at,left_at,duration_seconds,match_method,created_at)")
+      .select("id,full_name,email,phone_e164,status,course_sessions(starts_at,courses(default_locale,course_translations(locale,title))),attendance_sessions(id,joined_at,left_at,duration_seconds,match_method,created_at)")
       .order("registered_at", { ascending: false });
     if (error || !data) return { rows: [], attended: 0, absent: 0, pending: 0, averageMinutes: 0, lastSync: "—" };
 
@@ -93,7 +94,7 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
         status: joinedAt || durationMinutes > 0 ? "attended" : isPending ? "pending" : "absent",
         joinedAt: formatTime(joinedAt, "Europe/Berlin"), joinedAtTurkey: formatTime(joinedAt, "Europe/Istanbul"),
         leftAt: formatTime(text(courseAttendance?.left_at), "Europe/Berlin"), leftAtTurkey: formatTime(text(courseAttendance?.left_at), "Europe/Istanbul"),
-        durationMinutes, matchMethod: text(courseAttendance?.match_method, "pending"),
+        phone: text(row.phone_e164), durationMinutes, matchMethod: text(courseAttendance?.match_method, "pending"),
       } satisfies AttendanceRow;
     });
 
@@ -113,7 +114,7 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
       if (joinedAt && startsAt && localDateKey(joinedAt, "Europe/Berlin") !== localDateKey(startsAt, "Europe/Berlin")) continue;
       const durationMinutes = Math.max(0, Math.round((Number(row.duration_seconds) || 0) / 60));
       rows.push({
-        id: text(row.id), name: text(row.participant_name, "غير مسجل"), email: text(row.participant_email, "غير معروف"),
+        id: text(row.id), name: text(row.participant_name, "غير مسجل"), email: text(row.participant_email, "غير معروف"), phone: "",
         course: text(courseTranslation?.title, "—"), courseDate: formatCourseDate(startsAt), status: joinedAt || durationMinutes > 0 ? "attended" : "absent",
         joinedAt: formatTime(joinedAt, "Europe/Berlin"), joinedAtTurkey: formatTime(joinedAt, "Europe/Istanbul"),
         leftAt: formatTime(text(row.left_at), "Europe/Berlin"), leftAtTurkey: formatTime(text(row.left_at), "Europe/Istanbul"),

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { BarChart3, Bell, BookOpen, CalendarRange, ChevronDown, Eye, LayoutDashboard, MailCheck, Menu, Plus, Search, Settings, UsersRound } from "lucide-react";
+import { BarChart3, Bell, BookOpen, CalendarRange, ChevronDown, Eye, LayoutDashboard, MailCheck, Menu, Plus, Search, Settings, UsersRound, X } from "lucide-react";
 import { FiperLogo } from "@/components/brand/fiper-logo";
 import { createClient } from "@/lib/supabase/client";
 import type { DashboardIdentity } from "@/lib/auth";
@@ -22,6 +22,7 @@ export function AdminShell({ children, identity, counts }: { children: React.Rea
   const initials = identity.name.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase();
   const router = useRouter();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const signOut = async () => { setSigningOut(true); await createClient().auth.signOut(); router.replace("/login"); router.refresh(); };
@@ -29,7 +30,7 @@ export function AdminShell({ children, identity, counts }: { children: React.Rea
   return (
     <div dir="rtl" className="min-h-screen bg-[#f3f6f8] text-[#102536]">
       <aside className="fixed inset-y-0 right-0 z-40 hidden w-[252px] flex-col border-l border-white/6 bg-[#031a2d] px-4 py-5 lg:flex">
-        <div className="px-2"><FiperLogo href="/admin" /></div>
+        <div className="px-2"><FiperLogo href="/admin" variant="drive" /></div>
         <div className="mt-8 flex-1">
           <p className="px-3 text-[9px] font-bold tracking-wider text-[#54758d]">مساحة العمل</p>
           <nav className="mt-3 space-y-1.5" aria-label="لوحة التحكم">
@@ -59,9 +60,47 @@ export function AdminShell({ children, identity, counts }: { children: React.Rea
         </div>
       </aside>
 
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="قائمة لوحة التحكم">
+          <button type="button" aria-label="إغلاق القائمة" onClick={() => setMobileMenuOpen(false)} className="absolute inset-0 bg-[#031a2d]/55" />
+          <aside id="mobile-dashboard-menu" className="absolute inset-y-0 right-0 flex w-[min(84vw,280px)] flex-col bg-[#031a2d] px-4 py-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-2 px-2">
+              <FiperLogo href="/admin" variant="drive" />
+              <button type="button" aria-label="إغلاق القائمة" onClick={() => setMobileMenuOpen(false)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 text-white/80 transition hover:bg-white/10"><X size={18} /></button>
+            </div>
+            <div className="mt-8 flex-1 overflow-y-auto">
+              <p className="px-3 text-[9px] font-bold tracking-wider text-[#54758d]">مساحة العمل</p>
+              <nav className="mt-3 space-y-1.5" aria-label="لوحة التحكم">
+                {navigation.map(({ label, href, icon: Icon }) => {
+                  const active = href === "/admin" ? pathname === href : pathname.startsWith(href);
+                  return (
+                    <Link key={href} href={href} onClick={() => setMobileMenuOpen(false)} className={`flex h-12 items-center gap-3 rounded-xl px-3 text-xs font-semibold transition ${active ? "bg-[#0d3554] text-white shadow-[inset_3px_0_0_#C32828]" : "text-[#88a2b5] hover:bg-white/5 hover:text-white"}`}>
+                      <Icon size={18} className={active ? "text-[#C32828]" : ""} />
+                      <span>{label}</span>
+                      {(href === "/admin/registrations" ? counts.registrations : href === "/admin/communications" ? counts.communications : 0) > 0 ? <span className="latin mr-auto rounded-full bg-white/8 px-2 py-1 text-[9px] text-[#9bb4c6]">{href === "/admin/registrations" ? counts.registrations : counts.communications}</span> : null}
+                    </Link>
+                  );
+                })}
+              </nav>
+              <p className="mt-8 px-3 text-[9px] font-bold tracking-wider text-[#54758d]">الإدارة</p>
+              <nav className="mt-3 space-y-1.5">
+                <Link href="/admin/settings" onClick={() => setMobileMenuOpen(false)} className="flex h-12 items-center gap-3 rounded-xl px-3 text-xs font-semibold text-[#88a2b5] transition hover:bg-white/5 hover:text-white"><Settings size={18} /> الإعدادات والتكاملات</Link>
+              </nav>
+            </div>
+            <div className="relative rounded-2xl border border-white/8 bg-white/[0.035] p-3">
+              <div className="flex items-center gap-3 text-right">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#C32828] text-xs font-bold text-white">{initials}</span>
+                <span className="min-w-0"><strong className="block truncate text-[11px] text-white">{identity.name}</strong><small className="latin mt-1 block text-[9px] text-[#65849b]">{identity.role.toUpperCase()}</small></span>
+              </div>
+              <button type="button" onClick={() => void signOut()} disabled={signingOut} className="mt-3 w-full rounded-lg px-3 py-2 text-right text-[10px] font-semibold text-white hover:bg-white/10 disabled:opacity-60">{signingOut ? "جار تسجيل الخروج..." : "تسجيل الخروج"}</button>
+            </div>
+          </aside>
+        </div>
+      )}
+
       <div className="lg:pr-[252px]">
         <header className="sticky top-0 z-30 flex h-[74px] items-center border-b border-[#dce5eb] bg-white/92 px-4 backdrop-blur-xl sm:px-7">
-          <button className="ml-3 flex h-10 w-10 items-center justify-center rounded-xl border border-[#dce5eb] lg:hidden" aria-label="فتح القائمة"><Menu size={19} /></button>
+          <button type="button" onClick={() => setMobileMenuOpen(true)} aria-expanded={mobileMenuOpen} aria-controls="mobile-dashboard-menu" className="ml-3 flex h-10 w-10 items-center justify-center rounded-xl border border-[#dce5eb] lg:hidden"><Menu size={19} /></button>
           <div className="relative hidden w-full max-w-sm md:block">
             <Search size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7e94a5]" />
             <input aria-label="البحث" placeholder="ابحث عن دورة أو مسجل..." className="h-11 w-full rounded-xl border border-[#dce5eb] bg-[#f7f9fa] pr-11 pl-4 text-xs placeholder:text-[#9aabb7] focus:border-[#9ebfd5] focus:outline-none" />

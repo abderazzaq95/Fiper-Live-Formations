@@ -7,6 +7,15 @@ function record(value: unknown): JsonRecord { return value && typeof value === "
 function first(value: unknown): JsonRecord | undefined { return Array.isArray(value) ? value.find((item): item is JsonRecord => Boolean(item && typeof item === "object")) : value && typeof value === "object" ? value as JsonRecord : undefined; }
 function text(value: unknown, fallback = "") { return typeof value === "string" && value.trim() ? value : fallback; }
 function escapeHtml(value: string) { return value.replace(/[&<>\"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char] ?? char)); }
+function attendanceHtml(value: string) {
+  const escaped = escapeHtml(value);
+  const marker = "Google Maps: ";
+  const markerIndex = escaped.indexOf(marker);
+  if (markerIndex < 0) return escaped;
+  const url = escaped.slice(markerIndex + marker.length).trim();
+  if (!/^https?:\/\//i.test(url)) return escaped;
+  return escaped.slice(0, markerIndex + marker.length) + '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(url) + "</a>";
+}
 function formatStartsAt(value: string, timezone: string) { const timestamp = Date.parse(value); if (!Number.isFinite(timestamp)) return value || "—"; try { return new Intl.DateTimeFormat("ar", { dateStyle: "full", timeStyle: "short", timeZone: timezone || "UTC" }).format(new Date(timestamp)); } catch { return new Intl.DateTimeFormat("ar", { dateStyle: "full", timeStyle: "short", timeZone: "UTC" }).format(new Date(timestamp)); } }
 
 function timezoneLabel(timezone: string) {
@@ -15,11 +24,29 @@ function timezoneLabel(timezone: string) {
     "Europe/Istanbul": "تركيا (إسطنبول)",
     "Asia/Qatar": "قطر (الدوحة)",
     "Africa/Casablanca": "المغرب (الدار البيضاء)",
+    "Asia/Amman": "الأردن (عمّان)",
+    "Asia/Riyadh": "السعودية (الرياض)",
+    "Asia/Beirut": "لبنان (بيروت)",
+    "Asia/Muscat": "عمان (مسقط)",
     "Asia/Dubai": "الإمارات (دبي)",
+    "Asia/Baghdad": "العراق (بغداد)",
     "Europe/Paris": "فرنسا (باريس)",
     "Europe/London": "المملكة المتحدة (لندن)",
   };
   return labels[timezone] ?? `التوقيت المحلي للدورة (${timezone || "UTC"})`;
+}
+
+
+function attendanceDetailsFor(session: JsonRecord | undefined) {
+  const deliveryType = text(session?.delivery_type);
+  if (deliveryType === "onsite") {
+    const venue = [text(session?.venue_name), text(session?.venue_address)].filter(Boolean).join(" - ");
+    const mapsUrl = text(session?.maps_url);
+    const details = venue ? "\u062d\u0636\u0648\u0631\u064a - " + venue : "\u062d\u0636\u0648\u0631\u064a - \u0633\u064a\u062a\u0645 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0639\u0646\u0648\u0627\u0646 \u0642\u0628\u0644 \u0627\u0644\u0645\u0648\u0639\u062f";
+    return mapsUrl ? details + " - Google Maps: " + mapsUrl : details;
+  }
+  const meetUrl = text(session?.meet_url);
+  return meetUrl || "\u0639\u0646 \u0628\u0639\u062f - \u0633\u064a\u062a\u0645 \u0625\u0631\u0633\u0627\u0644 \u0631\u0627\u0628\u0637 \u0627\u0644\u062f\u062e\u0648\u0644 \u0642\u0628\u0644 \u0627\u0644\u0645\u0648\u0639\u062f";
 }
 
 function reminderLead(templateKey: string) {
@@ -29,45 +56,43 @@ function reminderLead(templateKey: string) {
   return "تذكير بالدورة:";
 }
 
-async function sendResend(to: string, name: string, title: string, startsAt: string, sourceTimezone: string, saudiStartsAt: string, templateKey: string, meetUrl: string) {
+async function sendResend(to: string, name: string, title: string, startsAt: string, sourceTimezone: string, templateKey: string, attendanceDetails: string) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
   if (!apiKey || !from) return { configured: false as const, provider: "resend" as const, reason: "Resend is not configured (RESEND_API_KEY and RESEND_FROM_EMAIL are required)." };
-  const reminderHtml = meetUrl ? `<p>رابط الدخول: <a href="${escapeHtml(meetUrl)}">${escapeHtml(meetUrl)}</a></p>` : `<p>رابط الدخول غير متاح حتى الآن.</p>`;
   const isRegistrationConfirmation = templateKey === "registration_confirmation";
-  const subject = isRegistrationConfirmation ? `تأكيد التسجيل - ${title}` : `تذكير بالدورة - ${title}`;
-  const html = isRegistrationConfirmation
-    ? `<div dir="rtl" lang="ar"><p>مرحباً ${escapeHtml(name)} 👋</p><p>تم تأكيد تسجيلك في دورة <strong>${escapeHtml(title)}</strong>.</p><p>موعد الدورة:</p><p>${escapeHtml(timezoneLabel(sourceTimezone))}: ${escapeHtml(startsAt)}</p><p>بتوقيت السعودية: ${escapeHtml(saudiStartsAt)}</p><p>سنرسل لك رابط الدخول والتذكيرات قبل الموعد.</p><p>أكاديمية Fiper</p></div>`
-    : `<div dir="rtl" lang="ar"><p>مرحباً ${escapeHtml(name)} 👋</p><p>${reminderLead(templateKey)}</p><p><strong>${escapeHtml(title)}</strong></p><p>موعد الدورة:</p><p>${escapeHtml(timezoneLabel(sourceTimezone))}: ${escapeHtml(startsAt)}</p><p>بتوقيت السعودية: ${escapeHtml(saudiStartsAt)}</p>${reminderHtml}<p>أكاديمية Fiper</p></div>`;
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: [to], subject, html }),
-  });
+  const subject = isRegistrationConfirmation ? "تأكيد التسجيل - " + title : "تذكير بالدورة - " + title;
+  const greeting = "مرحباً " + escapeHtml(name);
+  const timing = templateKey === "course_reminder_24h" ? "ستُقام غداً." : templateKey === "course_reminder_day" ? "ستُقام اليوم." : templateKey === "meeting_reminder" ? "تنبيه: ستبدأ دورتك بعد 10 دقائق:" : "";
+  const reminderLeadText = templateKey === "meeting_reminder" ? timing : "نذكّرك بأن دورتك:";
+  const titleBlock = isRegistrationConfirmation ? "<p>تم تأكيد تسجيلك في دورة:</p><p><strong>" + escapeHtml(title) + "</strong></p>" : "<p>" + reminderLeadText + "</p><p>«" + escapeHtml(title) + "»</p>" + (templateKey === "meeting_reminder" ? "" : "<p>" + timing + "</p>");
+  const followUp = isRegistrationConfirmation ? "<p>ستصلك التذكيرات وتفاصيل الحضور قبل الموعد.</p>" : "";
+  const html = "<div dir=\"rtl\" lang=\"ar\"><p>" + greeting + "</p>" + titleBlock + "<p>الموعد:</p><p>" + escapeHtml(startsAt) + " (" + escapeHtml(timezoneLabel(sourceTimezone)) + ")</p><p>تفاصيل الحضور:</p><p>" + attendanceHtml(attendanceDetails) + "</p>" + followUp + "<p>نتمنى لك حضوراً موفقاً.</p><p>Fiper Academy</p></div>";
+  const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" }, body: JSON.stringify({ from, to: [to], subject, html }) });
   const body = await response.json().catch(() => ({})) as JsonRecord;
-  if (!response.ok) throw new Error(text(body.message, `Resend returned ${response.status}`));
+  if (!response.ok) throw new Error(text(body.message, "Resend returned " + response.status));
   return { configured: true as const, provider: "resend" as const, id: text(body.id) };
 }
-async function sendTwilio(to: string, name: string, title: string, startsAt: string, templateKey: string, meetUrl: string) {
+async function sendTwilio(to: string, name: string, title: string, scheduleLabel: string, templateKey: string, attendanceDetails: string) {
   const sid = process.env.TWILIO_ACCOUNT_SID;
   const token = process.env.TWILIO_AUTH_TOKEN;
   const from = process.env.TWILIO_WHATSAPP_FROM;
   if (!sid || !token || !from) return { configured: false as const, provider: "twilio" as const, reason: "Twilio is not configured (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_WHATSAPP_FROM are required)." };
-  const body = new URLSearchParams({ From: from.startsWith("whatsapp:") ? from : `whatsapp:${from}`, To: `whatsapp:${to}` });
+  const body = new URLSearchParams({ From: from.startsWith("whatsapp:") ? from : "whatsapp:" + from, To: "whatsapp:" + to });
   const contentSid = templateKey !== "registration_confirmation" ? process.env.TWILIO_WHATSAPP_REMINDER_CONTENT_SID : process.env.TWILIO_WHATSAPP_CONTENT_SID;
   if (contentSid) {
     body.set("ContentSid", contentSid);
-    body.set("ContentVariables", JSON.stringify({ "1": name, "2": title, "3": startsAt, "4": meetUrl }));
+    body.set("ContentVariables", JSON.stringify({ "1": name, "2": title, "3": scheduleLabel, "4": attendanceDetails }));
   } else {
-    body.set("Body", templateKey !== "registration_confirmation" ? `Meeting link for ${title} at ${startsAt}: ${meetUrl}` : `Registration confirmed for ${name}: ${title}. Time: ${startsAt}.`);
+    body.set("Body", templateKey !== "registration_confirmation" ? "Course reminder for " + title + " at " + scheduleLabel + ": " + attendanceDetails : "Registration confirmed for " + name + ": " + title + ". Time: " + scheduleLabel + ". Details: " + attendanceDetails);
   }
-  const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(sid)}/Messages.json`, {
+  const response = await fetch("https://api.twilio.com/2010-04-01/Accounts/" + encodeURIComponent(sid) + "/Messages.json", {
     method: "POST",
-    headers: { Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString("base64")}`, "Content-Type": "application/x-www-form-urlencoded" },
+    headers: { Authorization: "Basic " + Buffer.from(sid + ":" + token).toString("base64"), "Content-Type": "application/x-www-form-urlencoded" },
     body,
   });
   const result = await response.json().catch(() => ({})) as JsonRecord;
-  if (!response.ok) throw new Error(text(result.message, `Twilio returned ${response.status}`));
+  if (!response.ok) throw new Error(text(result.message, "Twilio returned " + response.status));
   return { configured: true as const, provider: "twilio" as const, id: text(result.sid) };
 }
 
@@ -81,15 +106,15 @@ function callbellTemplateFor(templateKey: string) {
   return templates[templateKey];
 }
 
-async function sendWhatsApp(to: string, name: string, title: string, startsAt: string, templateKey: string, meetUrl: string, registrationId: string, deliveryId: string) {
+async function sendWhatsApp(to: string, name: string, title: string, scheduleLabel: string, templateKey: string, attendanceDetails: string, registrationId: string, deliveryId: string) {
   if (isCallbellConfigured()) {
     const templateUuid = callbellTemplateFor(templateKey);
-    if (!templateUuid) return { configured: false as const, provider: "callbell" as const, reason: `Callbell template is not configured for ${templateKey}.` };
-    const values = templateKey === "registration_confirmation" ? [name, title, startsAt] : [name, title, startsAt, meetUrl];
+    if (!templateUuid) return { configured: false as const, provider: "callbell" as const, reason: "Callbell template is not configured for " + templateKey + "." };
+    const values = [name, title, scheduleLabel, attendanceDetails];
     const result = await sendCallbellTemplate({ to, templateUuid, values, registrationId, deliveryId });
     return { configured: true as const, provider: "callbell" as const, id: text(result.uuid) };
   }
-  return sendTwilio(to, name, title, startsAt, templateKey, meetUrl);
+  return sendTwilio(to, name, title, scheduleLabel, templateKey, attendanceDetails);
 }
 async function ensureDelivery(supabase: ReturnType<typeof createAdminClient>, registration: JsonRecord, channel: "email" | "whatsapp", templateKey = "registration_confirmation", scheduledFor = new Date().toISOString()) {
   const registrationId = text(registration.id);
@@ -105,7 +130,7 @@ async function ensureDelivery(supabase: ReturnType<typeof createAdminClient>, re
 
 async function processDelivery(supabase: ReturnType<typeof createAdminClient>, delivery: JsonRecord) {
   const id = text(delivery.id);
-  const { data: registrationData, error } = await supabase.from("registrations").select("id,full_name,email,phone_e164,whatsapp_consent,course_sessions(starts_at,timezone,meet_url,courses(state,is_featured,course_translations(title,locale)))").eq("id", text(delivery.registration_id)).maybeSingle();
+  const { data: registrationData, error } = await supabase.from("registrations").select("id,full_name,email,phone_e164,whatsapp_consent,course_sessions(starts_at,timezone,delivery_type,venue_name,venue_address,maps_url,meet_url,courses(state,is_featured,course_translations(title,locale)))").eq("id", text(delivery.registration_id)).maybeSingle();
   if (error || !registrationData) return { id, state: "failed", reason: "Registration not found" };
   const registration = record(registrationData);
   const session = first(registration.course_sessions);
@@ -117,8 +142,9 @@ async function processDelivery(supabase: ReturnType<typeof createAdminClient>, d
   const sourceTimezone = text(session?.timezone, "UTC");
   const startsAtIso = text(session?.starts_at, "");
   const startsAt = formatStartsAt(startsAtIso, sourceTimezone);
-  const saudiStartsAt = formatStartsAt(startsAtIso, "Asia/Riyadh");
+  const scheduleLabel = startsAt + " (" + timezoneLabel(sourceTimezone) + ")";
   const meetUrl = text(session?.meet_url);
+  const attendanceDetails = attendanceDetailsFor(session);
   const templateKey = text(delivery.template_key, "registration_confirmation");
   if (templateKey !== "registration_confirmation" && (text(course?.state) !== "published" || course?.is_featured !== true)) {
     const reason = "Course is not featured and published";
@@ -126,7 +152,7 @@ async function processDelivery(supabase: ReturnType<typeof createAdminClient>, d
     return { id, state: "cancelled", reason };
   }
   const channel = text(delivery.channel) as "email" | "whatsapp";
-  const result = channel === "email" ? await sendResend(text(registration.email), name, title, startsAt, sourceTimezone, saudiStartsAt, templateKey, meetUrl) : await sendWhatsApp(text(registration.phone_e164), name, title, startsAt, templateKey, meetUrl, text(registration.id), id);
+  const result = channel === "email" ? await sendResend(text(registration.email), name, title, startsAt, sourceTimezone, templateKey, attendanceDetails) : await sendWhatsApp(text(registration.phone_e164), name, title, scheduleLabel, templateKey, attendanceDetails, text(registration.id), id);
   if (!result.configured) return { id, state: "queued", reason: result.reason };
   await supabase.from("message_deliveries").update({ state: "sent", sent_at: new Date().toISOString(), provider_message_id: result.id || null, provider_payload: { provider: result.provider }, failure_reason: null, attempt_count: Number(delivery.attempt_count) + 1, updated_at: new Date().toISOString() }).eq("id", id);
   return { id, state: "sent" };
@@ -148,7 +174,8 @@ async function scheduleReminders(supabase: ReturnType<typeof createAdminClient>,
   if (text(course?.state) !== "published" || course?.is_featured !== true) return;
   const startsAtMs = Date.parse(text(session?.starts_at));
   const meetUrl = text(session?.meet_url);
-  if (!meetUrl || !Number.isFinite(startsAtMs) || startsAtMs <= Date.now()) return;
+  const deliveryType = text(session?.delivery_type);
+  if ((deliveryType !== "onsite" && !meetUrl) || !Number.isFinite(startsAtMs) || startsAtMs <= Date.now()) return;
   const timezone = text(session?.timezone, "UTC");
   const reminders = [
     ["course_reminder_24h", startsAtMs - 24 * 60 * 60 * 1000],
@@ -170,7 +197,7 @@ async function run() {
   for (const event of events ?? []) {
     const payload = record(event.payload);
     const registrationId = text(payload.registration_id, text(event.aggregate_id));
-    const { data: registration } = await supabase.from("registrations").select("id,email,phone_e164,whatsapp_consent,status,course_sessions(starts_at,meet_url,courses(state,is_featured))").eq("id", registrationId).maybeSingle();
+    const { data: registration } = await supabase.from("registrations").select("id,email,phone_e164,whatsapp_consent,status,course_sessions(starts_at,timezone,delivery_type,venue_name,venue_address,maps_url,meet_url,courses(state,is_featured))").eq("id", registrationId).maybeSingle();
     if (!registration) { await supabase.from("outbox_events").update({ processed_at: new Date().toISOString() }).eq("id", event.id); continue; }
     const row = record(registration);
     await ensureDelivery(supabase, row, "email");
@@ -180,7 +207,7 @@ async function run() {
     created += 1;
   }
   // Reconcile reminders on every run as well, so adding a Meet URL after registration still schedules it.
-  const { data: confirmedRegistrations } = await supabase.from("registrations").select("id,email,phone_e164,whatsapp_consent,status,course_sessions(starts_at,meet_url,courses(state,is_featured))").eq("status", "confirmed").limit(200);
+  const { data: confirmedRegistrations } = await supabase.from("registrations").select("id,email,phone_e164,whatsapp_consent,status,course_sessions(starts_at,timezone,delivery_type,venue_name,venue_address,maps_url,meet_url,courses(state,is_featured))").eq("status", "confirmed").limit(200);
   for (const registration of confirmedRegistrations ?? []) {
     await scheduleReminders(supabase, record(registration));
   }

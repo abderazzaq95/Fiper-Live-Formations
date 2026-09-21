@@ -7,14 +7,14 @@ import { getPublicCourseById } from "@/lib/data/courses";
 export const dynamic = "force-dynamic";
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ courseId?: string }> }) {
-  const { course, outcomes, agenda, audience, faqs } = await getPublicCourseById((await searchParams).courseId ?? "");
+  const { course, outcomes, agenda, audience, faqs, landing } = await getPublicCourseById((await searchParams).courseId ?? "");
 
   return (
     <main>
-      <CourseHero course={course} />
-      <LearningSections outcomes={outcomes} audience={audience} />
-      <AgendaInstructor course={course} agenda={agenda} />
-      <RegistrationSection course={course} faqs={faqs} />
+      <CourseHero course={course} landing={landing} />
+      <LearningSections outcomes={outcomes} audience={audience} landing={landing} duration={course.duration} />
+      <AgendaInstructor course={course} agenda={agenda} landing={landing} />
+      <RegistrationSection course={course} faqs={faqs} landing={landing} />
     </main>
   );
 }

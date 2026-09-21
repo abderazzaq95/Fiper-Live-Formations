@@ -1,8 +1,10 @@
 import Image from "next/image";
-import { ArrowLeft, CalendarDays, Clock3, Menu, Sparkles, Users, Video } from "lucide-react";
+import { ArrowLeft, CalendarDays, Clock3, Sparkles, Users, Video } from "lucide-react";
 import { FiperLogo } from "@/components/brand/fiper-logo";
 import { Countdown } from "@/components/public/countdown";
+import { MobileCourseNav } from "@/components/public/mobile-course-nav";
 import { featuredCourse, type Course } from "@/lib/demo-data";
+import { defaultLandingContent } from "@/lib/landing-content";
 
 function getFacts(course: Course) {
   return [
@@ -13,7 +15,7 @@ function getFacts(course: Course) {
   ];
 }
 
-export function CourseHero({ course = featuredCourse }: { course?: Course }) {
+export function CourseHero({ course = featuredCourse, landing = defaultLandingContent }: { course?: Course; landing?: typeof defaultLandingContent }) {
   const percentage = Math.round((course.registrations / course.capacity) * 100);
   const heroLines = course.heroHeading.split(/\r?\n/).filter(Boolean);
   const now = new Date().getTime();
@@ -22,23 +24,21 @@ export function CourseHero({ course = featuredCourse }: { course?: Course }) {
   const scheduleState = now < startsAt ? "upcoming" : now <= endsAt ? "live" : "ended";
 
   return (
-    <section className="noise-grid relative min-h-screen overflow-hidden bg-[#031a2d]">
+    <section id="course" className="noise-grid relative min-h-screen overflow-hidden bg-[#031a2d]">
       <div className="pointer-events-none absolute -right-40 top-10 h-96 w-96 rounded-full bg-[#0b5a91]/15 blur-[100px]" />
       <header className="sticky top-0 z-30 border-b border-white/8 bg-[#031a2d]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-20 max-w-[1240px] items-center justify-between px-5 sm:px-8">
-          <FiperLogo />
-          <nav className="hidden items-center gap-8 text-xs font-semibold text-[#9bb3c5] md:flex" aria-label="التنقل الرئيسي">
-            <a href="#about" className="transition hover:text-white">عن الدورة</a>
-            <a href="#agenda" className="transition hover:text-white">المحاور</a>
-            <a href="#instructor" className="transition hover:text-white">المحاضر</a>
-            <a href="#faq" className="transition hover:text-white">الأسئلة</a>
+          <FiperLogo variant="drive" href={`/courses/${encodeURIComponent(course.slug)}`} />
+                    <nav className="hidden items-center gap-8 text-xs font-semibold text-[#9bb3c5] md:flex" aria-label="التنقل الرئيسي">
+            <a href="#course" className="transition hover:text-white">{landing.hero.navAbout}</a>
+            <a href="#agenda" className="transition hover:text-white">{landing.hero.navAgenda}</a>
+            <a href="#instructor" className="transition hover:text-white">{landing.hero.navInstructor}</a>
+            <a href="#faq" className="transition hover:text-white">{landing.hero.navFaq}</a>
           </nav>
-          <a href="#register" className="hidden h-11 items-center gap-2 rounded-xl bg-[#C32828] px-5 text-xs font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#A92121] sm:flex">
-            احجز مقعدك <ArrowLeft size={15} />
+                    <a href="#register" className="hidden h-11 items-center gap-2 rounded-xl bg-[#C32828] px-5 text-xs font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#A92121] sm:flex">
+            {landing.hero.primaryCta} <ArrowLeft size={15} />
           </a>
-          <button className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 sm:hidden" aria-label="فتح القائمة">
-            <Menu size={20} />
-          </button>
+          <MobileCourseNav landing={landing} />
         </div>
       </header>
 
@@ -56,17 +56,17 @@ export function CourseHero({ course = featuredCourse }: { course?: Course }) {
           <p className="mt-4 max-w-xl text-sm leading-8 text-[#91adc2] sm:text-base">{course.description}</p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <a href="#register" className="red-glow group flex h-14 items-center justify-center gap-3 rounded-2xl bg-[#C32828] px-7 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#A92121]">
-              سجل الآن مجاناً <ArrowLeft size={18} className="transition group-hover:-translate-x-1" />
+                        <a href="#register" className="red-glow group flex h-14 items-center justify-center gap-3 rounded-2xl bg-[#C32828] px-7 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#A92121]">
+              {landing.hero.primaryCta} <ArrowLeft size={18} className="transition group-hover:-translate-x-1" />
             </a>
-            <a href="#agenda" className="flex h-14 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.04] px-7 text-sm font-bold text-white transition hover:bg-white/[0.08]">
-              استكشف محاور الدورة
+                        <a href="#agenda" className="flex h-14 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.04] px-7 text-sm font-bold text-white transition hover:bg-white/[0.08]">
+              {landing.hero.secondaryCta}
             </a>
           </div>
 
-          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-[11px] text-[#7f9cb2]">
-            <span className="flex items-center gap-2"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#1f8d67]/15 text-[#62d5aa]">✓</span> لا تحتاج خبرة سابقة</span>
-            <span className="flex items-center gap-2"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#1f8d67]/15 text-[#62d5aa]">✓</span> حضور مباشر وتفاعلي</span>
+                    <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-[11px] text-[#7f9cb2]">
+            <span className="flex items-center gap-2"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#1f8d67]/15 text-[#62d5aa]">✓</span> {landing.hero.benefitOne}</span>
+            <span className="flex items-center gap-2"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#1f8d67]/15 text-[#62d5aa]">✓</span> {landing.hero.benefitTwo}</span>
           </div>
         </div>
 

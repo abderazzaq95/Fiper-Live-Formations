@@ -14,6 +14,7 @@ export type Course = {
   duration: string;
   type: "online" | "onsite";
   platform: string;
+  venueName?: string; venueAddress?: string; mapsUrl?: string;
   capacity: number;
   registrations: number;
   status: CourseStatus;

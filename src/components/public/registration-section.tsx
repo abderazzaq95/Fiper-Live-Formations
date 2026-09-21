@@ -5,12 +5,12 @@ import { SectionHeading } from "./section-heading";
 import type { Course } from "@/lib/demo-data";
 import type { PublicCourseData } from "@/lib/data/courses";
 
-export function RegistrationSection({ course, faqs }: { course: Course; faqs: PublicCourseData["faqs"] }) {
+export function RegistrationSection({ course, faqs, landing }: { course: Course; faqs: PublicCourseData["faqs"]; landing: PublicCourseData["landing"] }) {
   return (
     <>
       <section id="faq" className="fine-grid bg-[#f4f8fb] py-24 text-[#071d2f] sm:py-30">
         <div className="mx-auto max-w-[920px] px-5 sm:px-8">
-          <SectionHeading align="center" light eyebrow="قبل أن تسجل" title="إجابات واضحة عن أسئلتك" />
+          <SectionHeading align="center" light eyebrow={landing.faq.eyebrow} title={landing.faq.title} />
           <div className="mt-10 space-y-3">
             {faqs.map((item, index) => (
               <details key={item.question} open={index === 0} className="group rounded-[20px] border border-[#dce7ef] bg-white px-5 shadow-[0_12px_35px_rgba(12,43,65,.045)] sm:px-6">
@@ -29,7 +29,7 @@ export function RegistrationSection({ course, faqs }: { course: Course; faqs: Pu
         <div className="pointer-events-none absolute -bottom-44 -left-40 h-[420px] w-[420px] rounded-full bg-[#C32828]/10 blur-[110px]" />
         <div className="relative mx-auto grid max-w-[1120px] overflow-hidden rounded-[34px] border border-white/10 bg-[#062139]/80 shadow-[0_40px_100px_rgba(0,8,15,.35)] lg:grid-cols-[.85fr_1.15fr]">
           <div className="border-b border-white/8 p-7 sm:p-10 lg:border-b-0 lg:border-l">
-            <SectionHeading eyebrow="خطوتك التالية" title="احجز مقعدك المجاني" description="أدخل بياناتك مرة واحدة، وسنرسل إليك التأكيد والرابط وكل التذكيرات المهمة." />
+            <SectionHeading eyebrow={landing.registration.eyebrow} title={landing.registration.title} description={landing.registration.description} />
 
             <div className="mt-9 space-y-3">
               <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.035] p-4">
@@ -41,7 +41,7 @@ export function RegistrationSection({ course, faqs }: { course: Course; faqs: Pu
                   <Clock3 size={18} className="text-[#C32828]" /><span><small className="block text-[9px] text-[#7895aa]">المدة</small><strong className="mt-1 block text-xs">{course.duration}</strong></span>
                 </div>
                 <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.035] p-4">
-                  <Video size={18} className="text-[#C32828]" /><span><small className="block text-[9px] text-[#7895aa]">المكان</small><strong className="mt-1 block text-xs">{course.platform}</strong></span>
+                  <Video size={18} className="text-[#C32828]" /><span><small className="block text-[9px] text-[#7895aa]">المكان</small><strong className="mt-1 block text-xs">{course.type === "onsite" ? (course.venueName || course.venueAddress || "حضوري") : course.platform}</strong>{course.type === "onsite" && course.venueAddress && course.venueName ? <small className="mt-1 block text-[10px] text-[#bed1df]">{course.venueAddress}</small> : null}{course.type === "onsite" && course.mapsUrl ? <a href={course.mapsUrl} target="_blank" rel="noreferrer" className="mt-2 block text-[10px] text-[#62d5aa] underline">فتح الموقع على Google Maps</a> : null}</span>
                 </div>
               </div>
             </div>
@@ -58,7 +58,7 @@ export function RegistrationSection({ course, faqs }: { course: Course; faqs: Pu
 
           <div className="bg-[#041a2d]/75 p-7 sm:p-10">
             <div className="mb-7 flex items-center justify-between">
-              <div><p className="text-sm font-bold text-white">بيانات التسجيل</p><p className="mt-1 text-[10px] text-[#6f8ba0]">جميع الحقول مطلوبة</p></div>
+                            <div><p className="text-sm font-bold text-white">{landing.registration.formTitle}</p><p className="mt-1 text-[10px] text-[#6f8ba0]">{landing.registration.formDescription}</p></div>
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#123754] text-[#62d5aa]"><ShieldCheck size={19} /></span>
             </div>
             {course.registrationOpen === false ? <div className="rounded-2xl border border-[#e4a7a7]/30 bg-[#3a1c29] p-6 text-center text-sm font-bold text-white">التسجيل مغلق حالياً لهذه الدورة.</div> : <RegistrationForm courseId={course.id} />}
@@ -68,16 +68,16 @@ export function RegistrationSection({ course, faqs }: { course: Course; faqs: Pu
 
       <footer className="border-t border-white/8 bg-[#021525] pb-24 pt-12 sm:pb-10">
         <div className="mx-auto flex max-w-[1120px] flex-col items-center justify-between gap-8 px-5 text-center sm:px-8 md:flex-row md:text-right">
-          <div><FiperLogo /><p className="mt-4 max-w-md text-[10px] leading-6 text-[#67859b]">محتوى تعليمي عام ولا يمثل نصيحة استثمارية. ينطوي تداول المنتجات المالية على مخاطر وقد يؤدي إلى خسارة رأس المال.</p></div>
+          <div><FiperLogo variant="drive" href={`/courses/${encodeURIComponent(course.slug)}`} /><p className="mt-4 max-w-md text-[10px] leading-6 text-[#67859b]">{landing.footer.disclaimer}</p></div>
           <div className="text-[10px] leading-6 text-[#67859b]">
             <p className="latin">© 2026 Fiper Academy</p>
-            <div className="mt-2 flex gap-4"><a href="#" className="hover:text-white">الخصوصية</a><a href="#" className="hover:text-white">الشروط</a></div>
+            <div className="mt-2 flex gap-4"><a href="#" className="hover:text-white">{landing.footer.privacyLabel}</a><a href="#" className="hover:text-white">{landing.footer.termsLabel}</a></div>
           </div>
         </div>
       </footer>
 
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-[#031a2d]/92 p-3 backdrop-blur-xl sm:hidden">
-        <a href="#register" className="flex h-13 items-center justify-center rounded-2xl bg-[#C32828] text-sm font-bold text-white shadow-[0_10px_35px_rgba(195,40,40,.3)]">احجز مقعدك المجاني</a>
+        <a href="#register" className="flex h-13 items-center justify-center rounded-2xl bg-[#C32828] text-sm font-bold text-white shadow-[0_10px_35px_rgba(195,40,40,.3)]">{landing.hero.primaryCta}</a>
       </div>
     </>
   );

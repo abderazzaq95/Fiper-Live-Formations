@@ -1,5 +1,6 @@
 import { getDashboardIdentity } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getStoredGoogleConfig } from "@/lib/integrations/google";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -30,14 +31,6 @@ function normalizeEmail(value: string) {
   return value.trim().toLocaleLowerCase();
 }
 
-function normalizeName(value: string) {
-  return value
-    .normalize("NFKC")
-    .replace(/[\u064B-\u065F\u0670]/g, "")
-    .trim()
-    .toLocaleLowerCase()
-    .replace(/\s+/g, " ");
-}
 
 function participantDisplayName(participant: JsonRecord) {
   return text(participant.displayName) || text(record(participant.signedinUser).displayName) || text(record(participant.anonymousUser).displayName);
@@ -49,20 +42,50 @@ function participantResourceId(participant: JsonRecord) {
 }
 
 async function participantEmail(participant: JsonRecord, token: string) {
-  const personId = participantResourceId(participant);
-  if (!personId) return "";
+  const signedInUser = record(participant.signedinUser);
+  const directEmail = [
+    text(participant.email),
+    text(participant.emailAddress),
+    text(signedInUser.email),
+    text(signedInUser.emailAddress),
+  ].map(normalizeEmail).find(Boolean);
+  if (directEmail) return directEmail;
+
+  const references = [text(signedInUser.user), participantResourceId(participant)]
+    .map((value) => value.split("/").filter(Boolean).pop() ?? "")
+    .filter(Boolean)
+    .filter((value, index, values) => values.indexOf(value) === index);
   const params = new URLSearchParams({ personFields: "emailAddresses" });
   params.append("sources", "READ_SOURCE_TYPE_PROFILE");
   params.append("sources", "READ_SOURCE_TYPE_CONTACT");
   params.append("sources", "READ_SOURCE_TYPE_OTHER_CONTACT");
-  const response = await fetch(`https://people.googleapis.com/v1/people/${encodeURIComponent(personId)}?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
-  const data = await response.json().catch(() => ({}));
-  if (response.status === 404) return "";
-  if (response.status === 401 || response.status === 403) return "";
-  if (!response.ok) return "";
-  const emails = Array.isArray(data.emailAddresses) ? data.emailAddresses : [];
-  const value = emails.map((item: unknown) => text(record(item).value)).find(Boolean) ?? "";
-  return normalizeEmail(value);
+  for (const personId of references) {
+    const response = await fetch(`https://people.googleapis.com/v1/people/${encodeURIComponent(personId)}?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) continue;
+    const emails = Array.isArray(data.emailAddresses) ? data.emailAddresses : [];
+    const value = emails.map((item: unknown) => text(record(item).value)).find(Boolean) ?? "";
+    if (value) return normalizeEmail(value);
+  }
+
+  // Workspace participants expose a stable user ID in signedInUser.user.
+  // Resolve it through the Admin SDK as a fallback when People API profile
+  // data is hidden or unavailable.
+  const workspaceUserId = text(signedInUser.user)
+    .split("/")
+    .filter(Boolean)
+    .pop();
+  if (workspaceUserId) {
+    const response = await fetch(`https://admin.googleapis.com/admin/directory/v1/users/${encodeURIComponent(workspaceUserId)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    const data = await response.json().catch(() => ({}));
+    const value = text(record(data).primaryEmail);
+    if (response.ok && value) return normalizeEmail(value);
+  }
+
+  return "";
 }
 
 function findRegistrationByEmail(email: string, registrations: JsonRecord[], used: Set<string>) {
@@ -74,26 +97,38 @@ function findRegistrationByEmail(email: string, registrations: JsonRecord[], use
   });
 }
 
-function findRegistrationByName(name: string, registrations: JsonRecord[], used: Set<string>) {
-  const normalized = normalizeName(name);
-  if (!normalized) return undefined;
-  return registrations.find((registration) => {
-    const id = text(registration.id);
-    return Boolean(id) && !used.has(id) && normalizeName(text(registration.full_name)) === normalized;
-  });
-}
 
-async function accessToken() {
+async function accessToken(supabase: Awaited<ReturnType<typeof createClient>>) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-  if (!clientId || !clientSecret || !refreshToken) throw new Error("Google Meet OAuth is not configured in Vercel.");
+  if (!clientId || !clientSecret) throw new Error("Google Meet OAuth is not configured in Vercel.");
 
-  const body = new URLSearchParams({ client_id: clientId, client_secret: clientSecret, refresh_token: refreshToken, grant_type: "refresh_token" });
-  const response = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body, cache: "no-store" });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || typeof data.access_token !== "string") throw new Error("Google authorization failed. Please reconnect the Google account.");
-  return data.access_token;
+  // Try the explicitly configured token first, then the token saved by the
+  // dashboard's Google connection. This prevents an old Vercel token from
+  // shadowing a newly connected account.
+  const refreshTokens: string[] = [];
+  const configuredToken = process.env.GOOGLE_REFRESH_TOKEN?.trim();
+  if (configuredToken) refreshTokens.push(configuredToken);
+  try {
+    const stored = await getStoredGoogleConfig(supabase);
+    if (stored.state === "connected" && stored.config?.refreshToken && !refreshTokens.includes(stored.config.refreshToken)) {
+      refreshTokens.push(stored.config.refreshToken);
+    }
+  } catch (error) {
+    console.error("google_oauth_stored_config_read_failed", error);
+  }
+  if (!refreshTokens.length) throw new Error("Google Meet OAuth is not configured in Vercel.");
+
+  const failures: string[] = [];
+  for (const refreshToken of refreshTokens) {
+    const body = new URLSearchParams({ client_id: clientId, client_secret: clientSecret, refresh_token: refreshToken, grant_type: "refresh_token" });
+    const response = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body, cache: "no-store" });
+    const data = record(await response.json().catch(() => ({})));
+    if (response.ok && typeof data.access_token === "string") return data.access_token;
+    failures.push(`${response.status}:${text(data.error) || "unknown"}`);
+  }
+  console.error("google_oauth_refresh_failed", failures.join(","));
+  throw new Error("Google authorization failed. Please reconnect the Google account.");
 }
 
 async function meetRequest(path: string, token: string) {
@@ -119,12 +154,97 @@ async function listParticipants(conferenceName: string, token: string) {
   } while (pageToken);
   return participants;
 }
+function reportParameter(event: JsonRecord, name: string) {
+  const parameters = Array.isArray(event.parameters) ? event.parameters : [];
+  const parameter = parameters.map(record).find((item) => text(item.name) === name);
+  if (!parameter) return "";
+  return text(parameter.value) || text(parameter.intValue) || text(parameter.boolValue);
+}
+
+async function listMeetAuditEvents(code: string, startsAt: string, endsAt: string | null, token: string) {
+  const start = new Date(Date.parse(startsAt) - 6 * 60 * 60 * 1000);
+  const endMs = endsAt ? Date.parse(endsAt) + 24 * 60 * 60 * 1000 : Date.now();
+  if (!Number.isFinite(start.getTime()) || !Number.isFinite(endMs)) return [];
+  const events: JsonRecord[] = [];
+  let pageToken = "";
+  do {
+    const params = new URLSearchParams({
+      eventName: "call_ended",
+      maxResults: "1000",
+      startTime: start.toISOString(),
+      endTime: new Date(Math.min(endMs, Date.now())).toISOString(),
+      filters: `meeting_code==${code}`,
+    });
+    if (pageToken) params.set("pageToken", pageToken);
+    const response = await fetch(
+      `https://admin.googleapis.com/admin/reports/v1/activity/users/all/applications/meet?${params.toString()}`,
+      { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
+    );
+    if (!response.ok) return [];
+    const data = record(await response.json().catch(() => ({})));
+    const rows = Array.isArray(data.items) ? data.items : [];
+    events.push(...rows.map(record));
+    pageToken = text(data.nextPageToken);
+  } while (pageToken);
+  return events;
+}
+
+function reportParticipant(activity: JsonRecord) {
+  const event = (Array.isArray(activity.events) ? activity.events : [])
+    .map(record)
+    .find((item) => text(item.name) === "call_ended");
+  if (!event) return undefined;
+  const identifier = normalizeEmail(reportParameter(event, "identifier"));
+  const identifierType = text(reportParameter(event, "identifier_type"));
+  const durationSeconds = Number(reportParameter(event, "duration_seconds"));
+  const endSeconds = Number(text(record(activity.id).time));
+  if (!Number.isFinite(endSeconds) || !Number.isFinite(durationSeconds)) return undefined;
+  const leftAt = new Date(endSeconds * 1000).toISOString();
+  const joinedAt = new Date((endSeconds - Math.max(0, durationSeconds)) * 1000).toISOString();
+  return {
+    name: `reports/${reportParameter(event, "endpoint_id") || endSeconds}`,
+    displayName: reportParameter(event, "display_name"),
+    email: identifierType === "email_address" ? identifier : "",
+    earliestStartTime: joinedAt,
+    latestEndTime: leftAt,
+    durationSeconds: Math.max(0, Math.round(durationSeconds)),
+  };
+}
+
+function normalizedName(value: string) {
+  return value.trim().toLocaleLowerCase().replace(/\s+/g, " ");
+}
+
+function reportEmailForParticipant(participant: JsonRecord, reports: JsonRecord[]) {
+  const name = normalizedName(participantDisplayName(participant));
+  if (!name) return "";
+  const joinedMs = Date.parse(text(participant.earliestStartTime));
+  const leftMs = Date.parse(text(participant.latestEndTime));
+  const duration = Number.isFinite(joinedMs) && Number.isFinite(leftMs) ? Math.max(0, Math.round((leftMs - joinedMs) / 1000)) : -1;
+  const match = reports
+    .map(reportParticipant)
+    .filter((report): report is NonNullable<ReturnType<typeof reportParticipant>> => Boolean(report?.email))
+    .find((report) => {
+      if (normalizedName(report.displayName) !== name) return false;
+      if (duration < 0) return true;
+      return Math.abs(report.durationSeconds - duration) <= 90;
+    });
+  return match?.email ?? "";
+}
+function reportMatchesParticipant(report: NonNullable<ReturnType<typeof reportParticipant>>, participant: JsonRecord) {
+  const reportJoined = Date.parse(report.earliestStartTime);
+  const reportLeft = Date.parse(report.latestEndTime);
+  const joined = Date.parse(text(participant.earliestStartTime));
+  const left = Date.parse(text(participant.latestEndTime));
+  if (![reportJoined, reportLeft, joined, left].every(Number.isFinite)) return false;
+  return Math.abs(reportJoined - joined) <= 3 * 60 * 1000 && Math.abs(reportLeft - left) <= 3 * 60 * 1000;
+}
 async function saveAttendance(
   supabase: Awaited<ReturnType<typeof createClient>>,
   registrationId: string | null,
   sessionId: string,
   participant: JsonRecord,
-  matchMethod: "name" | "email" | "unregistered",
+  matchMethod: "email" | "unregistered",
   participantName: string,
   participantEmail: string,
 ) {
@@ -134,8 +254,7 @@ async function saveAttendance(
   const joinedMs = Date.parse(joinedAt);
   const leftMs = leftAt ? Date.parse(leftAt) : Date.now();
   const durationSeconds = Number.isFinite(joinedMs) && Number.isFinite(leftMs) ? Math.max(0, Math.round((leftMs - joinedMs) / 1000)) : 0;
-  let existingQuery = supabase.from("attendance_sessions").select("id,manually_overridden").eq("session_id", sessionId).eq("meet_participant_id", text(participant.name));
-  existingQuery = registrationId ? existingQuery.eq("registration_id", registrationId) : existingQuery.is("registration_id", null);
+  const existingQuery = supabase.from("attendance_sessions").select("id,manually_overridden").eq("session_id", sessionId).eq("meet_participant_id", text(participant.name));
   const { data: existing, error: existingError } = await existingQuery.maybeSingle();
   if (existingError) throw existingError;
   if (existing?.manually_overridden) return false;
@@ -171,7 +290,7 @@ export async function POST() {
     }
     if (!groups.size) return Response.json({ message: "No saved Google Meet link was found for the registered courses.", synced: 0, conferences: 0 });
 
-    const token = await accessToken();
+    const token = await accessToken(supabase);
     let synced = 0;
     let conferences = 0;
     for (const [code, group] of groups) {
@@ -182,22 +301,47 @@ export async function POST() {
       if (!conference?.name) continue;
       conferences += 1;
       const participants = await listParticipants(text(conference.name), token);
+      const session = record(group[0]?.session);
+      let auditReports: JsonRecord[] = [];
+      try {
+        auditReports = await listMeetAuditEvents(code, text(session.starts_at), text(session.ends_at) || null, token);
+      } catch {
+        auditReports = [];
+      }
       const used = new Set<string>();
-      for (const participant of participants) {
-        const name = participantDisplayName(participant);
-        const matchedByName = findRegistrationByName(name, group, used);
-        const email = matchedByName ? "" : await participantEmail(participant, token);
-        const matched = matchedByName ?? findRegistrationByEmail(email, group, used);
+      const reportedParticipantIds = new Set<string>();
+      for (const activity of auditReports) {
+        const report = reportParticipant(activity);
+        if (!report?.email) continue;
+        const correlated = participants.find((participant) => reportMatchesParticipant(report, participant));
+        const attendanceParticipant: JsonRecord = correlated
+          ? { ...correlated, earliestStartTime: report.earliestStartTime, latestEndTime: report.latestEndTime }
+          : report;
+        if (correlated) reportedParticipantIds.add(text(correlated.name));
+        const matched = findRegistrationByEmail(report.email, group, used);
+        const name = report.displayName || participantDisplayName(correlated ?? {});
         if (matched) {
           const id = text(matched.id);
           used.add(id);
-          if (await saveAttendance(supabase, id, text(record(group[0]?.session).id), participant, matchedByName ? "name" : "email", name, email)) synced += 1;
-        } else if (await saveAttendance(supabase, null, text(record(group[0]?.session).id), participant, "unregistered", name, email)) {
+          if (await saveAttendance(supabase, id, text(session.id), attendanceParticipant, "email", name, report.email)) synced += 1;
+        } else if (await saveAttendance(supabase, null, text(session.id), attendanceParticipant, "unregistered", name, report.email)) {
+          synced += 1;
+        }
+      }
+      for (const participant of participants) {
+        if (reportedParticipantIds.has(text(participant.name))) continue;
+        const name = participantDisplayName(participant);
+        const email = await participantEmail(participant, token);
+        const matched = findRegistrationByEmail(email, group, used);
+        if (matched) {
+          const id = text(matched.id);
+          used.add(id);
+          if (await saveAttendance(supabase, id, text(session.id), participant, "email", name, email)) synced += 1;
+        } else if (await saveAttendance(supabase, null, text(session.id), participant, "unregistered", name, email)) {
           synced += 1;
         }
       }
     }
-
     return Response.json({ message: conferences ? `Meet synchronization completed: ${synced} participant record(s) updated.` : "No conference record was found yet. Start the Meet and try again after someone joins.", synced, conferences });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to synchronize Google Meet attendance.";

@@ -3,6 +3,7 @@
 import { Clock3, ChevronDown, UserRoundCheck, UserRoundX } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AttendanceTable } from "@/components/dashboard/attendance-table";
+import { CustomMessageComposer } from "@/components/dashboard/custom-message-composer";
 import type { AttendanceRow } from "@/lib/data/dashboard";
 
 const t = {
@@ -15,8 +16,8 @@ const t = {
   pending: "بانتظار بدء الدورة",
 } as const;
 
-export function AttendanceDashboard({ rows }: { rows: AttendanceRow[] }) {
-  const courses = useMemo(() => [...new Set(rows.map((row) => row.course).filter(Boolean))].sort(), [rows]);
+export function AttendanceDashboard({ rows, courseOptions = [] }: { rows: AttendanceRow[]; courseOptions?: string[] }) {
+  const courses = useMemo(() => [...new Set([...courseOptions, ...rows.map((row) => row.course)].filter(Boolean))].sort(), [rows, courseOptions]);
   const [course, setCourse] = useState("all");
   const hydrated = useRef(false);
 
@@ -46,16 +47,17 @@ export function AttendanceDashboard({ rows }: { rows: AttendanceRow[] }) {
   ] as const;
 
   return <>
-    <div className="mb-5 flex items-center justify-end gap-3 rounded-[18px] border border-[#dfe7ec] bg-white p-4">
+    <div className="mb-5 flex flex-col items-stretch justify-end gap-3 rounded-[18px] border border-[#dfe7ec] bg-white p-4 sm:flex-row sm:items-center">
       <label className="text-[10px] font-bold text-[#617585]" htmlFor="attendance-course-filter">{t.courseFilter}</label>
       <div className="relative">
-        <select id="attendance-course-filter" value={course} onChange={(event) => setCourse(event.target.value)} className="h-10 min-w-[250px] appearance-none rounded-xl border border-[#dfe7ec] bg-white px-4 pl-9 text-[10px] font-bold text-[#29485d]">
+        <select id="attendance-course-filter" value={course} onChange={(event) => setCourse(event.target.value)} className="h-10 w-full appearance-none rounded-xl border border-[#dfe7ec] bg-white px-4 pl-9 text-[10px] font-bold text-[#29485d] sm:w-auto sm:min-w-[250px]">
           <option value="all">{t.allCourses}</option>
           {courses.map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
         <ChevronDown size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#617585]" />
       </div>
     </div>
+    <CustomMessageComposer recipients={filteredRows} />
     <div className="grid gap-4 sm:grid-cols-3">
       {stats.map(([label, value, note, Icon, tone]) => <div key={label} className="flex items-center gap-4 rounded-[18px] border border-[#dfe7ec] bg-white p-5"><span className={"flex h-11 w-11 items-center justify-center rounded-[14px] " + tone}><Icon size={19} /></span><span><small className="text-[9px] text-[#7f929f]">{label}</small><strong className="mt-1 block text-xl">{value}</strong><small className="text-[8px] text-[#91a2ae]">{note}</small></span></div>)}
     </div>

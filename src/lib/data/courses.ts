@@ -3,6 +3,7 @@ import "server-only";
 import { agenda as demoAgenda, audience as demoAudience, faqs as demoFaqs, featuredCourse, learningOutcomes, type Course } from "@/lib/demo-data";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { defaultLandingContent, mergeLandingContent, type LandingContent } from "@/lib/landing-content";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -12,10 +13,12 @@ export type PublicCourseData = {
   agenda: typeof demoAgenda;
   audience: typeof demoAudience;
   faqs: typeof demoFaqs;
+  landing: LandingContent;
 };
 
 export type DashboardCourse = {
   id: string;
+  slug: string;
   title: string;
   date: string;
     startsAt: string;
@@ -87,6 +90,7 @@ function mapPublicData(row: JsonRecord, translation: JsonRecord | undefined, ses
     duration: String(durationMinutes) + " دقيقة",
     type,
     platform,
+    venueName: asText(session?.venue_name), venueAddress: asText(session?.venue_address), mapsUrl: asText(session?.maps_url),
     capacity,
     registrations: registrationCount,
     status: row.state === "published" ? "open" : "draft",
@@ -111,6 +115,7 @@ function mapPublicData(row: JsonRecord, translation: JsonRecord | undefined, ses
     agenda: agendaRows.length ? agendaRows.map((item) => ({ time: typeof item.minutes === "number" ? String(item.minutes) + " دقيقة" : asText(item.time), title: asText(item.title), text: asText(item.text) })) : demoAgenda,
     audience: audienceRows.length ? audienceRows.map((item) => asText(item)) : demoAudience,
     faqs: faqRows.length ? faqRows.map((item) => ({ question: asText(item.question), answer: asText(item.answer) })) : demoFaqs,
+    landing: mergeLandingContent(translation?.landing_content),
   };
 }
 
@@ -119,13 +124,12 @@ export async function getPublicCourse(): Promise<PublicCourseData> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open),instructors(name,title,bio,photo_path)")
+      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,venue_name,venue_address,maps_url),instructors(name,title,bio,photo_path)")
       .eq("state", "published")
       .order("is_featured", { ascending: false })
-      .order("published_at", { ascending: false })
-      .limit(50);
+      .order("published_at", { ascending: false });
 
-    if (error || !data?.length) return { course: featuredCourse, outcomes: learningOutcomes, agenda: demoAgenda, audience: demoAudience, faqs: demoFaqs };
+    if (error || !data?.length) return { course: featuredCourse, outcomes: learningOutcomes, agenda: demoAgenda, audience: demoAudience, faqs: demoFaqs, landing: defaultLandingContent };
 
     const rows = data as unknown as JsonRecord[];
     const now = Date.now();
@@ -137,7 +141,7 @@ export async function getPublicCourse(): Promise<PublicCourseData> {
       return { row, session, start, end, featured: row.is_featured === true };
     });
     const selected = candidates.filter((candidate) => candidate.end > now).sort((a, b) => Number(b.featured) - Number(a.featured) || a.start - b.start)[0] ?? candidates.sort((a, b) => Number(b.featured) - Number(a.featured) || b.start - a.start)[0];
-    if (!selected) return { course: featuredCourse, outcomes: learningOutcomes, agenda: demoAgenda, audience: demoAudience, faqs: demoFaqs };
+    if (!selected) return { course: featuredCourse, outcomes: learningOutcomes, agenda: demoAgenda, audience: demoAudience, faqs: demoFaqs, landing: defaultLandingContent };
 
     const row = selected.row;
     const translations = asArray(row.course_translations);
@@ -155,7 +159,7 @@ export async function getPublicCourse(): Promise<PublicCourseData> {
     }
     return mapPublicData(row, translation, selected.session, instructor, registrationCount);
   } catch {
-    return { course: featuredCourse, outcomes: learningOutcomes, agenda: demoAgenda, audience: demoAudience, faqs: demoFaqs };
+    return { course: featuredCourse, outcomes: learningOutcomes, agenda: demoAgenda, audience: demoAudience, faqs: demoFaqs, landing: defaultLandingContent };
   }
 }
 
@@ -169,7 +173,7 @@ export async function getPublicCourseById(id: string): Promise<PublicCourseData>
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open),instructors(name,title,bio,photo_path)")
+      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,venue_name,venue_address,maps_url),instructors(name,title,bio,photo_path)")
       .eq("id", id)
       .maybeSingle();
 
@@ -181,15 +185,51 @@ export async function getPublicCourseById(id: string): Promise<PublicCourseData>
     const translation = translations.find((item) => item.locale === locale) ?? translations[0];
     const sessions = asArray(row.course_sessions);
     const instructor = firstRecord(row.instructors);
-    return mapPublicData(row, translation, sessions[0], instructor);
+    const sessionId = asText(sessions[0]?.id);
+    let registrationCount = 0;
+    const serviceUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (serviceUrl && serviceKey && sessionId) {
+      const admin = createSupabaseClient(serviceUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+      const result = await admin.from("registrations").select("id", { count: "exact", head: true }).eq("session_id", sessionId).in("status", ["confirmed", "attended"]);
+      registrationCount = result.count ?? 0;
+    }
+    return mapPublicData(row, translation, sessions[0], instructor, registrationCount);
   } catch {
     return getPublicCourse();
+  }
+}
+/**
+ * Resolve a public course URL by slug or ID. Published courses receive
+ * runtime URLs, so adding a course never requires another deployment.
+ */
+export async function getPublicCourseByPath(path: string): Promise<PublicCourseData | null> {
+  if (!path) return null;
+  try {
+    const supabase = await createClient();
+    const direct = await supabase.from("courses").select("id").eq("slug", path).eq("state", "published").maybeSingle();
+    if (direct.data && !direct.error) return getPublicCourseById(asText((direct.data as JsonRecord).id));
+
+    if (/^[A-Za-z0-9_-]+$/.test(path)) {
+      const byId = await supabase.from("courses").select("id").eq("id", path).eq("state", "published").maybeSingle();
+      if (byId.data && !byId.error) return getPublicCourseById(asText((byId.data as JsonRecord).id));
+    }
+
+    // Old shared links continue to work after a course receives its idXX slug.
+    const alias = await supabase.from("course_slug_aliases").select("course_id").eq("slug", path).maybeSingle();
+    const aliasId = alias.data && !alias.error ? asText((alias.data as JsonRecord).course_id) : "";
+    if (!aliasId) return null;
+    const target = await supabase.from("courses").select("id").eq("id", aliasId).eq("state", "published").maybeSingle();
+    if (target.error || !target.data) return null;
+    return getPublicCourseById(aliasId);
+  } catch {
+    return null;
   }
 }
 export async function listDashboardCourses(): Promise<DashboardCourse[]> {
   try {
     const supabase = await createClient();
-    const { data: courses, error } = await supabase.from("courses").select("id,default_locale,state,is_featured,course_translations(locale,title),course_sessions(id,starts_at,capacity,registration_open)").order("created_at", { ascending: false });
+    const { data: courses, error } = await supabase.from("courses").select("id,slug,default_locale,state,is_featured,course_translations(locale,title),course_sessions(id,starts_at,capacity,registration_open)").order("created_at", { ascending: false });
     if (error || !courses) return [];
 
     const sessionIds = courses.flatMap((course) => asArray((course as JsonRecord).course_sessions).map((session) => asText(session.id))).filter(Boolean);
@@ -206,7 +246,7 @@ export async function listDashboardCourses(): Promise<DashboardCourse[]> {
       const state = asText(row.state);
       const isOpen = session?.registration_open === true;
       const status = state === "draft" ? "مسودة" : state === "completed" ? "مكتملة" : count >= capacity && capacity > 0 && isOpen ? "قائمة انتظار" : isOpen ? "مفتوح" : "مغلق";
-      return { id: asText(row.id), featured: row.is_featured === true, title: asText(translation?.title, "دورة بدون عنوان"), date: formatDate(asText(session?.starts_at)), startsAt: asText(session?.starts_at), registrations: count, capacity, registrationOpen: isOpen, status, tone: status === "قائمة انتظار" ? "amber" : status === "مسودة" ? "slate" : status === "مغلق" ? "red" : "green" };
+      return { id: asText(row.id), slug: asText(row.slug, asText(row.id)), featured: row.is_featured === true, title: asText(translation?.title, "دورة بدون عنوان"), date: formatDate(asText(session?.starts_at)), startsAt: asText(session?.starts_at), registrations: count, capacity, registrationOpen: isOpen, status, tone: status === "قائمة انتظار" ? "amber" : status === "مسودة" ? "slate" : status === "مغلق" ? "red" : "green" };
     });
   } catch {
     return [];
@@ -252,9 +292,13 @@ export type CourseEditorData = {
   heroHeading: string
   coverPath: string;
   faqs: Array<{ question: string; answer: string }>;
+  outcomes: Array<{ title: string; text: string }>;
+  audience: string[];
+  agenda: Array<{ time: string; title: string; text: string }>;
+  landingContent: LandingContent;
   registrationCount: number;
   instructor: { id: string; name: string; title: string; bio: string; image: string };
-  session: { id: string; startsAt: string; endsAt: string; timezone: string; deliveryType: string; platform: string; capacity: number; registrationOpen: boolean; waitlistEnabled: boolean; meetUrl: string; venueName: string; venueAddress: string };
+  session: { id: string; startsAt: string; endsAt: string; timezone: string; deliveryType: string; platform: string; capacity: number; registrationOpen: boolean; waitlistEnabled: boolean; meetUrl: string; venueName: string; venueAddress: string; mapsUrl: string };
 };
 
 export async function getCourseEditorData(id: string): Promise<CourseEditorData | null> {
@@ -262,7 +306,7 @@ export async function getCourseEditorData(id: string): Promise<CourseEditorData 
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,faqs),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address),instructors(id,name,title,bio,photo_path)")
+      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address,maps_url),instructors(id,name,title,bio,photo_path)")
       .eq("id", id)
       .maybeSingle();
     if (error || !data) return null;
@@ -283,6 +327,10 @@ export async function getCourseEditorData(id: string): Promise<CourseEditorData 
       description: asText(translation.description),
       coverPath: asText(row.cover_path),
       faqs: asArray(translation.faqs).map((item) => ({ question: asText(item.question), answer: asText(item.answer) })).filter((item) => item.question && item.answer),
+      outcomes: asArray(translation.outcomes).map((item, index) => ({ title: asText(item.title, learningOutcomes[index]?.title ?? ""), text: asText(item.text, learningOutcomes[index]?.text ?? "") })).filter((item) => item.title && item.text),
+      audience: Array.isArray(translation.audience) ? translation.audience.map((item) => asText(item)).filter(Boolean) : [],
+      agenda: asArray(translation.agenda).map((item) => ({ time: asText(item.time), title: asText(item.title), text: asText(item.text) })).filter((item) => item.time && item.title && item.text),
+      landingContent: mergeLandingContent(translation.landing_content),
       registrationCount: registrationCount ?? 0,
       instructor: { id: asText(instructor.id), name: asText(instructor.name), title: asText(instructor.title), bio: asText(instructor.bio), image: asText(instructor.photo_path) },
       session: {
@@ -298,6 +346,7 @@ export async function getCourseEditorData(id: string): Promise<CourseEditorData 
         meetUrl: asText(session.meet_url),
         venueName: asText(session.venue_name),
         venueAddress: asText(session.venue_address),
+        mapsUrl: asText(session.maps_url),
       },
     };
   } catch {

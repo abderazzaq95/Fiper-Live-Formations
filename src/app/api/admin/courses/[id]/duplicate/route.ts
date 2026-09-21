@@ -23,8 +23,13 @@ export async function POST(_request: Request, context: RouteContext<"/api/admin/
   if (sourceError || !source) return Response.json({ message: "Course not found." }, { status: 404 });
 
   const newId = `crs_${crypto.randomUUID().replaceAll("-", "").slice(0, 20)}`;
-  const sourceSlug = text(source.slug, "course").replace(/[^a-z0-9-]+/gi, "-").replace(/^-+|-+$/g, "") || "course";
-  const newSlug = `${sourceSlug}-copy-${Date.now().toString(36)}`.slice(0, 120);
+  const { data: existingSlugs } = await supabase.from("courses").select("slug");
+  const { data: aliases } = await supabase.from("course_slug_aliases").select("slug");
+  const nextNumber = [...(existingSlugs ?? []), ...(aliases ?? [])].reduce((max, row) => {
+    const match = /^id(\d+)$/i.exec(text((row as JsonRecord).slug));
+    return match ? Math.max(max, Number(match[1])) : max;
+  }, 0) + 1;
+  const newSlug = `id${String(nextNumber).padStart(2, "0")}`;
   const coursePayload = {
     id: newId,
     slug: newSlug,
@@ -51,6 +56,7 @@ export async function POST(_request: Request, context: RouteContext<"/api/admin/
     agenda: translation.agenda ?? [],
     audience: translation.audience ?? [],
     faqs: translation.faqs ?? [],
+    landing_content: translation.landing_content ?? {},
     seo_title: translation.seo_title ?? null,
     seo_description: translation.seo_description ?? null,
   }));
@@ -71,6 +77,7 @@ export async function POST(_request: Request, context: RouteContext<"/api/admin/
     platform: text(session.platform) || null,
     venue_name: text(session.venue_name) || null,
     venue_address: text(session.venue_address) || null,
+    maps_url: text(session.maps_url) || null,
     meet_space_name: text(session.meet_space_name) || null,
     meet_url: text(session.meet_url) || null,
     google_event_id: null,

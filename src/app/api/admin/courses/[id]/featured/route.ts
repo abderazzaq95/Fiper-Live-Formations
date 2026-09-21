@@ -9,10 +9,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   const body = await request.json().catch(() => ({}));
   const featured = body?.featured === true;
   const supabase = await createClient();
-  if (featured) {
-    const { error: clearError } = await supabase.from("courses").update({ is_featured: false }).eq("is_featured", true);
-    if (clearError) return Response.json({ message: "Unable to update featured course." }, { status: 500 });
-  }
+
   const { error } = await supabase.from("courses").update({ is_featured: featured, updated_at: new Date().toISOString() }).eq("id", id);
   if (error) return Response.json({ message: "Unable to update featured course." }, { status: 500 });
   revalidatePath("/");
