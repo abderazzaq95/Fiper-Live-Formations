@@ -153,6 +153,28 @@ async function listParticipants(conferenceName: string, token: string) {
   } while (pageToken);
   return participants;
 }
+
+async function latestParticipantVisit(participant: JsonRecord, token: string) {
+  const resourceName = text(participant.name);
+  if (!resourceName) return participant;
+  const visits: JsonRecord[] = [];
+  let pageToken = "";
+  do {
+    const params = new URLSearchParams({ pageSize: "100" });
+    if (pageToken) params.set("pageToken", pageToken);
+    const data = await meetRequest(`${resourceName}/participantSessions?${params.toString()}`, token);
+    const rows = Array.isArray(data.participantSessions) ? data.participantSessions : [];
+    visits.push(...rows.map(record));
+    pageToken = text(data.nextPageToken);
+  } while (pageToken);
+  const latest = visits.sort((a, b) => Date.parse(text(b.startTime)) - Date.parse(text(a.startTime)))[0];
+  if (!latest) return participant;
+  return {
+    ...participant,
+    earliestStartTime: text(latest.startTime, text(participant.earliestStartTime)),
+    latestEndTime: text(latest.endTime, text(participant.latestEndTime)),
+  };
+}
 function reportParameter(event: JsonRecord, name: string) {
   const parameters = Array.isArray(event.parameters) ? event.parameters : [];
   const parameter = parameters.map(record).find((item) => text(item.name) === name);
@@ -214,22 +236,6 @@ function normalizedName(value: string) {
   return value.trim().toLocaleLowerCase().replace(/\s+/g, " ");
 }
 
-function reportEmailForParticipant(participant: JsonRecord, reports: JsonRecord[]) {
-  const name = normalizedName(participantDisplayName(participant));
-  if (!name) return "";
-  const joinedMs = Date.parse(text(participant.earliestStartTime));
-  const leftMs = Date.parse(text(participant.latestEndTime));
-  const duration = Number.isFinite(joinedMs) && Number.isFinite(leftMs) ? Math.max(0, Math.round((leftMs - joinedMs) / 1000)) : -1;
-  const match = reports
-    .map(reportParticipant)
-    .filter((report): report is NonNullable<ReturnType<typeof reportParticipant>> => Boolean(report?.email))
-    .find((report) => {
-      if (normalizedName(report.displayName) !== name) return false;
-      if (duration < 0) return true;
-      return Math.abs(report.durationSeconds - duration) <= 90;
-    });
-  return match?.email ?? "";
-}
 function reportMatchesParticipant(report: NonNullable<ReturnType<typeof reportParticipant>>, participant: JsonRecord) {
   const reportJoined = Date.parse(report.earliestStartTime);
   const reportLeft = Date.parse(report.latestEndTime);
@@ -237,6 +243,20 @@ function reportMatchesParticipant(report: NonNullable<ReturnType<typeof reportPa
   const left = Date.parse(text(participant.latestEndTime));
   if (![reportJoined, reportLeft, joined, left].every(Number.isFinite)) return false;
   return Math.abs(reportJoined - joined) <= 3 * 60 * 1000 && Math.abs(reportLeft - left) <= 3 * 60 * 1000;
+}
+
+function participantIdentityKey(participant: JsonRecord, email: string, displayName: string) {
+  if (email) return `email:${normalizeEmail(email)}`;
+  const signedInUser = text(record(participant.signedinUser).user);
+  if (signedInUser) return `user:${signedInUser}`;
+  const name = normalizedName(displayName);
+  if (name) return `name:${name}`;
+  return `participant:${text(participant.name)}`;
+}
+
+function joinedTime(participant: JsonRecord) {
+  const value = Date.parse(text(participant.earliestStartTime));
+  return Number.isFinite(value) ? value : 0;
 }
 async function saveAttendance(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -267,6 +287,28 @@ async function saveAttendance(
     if (error) throw error;
   }
   return true;
+}
+
+async function removeObsoleteAttendance(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  sessionId: string,
+  activeParticipantIds: Set<string>,
+) {
+  if (!sessionId || !activeParticipantIds.size) return 0;
+  const { data, error } = await supabase
+    .from("attendance_sessions")
+    .select("id,meet_participant_id,manually_overridden")
+    .eq("session_id", sessionId);
+  if (error) throw error;
+  const staleIds = (data ?? [])
+    .map(record)
+    .filter((row) => !row.manually_overridden && !activeParticipantIds.has(text(row.meet_participant_id)))
+    .map((row) => text(row.id))
+    .filter(Boolean);
+  if (!staleIds.length) return 0;
+  const { error: deleteError } = await supabase.from("attendance_sessions").delete().in("id", staleIds);
+  if (deleteError) throw deleteError;
+  return staleIds.length;
 }
 export async function POST() {
   const identity = await getDashboardIdentity();
@@ -299,7 +341,8 @@ export async function POST() {
       const conference = records[0];
       if (!conference?.name) continue;
       conferences += 1;
-      const participants = await listParticipants(text(conference.name), token);
+      const listedParticipants = await listParticipants(text(conference.name), token);
+      const participants = await Promise.all(listedParticipants.map((participant) => latestParticipantVisit(participant, token)));
       const session = record(group[0]?.session);
       let auditReports: JsonRecord[] = [];
       try {
@@ -307,30 +350,29 @@ export async function POST() {
       } catch {
         auditReports = [];
       }
-      const used = new Set<string>();
-      const reportedParticipantIds = new Set<string>();
-      for (const activity of auditReports) {
-        const report = reportParticipant(activity);
-        if (!report?.email) continue;
-        const correlated = participants.find((participant) => reportMatchesParticipant(report, participant));
-        const attendanceParticipant: JsonRecord = correlated
-          ? { ...correlated, earliestStartTime: report.earliestStartTime, latestEndTime: report.latestEndTime }
-          : report;
-        if (correlated) reportedParticipantIds.add(text(correlated.name));
-        const matched = findRegistrationByEmail(report.email, group, used);
-        const name = report.displayName || participantDisplayName(correlated ?? {});
-        if (matched) {
-          const id = text(matched.id);
-          used.add(id);
-          if (await saveAttendance(supabase, id, text(session.id), attendanceParticipant, "email", name, report.email)) synced += 1;
-        } else if (await saveAttendance(supabase, null, text(session.id), attendanceParticipant, "unregistered", name, report.email)) {
-          synced += 1;
-        }
+      const reports = auditReports
+        .map(reportParticipant)
+        .filter((report): report is NonNullable<ReturnType<typeof reportParticipant>> => Boolean(report));
+      const usedReports = new Set<number>();
+      const resolvedParticipants = await Promise.all(participants.map(async (participant) => {
+        const reportIndex = reports.findIndex((report, index) => !usedReports.has(index) && Boolean(report.email) && reportMatchesParticipant(report, participant));
+        if (reportIndex >= 0) usedReports.add(reportIndex);
+        const report = reportIndex >= 0 ? reports[reportIndex] : undefined;
+        const email = report?.email || await participantEmail(participant, token);
+        const name = participantDisplayName(participant) || report?.displayName || "";
+        return { participant, email, name };
+      }));
+      const uniqueParticipants = new Map<string, typeof resolvedParticipants[number]>();
+      for (const resolved of resolvedParticipants) {
+        const key = participantIdentityKey(resolved.participant, resolved.email, resolved.name);
+        const existing = uniqueParticipants.get(key);
+        if (!existing || joinedTime(resolved.participant) >= joinedTime(existing.participant)) uniqueParticipants.set(key, resolved);
       }
-      for (const participant of participants) {
-        if (reportedParticipantIds.has(text(participant.name))) continue;
-        const name = participantDisplayName(participant);
-        const email = await participantEmail(participant, token);
+
+      const used = new Set<string>();
+      const activeParticipantIds = new Set<string>();
+      for (const { participant, email, name } of uniqueParticipants.values()) {
+        activeParticipantIds.add(text(participant.name));
         const matched = findRegistrationByEmail(email, group, used);
         if (matched) {
           const id = text(matched.id);
@@ -340,6 +382,19 @@ export async function POST() {
           synced += 1;
         }
       }
+      for (const [index, report] of reports.entries()) {
+        if (usedReports.has(index) || !report.email) continue;
+        activeParticipantIds.add(text(report.name));
+        const matched = findRegistrationByEmail(report.email, group, used);
+        if (matched) {
+          const id = text(matched.id);
+          used.add(id);
+          if (await saveAttendance(supabase, id, text(session.id), report, "email", report.displayName, report.email)) synced += 1;
+        } else if (await saveAttendance(supabase, null, text(session.id), report, "unregistered", report.displayName, report.email)) {
+          synced += 1;
+        }
+      }
+      await removeObsoleteAttendance(supabase, text(session.id), activeParticipantIds);
     }
     return Response.json({ message: conferences ? `Meet synchronization completed: ${synced} participant record(s) updated.` : "No conference record was found yet. Start the Meet and try again after someone joins.", synced, conferences });
   } catch (error) {
