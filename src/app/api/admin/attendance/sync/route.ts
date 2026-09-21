@@ -218,12 +218,12 @@ function reportParticipant(activity: JsonRecord) {
   const identifier = normalizeEmail(reportParameter(event, "identifier"));
   const identifierType = text(reportParameter(event, "identifier_type"));
   const durationSeconds = Number(reportParameter(event, "duration_seconds"));
-  const endSeconds = Number(text(record(activity.id).time));
-  if (!Number.isFinite(endSeconds) || !Number.isFinite(durationSeconds)) return undefined;
-  const leftAt = new Date(endSeconds * 1000).toISOString();
-  const joinedAt = new Date((endSeconds - Math.max(0, durationSeconds)) * 1000).toISOString();
+  const endedAtMs = Date.parse(text(record(activity.id).time));
+  if (!Number.isFinite(endedAtMs) || !Number.isFinite(durationSeconds)) return undefined;
+  const leftAt = new Date(endedAtMs).toISOString();
+  const joinedAt = new Date(endedAtMs - Math.max(0, durationSeconds) * 1000).toISOString();
   return {
-    name: `reports/${reportParameter(event, "endpoint_id") || endSeconds}`,
+    name: `reports/${reportParameter(event, "endpoint_id") || endedAtMs}`,
     displayName: reportParameter(event, "display_name"),
     email: identifierType === "email_address" ? identifier : "",
     earliestStartTime: joinedAt,
