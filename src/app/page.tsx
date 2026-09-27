@@ -11,10 +11,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
 
   return (
     <main>
-      <CourseHero course={course} landing={landing} />
-      <LearningSections outcomes={outcomes} audience={audience} landing={landing} duration={course.duration} />
-      <AgendaInstructor course={course} agenda={agenda} landing={landing} />
-      <RegistrationSection course={course} faqs={faqs} landing={landing} />
+      {landing.visibility.hero && <CourseHero course={course} landing={landing} />}
+      {(landing.visibility.about || landing.visibility.audience) && <LearningSections outcomes={outcomes} audience={audience} landing={landing} duration={course.duration} />}
+      {(landing.visibility.agenda || landing.visibility.instructor) && <AgendaInstructor course={course} agenda={agenda} landing={landing} />}
+      {(landing.visibility.faq || landing.visibility.registration || landing.visibility.footer) && <RegistrationSection course={course} faqs={faqs} landing={landing} />}
     </main>
   );
 }

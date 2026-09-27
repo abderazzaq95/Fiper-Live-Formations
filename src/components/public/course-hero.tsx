@@ -22,6 +22,12 @@ export function CourseHero({ course = featuredCourse, landing = defaultLandingCo
   const startsAt = new Date(course.isoStart).getTime();
   const endsAt = new Date(course.isoEnd).getTime();
   const scheduleState = now < startsAt ? "upcoming" : now <= endsAt ? "live" : "ended";
+  const navLinks = [
+    landing.visibility.about ? { href: "#about", label: landing.hero.navAbout } : null,
+    landing.visibility.agenda ? { href: "#agenda", label: landing.hero.navAgenda } : null,
+    landing.visibility.instructor ? { href: "#instructor", label: landing.hero.navInstructor } : null,
+    landing.visibility.faq ? { href: "#faq", label: landing.hero.navFaq } : null,
+  ].filter((link): link is { href: string; label: string } => Boolean(link));
 
   return (
     <section id="course" className="noise-grid relative min-h-screen overflow-hidden bg-[#031a2d]">
@@ -29,15 +35,12 @@ export function CourseHero({ course = featuredCourse, landing = defaultLandingCo
       <header className="sticky top-0 z-30 border-b border-white/8 bg-[#031a2d]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-20 max-w-[1240px] items-center justify-between px-5 sm:px-8">
           <FiperLogo variant="drive" href={`/courses/${encodeURIComponent(course.slug)}`} />
-                    <nav className="hidden items-center gap-8 text-xs font-semibold text-[#9bb3c5] md:flex" aria-label="التنقل الرئيسي">
-            <a href="#course" className="transition hover:text-white">{landing.hero.navAbout}</a>
-            <a href="#agenda" className="transition hover:text-white">{landing.hero.navAgenda}</a>
-            <a href="#instructor" className="transition hover:text-white">{landing.hero.navInstructor}</a>
-            <a href="#faq" className="transition hover:text-white">{landing.hero.navFaq}</a>
+          <nav className="hidden items-center gap-8 text-xs font-semibold text-[#9bb3c5] md:flex" aria-label="التنقل الرئيسي">
+            {navLinks.map((link) => <a key={link.href} href={link.href} className="transition hover:text-white">{link.label}</a>)}
           </nav>
-                    <a href="#register" className="hidden h-11 items-center gap-2 rounded-xl bg-[#C32828] px-5 text-xs font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#A92121] sm:flex">
+          {landing.visibility.registration && <a href="#register" className="hidden h-11 items-center gap-2 rounded-xl bg-[#C32828] px-5 text-xs font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#A92121] sm:flex">
             {landing.hero.primaryCta} <ArrowLeft size={15} />
-          </a>
+          </a>}
           <MobileCourseNav landing={landing} />
         </div>
       </header>
@@ -56,12 +59,12 @@ export function CourseHero({ course = featuredCourse, landing = defaultLandingCo
           <p className="mt-4 max-w-xl text-sm leading-8 text-[#91adc2] sm:text-base">{course.description}</p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                        <a href="#register" className="red-glow group flex h-14 items-center justify-center gap-3 rounded-2xl bg-[#C32828] px-7 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#A92121]">
+            {landing.visibility.registration && <a href="#register" className="red-glow group flex h-14 items-center justify-center gap-3 rounded-2xl bg-[#C32828] px-7 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#A92121]">
               {landing.hero.primaryCta} <ArrowLeft size={18} className="transition group-hover:-translate-x-1" />
-            </a>
-                        <a href="#agenda" className="flex h-14 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.04] px-7 text-sm font-bold text-white transition hover:bg-white/[0.08]">
+            </a>}
+            {landing.visibility.agenda && <a href="#agenda" className="flex h-14 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.04] px-7 text-sm font-bold text-white transition hover:bg-white/[0.08]">
               {landing.hero.secondaryCta}
-            </a>
+            </a>}
           </div>
 
                     <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-[11px] text-[#7f9cb2]">

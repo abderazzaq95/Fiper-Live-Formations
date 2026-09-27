@@ -8,7 +8,7 @@ import type { PublicCourseData } from "@/lib/data/courses";
 export function RegistrationSection({ course, faqs, landing }: { course: Course; faqs: PublicCourseData["faqs"]; landing: PublicCourseData["landing"] }) {
   return (
     <>
-      <section id="faq" className="fine-grid bg-[#f4f8fb] py-24 text-[#071d2f] sm:py-30">
+      {landing.visibility.faq && <section id="faq" className="fine-grid bg-[#f4f8fb] py-24 text-[#071d2f] sm:py-30">
         <div className="mx-auto max-w-[920px] px-5 sm:px-8">
           <SectionHeading align="center" light eyebrow={landing.faq.eyebrow} title={landing.faq.title} />
           <div className="mt-10 space-y-3">
@@ -23,9 +23,9 @@ export function RegistrationSection({ course, faqs, landing }: { course: Course;
             ))}
           </div>
         </div>
-      </section>
+      </section>}
 
-      <section id="register" className="noise-grid relative overflow-hidden bg-[#031a2d] py-20 sm:py-28">
+      {landing.visibility.registration && <section id="register" className="noise-grid relative overflow-hidden bg-[#031a2d] py-20 sm:py-28">
         <div className="pointer-events-none absolute -bottom-44 -left-40 h-[420px] w-[420px] rounded-full bg-[#C32828]/10 blur-[110px]" />
         <div className="relative mx-auto grid max-w-[1120px] overflow-hidden rounded-[34px] border border-white/10 bg-[#062139]/80 shadow-[0_40px_100px_rgba(0,8,15,.35)] lg:grid-cols-[.85fr_1.15fr]">
           <div className="border-b border-white/8 p-7 sm:p-10 lg:border-b-0 lg:border-l">
@@ -64,9 +64,9 @@ export function RegistrationSection({ course, faqs, landing }: { course: Course;
             {course.registrationOpen === false ? <div className="rounded-2xl border border-[#e4a7a7]/30 bg-[#3a1c29] p-6 text-center text-sm font-bold text-white">التسجيل مغلق حالياً لهذه الدورة.</div> : <RegistrationForm courseId={course.id} />}
           </div>
         </div>
-      </section>
+      </section>}
 
-      <footer className="border-t border-white/8 bg-[#021525] pb-24 pt-12 sm:pb-10">
+      {landing.visibility.footer && <footer className="border-t border-white/8 bg-[#021525] pb-24 pt-12 sm:pb-10">
         <div className="mx-auto flex max-w-[1120px] flex-col items-center justify-between gap-8 px-5 text-center sm:px-8 md:flex-row md:text-right">
           <div><FiperLogo variant="drive" href={`/courses/${encodeURIComponent(course.slug)}`} /><p className="mt-4 max-w-md text-[10px] leading-6 text-[#67859b]">{landing.footer.disclaimer}</p></div>
           <div className="text-[10px] leading-6 text-[#67859b]">
@@ -74,11 +74,11 @@ export function RegistrationSection({ course, faqs, landing }: { course: Course;
             <div className="mt-2 flex gap-4"><a href="#" className="hover:text-white">{landing.footer.privacyLabel}</a><a href="#" className="hover:text-white">{landing.footer.termsLabel}</a></div>
           </div>
         </div>
-      </footer>
+      </footer>}
 
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-[#031a2d]/92 p-3 backdrop-blur-xl sm:hidden">
+      {landing.visibility.registration && <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-[#031a2d]/92 p-3 backdrop-blur-xl sm:hidden">
         <a href="#register" className="flex h-13 items-center justify-center rounded-2xl bg-[#C32828] text-sm font-bold text-white shadow-[0_10px_35px_rgba(195,40,40,.3)]">{landing.hero.primaryCta}</a>
-      </div>
+      </div>}
     </>
   );
 }

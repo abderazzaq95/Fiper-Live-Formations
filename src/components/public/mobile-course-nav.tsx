@@ -7,11 +7,13 @@ import type { LandingContent } from "@/lib/landing-content";
 export function MobileCourseNav({ landing }: { landing: LandingContent }) {
   const [open, setOpen] = useState(false);
   const links = [
-    { href: "#course", label: landing.hero.navAbout },
-    { href: "#agenda", label: landing.hero.navAgenda },
-    { href: "#instructor", label: landing.hero.navInstructor },
-    { href: "#faq", label: landing.hero.navFaq },
-  ];
+    landing.visibility.about ? { href: "#about", label: landing.hero.navAbout } : null,
+    landing.visibility.agenda ? { href: "#agenda", label: landing.hero.navAgenda } : null,
+    landing.visibility.instructor ? { href: "#instructor", label: landing.hero.navInstructor } : null,
+    landing.visibility.faq ? { href: "#faq", label: landing.hero.navFaq } : null,
+  ].filter((link): link is { href: string; label: string } => Boolean(link));
+
+  if (!links.length && !landing.visibility.registration) return null;
 
   return (
     <div className="relative sm:hidden">
@@ -25,7 +27,7 @@ export function MobileCourseNav({ landing }: { landing: LandingContent }) {
               <a key={link.href} href={link.href} onClick={() => setOpen(false)} className="block rounded-xl px-4 py-3 text-xs font-semibold text-[#c9dbea] transition hover:bg-white/10 hover:text-white">{link.label}</a>
             ))}
           </nav>
-          <a href="#register" onClick={() => setOpen(false)} className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-[#C32828] px-4 py-3 text-xs font-bold text-white transition hover:bg-[#A92121]">{landing.hero.primaryCta} <ArrowLeft size={14} /></a>
+          {landing.visibility.registration && <a href="#register" onClick={() => setOpen(false)} className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-[#C32828] px-4 py-3 text-xs font-bold text-white transition hover:bg-[#A92121]">{landing.hero.primaryCta} <ArrowLeft size={14} /></a>}
         </div>
       )}
     </div>

@@ -5,6 +5,16 @@ import { getDashboardIdentity } from "@/lib/auth";
 import { z } from "zod";
 
 const landingContentSchema = z.object({
+  visibility: z.object({
+    hero: z.boolean(),
+    about: z.boolean(),
+    audience: z.boolean(),
+    agenda: z.boolean(),
+    instructor: z.boolean(),
+    faq: z.boolean(),
+    registration: z.boolean(),
+    footer: z.boolean(),
+  }).partial().optional(),
   hero: z.object({ navAbout: z.string().trim().max(120), navAgenda: z.string().trim().max(120), navInstructor: z.string().trim().max(120), navFaq: z.string().trim().max(120), primaryCta: z.string().trim().max(120), secondaryCta: z.string().trim().max(120), benefitOne: z.string().trim().max(180), benefitTwo: z.string().trim().max(180) }).partial().optional(),
   about: z.object({ eyebrow: z.string().trim().max(180), title: z.string().trim().max(240), description: z.string().trim().max(1000), durationLabel: z.string().trim().max(240) }).partial().optional(),
   audience: z.object({ eyebrow: z.string().trim().max(180), title: z.string().trim().max(240), description: z.string().trim().max(1000), badgeLabel: z.string().trim().max(180), badgeTitle: z.string().trim().max(600), stats: z.array(z.object({ value: z.string().trim().max(60), label: z.string().trim().max(120) })).max(6) }).partial().optional(),

@@ -5,10 +5,20 @@ import { ArrowRight, Check, Eye, ImagePlus, Loader2, Plus, Save, Send, Sparkles,
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { agenda as defaultAgenda, audience as defaultAudience, featuredCourse, learningOutcomes } from "@/lib/demo-data";
-import { defaultLandingContent, type LandingContent } from "@/lib/landing-content";
+import { defaultLandingContent, type LandingContent, type LandingSectionVisibility } from "@/lib/landing-content";
 import type { CourseEditorData } from "@/lib/data/courses";
 
 const tabs = ["المحتوى", "أقسام الصفحة", "الموعد والمكان", "التسجيل", "المحاضر", "الإشعارات"];
+const landingSectionLabels: Array<{ key: keyof LandingSectionVisibility; label: string }> = [
+  { key: "hero", label: "الشريط الرئيسي" },
+  { key: "about", label: "ماذا ستخرج به؟" },
+  { key: "audience", label: "هل هذه الدورة لك؟" },
+  { key: "agenda", label: "برنامج الدورة" },
+  { key: "instructor", label: "المحاضر" },
+  { key: "faq", label: "الأسئلة الشائعة" },
+  { key: "registration", label: "التسجيل" },
+  { key: "footer", label: "التذييل" },
+];
 
 function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return <label className="block"><span className="mb-2 block text-[10px] font-bold text-[#425d70]">{label}</span>{children}{hint && <span className="mt-2 block text-[8px] text-[#91a2ae]">{hint}</span>}</label>;
@@ -60,6 +70,10 @@ export function CourseEditor({ courseId, initial, isNew = false }: { courseId: s
   const [draftValues, setDraftValues] = useState<Record<string, string>>({});
 
   const updateLanding = (section: keyof LandingContent, field: string, value: string) => setLandingContent((current) => ({ ...current, [section]: { ...(current[section] as Record<string, unknown>), [field]: value } } as LandingContent));
+  const updateSectionVisibility = (section: keyof LandingSectionVisibility, visible: boolean) => setLandingContent((current) => ({
+    ...current,
+    visibility: { ...current.visibility, [section]: visible },
+  }));
 
 
   async function uploadAsset(file: File, kind: AssetKind) {
@@ -172,6 +186,12 @@ export function CourseEditor({ courseId, initial, isNew = false }: { courseId: s
                     {activeTab === tabs[1] && (
             <div className="space-y-8">
               <div><h2 className="text-sm font-bold">محتوى الصفحة العامة</h2><p className="mt-1 text-[9px] text-[#91a2ae]">عدّل كل النصوص والبطاقات الظاهرة في صفحة الدورة من مكان واحد.</p></div>
+              <div className="space-y-4 rounded-2xl border border-[#e1e8ed] bg-[#fbfcfd] p-4">
+                <div><h3 className="text-[11px] font-bold">إظهار أقسام الصفحة</h3><p className="mt-1 text-[8px] text-[#91a2ae]">عطّل أي قسم لإخفائه من صفحة الدورة. تبقى بياناته محفوظة ويمكن إظهاره مجدداً.</p></div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {landingSectionLabels.map(({ key, label }) => <label key={key} className="flex items-center justify-between rounded-xl border border-[#dce5eb] bg-white p-3 text-[10px] font-bold text-[#425d70]"><span>{label}</span><input type="checkbox" checked={landingContent.visibility[key]} onChange={(event) => updateSectionVisibility(key, event.target.checked)} className="h-4 w-4 accent-[#168a65]" /></label>)}
+                </div>
+              </div>
               <div className="space-y-4 rounded-2xl border border-[#e1e8ed] bg-[#fbfcfd] p-4"><h3 className="text-[11px] font-bold">الشريط الرئيسي</h3><div className="grid gap-4 sm:grid-cols-2"><EditableText label="رابط عن الدورة" value={landingContent.hero.navAbout} onChange={(value) => updateLanding("hero", "navAbout", value)} /><EditableText label="رابط المحاور" value={landingContent.hero.navAgenda} onChange={(value) => updateLanding("hero", "navAgenda", value)} /><EditableText label="رابط المحاضر" value={landingContent.hero.navInstructor} onChange={(value) => updateLanding("hero", "navInstructor", value)} /><EditableText label="رابط الأسئلة" value={landingContent.hero.navFaq} onChange={(value) => updateLanding("hero", "navFaq", value)} /><EditableText label="زر التسجيل الرئيسي" value={landingContent.hero.primaryCta} onChange={(value) => updateLanding("hero", "primaryCta", value)} /><EditableText label="زر استكشاف المحاور" value={landingContent.hero.secondaryCta} onChange={(value) => updateLanding("hero", "secondaryCta", value)} /><EditableText label="ميزة أولى" value={landingContent.hero.benefitOne} onChange={(value) => updateLanding("hero", "benefitOne", value)} /><EditableText label="ميزة ثانية" value={landingContent.hero.benefitTwo} onChange={(value) => updateLanding("hero", "benefitTwo", value)} /></div></div>
               <div className="space-y-4 rounded-2xl border border-[#e1e8ed] bg-[#fbfcfd] p-4"><h3 className="text-[11px] font-bold">قسم ماذا ستخرج به؟</h3><div className="grid gap-4 sm:grid-cols-2"><EditableText label="العبارة التعريفية" value={landingContent.about.eyebrow} onChange={(value) => updateLanding("about", "eyebrow", value)} /><EditableText label="العنوان" value={landingContent.about.title} onChange={(value) => updateLanding("about", "title", value)} /><EditableText label="الوصف" value={landingContent.about.description} onChange={(value) => updateLanding("about", "description", value)} multiline /><EditableText label="نص شارة المدة" value={landingContent.about.durationLabel} onChange={(value) => updateLanding("about", "durationLabel", value)} /></div></div>
               <div className="space-y-4 rounded-2xl border border-[#e1e8ed] bg-[#fbfcfd] p-4"><div className="flex items-center justify-between"><h3 className="text-[11px] font-bold">بطاقات النتائج</h3><button type="button" onClick={() => setOutcomeItems((items) => [...items, { title: "", text: "" }])} className="flex h-9 items-center gap-1.5 rounded-lg bg-[#102f47] px-3 text-[9px] font-bold text-white"><Plus size={13} /> إضافة بطاقة</button></div>{outcomeItems.map((item, index) => <div key={index} className="grid gap-3 rounded-xl border border-[#dce5eb] bg-white p-4 sm:grid-cols-[1fr_1fr_auto]"><EditableText label={`البطاقة ${index + 1}`} value={item.title} onChange={(value) => setOutcomeItems((items) => items.map((row, rowIndex) => rowIndex === index ? { ...row, title: value } : row))} /><EditableText label="الوصف" value={item.text} onChange={(value) => setOutcomeItems((items) => items.map((row, rowIndex) => rowIndex === index ? { ...row, text: value } : row))} multiline /><button type="button" onClick={() => setOutcomeItems((items) => items.filter((_, rowIndex) => rowIndex !== index))} className="self-start pt-7 text-[#C32828]" aria-label="حذف البطاقة"><Trash2 size={15} /></button></div>)}</div>

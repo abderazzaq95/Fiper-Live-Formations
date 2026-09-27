@@ -1,8 +1,19 @@
 export type LandingStat = { value: string; label: string };
 export type LandingOutcome = { title: string; text: string };
 export type LandingAgendaItem = { time: string; title: string; text: string };
+export type LandingSectionVisibility = {
+  hero: boolean;
+  about: boolean;
+  audience: boolean;
+  agenda: boolean;
+  instructor: boolean;
+  faq: boolean;
+  registration: boolean;
+  footer: boolean;
+};
 
 export type LandingContent = {
+  visibility: LandingSectionVisibility;
   hero: {
     navAbout: string;
     navAgenda: string;
@@ -23,6 +34,16 @@ export type LandingContent = {
 };
 
 export const defaultLandingContent: LandingContent = {
+  visibility: {
+    hero: true,
+    about: true,
+    audience: true,
+    agenda: true,
+    instructor: true,
+    faq: true,
+    registration: true,
+    footer: true,
+  },
   hero: {
     navAbout: "عن الدورة",
     navAgenda: "المحاور",
@@ -86,6 +107,7 @@ function text(value: unknown, fallback: string) { return typeof value === "strin
 
 export function mergeLandingContent(value: unknown): LandingContent {
   const input = object(value);
+  const visibility = object(input.visibility);
   const hero = object(input.hero);
   const about = object(input.about);
   const audience = object(input.audience);
@@ -100,6 +122,16 @@ export function mergeLandingContent(value: unknown): LandingContent {
     return { value: text(row.value, fallback.value), label: text(row.label, fallback.label) };
   }).filter((item) => item.value || item.label) : defaultLandingContent.audience.stats;
   return {
+    visibility: {
+      hero: typeof visibility.hero === "boolean" ? visibility.hero : defaultLandingContent.visibility.hero,
+      about: typeof visibility.about === "boolean" ? visibility.about : defaultLandingContent.visibility.about,
+      audience: typeof visibility.audience === "boolean" ? visibility.audience : defaultLandingContent.visibility.audience,
+      agenda: typeof visibility.agenda === "boolean" ? visibility.agenda : defaultLandingContent.visibility.agenda,
+      instructor: typeof visibility.instructor === "boolean" ? visibility.instructor : defaultLandingContent.visibility.instructor,
+      faq: typeof visibility.faq === "boolean" ? visibility.faq : defaultLandingContent.visibility.faq,
+      registration: typeof visibility.registration === "boolean" ? visibility.registration : defaultLandingContent.visibility.registration,
+      footer: typeof visibility.footer === "boolean" ? visibility.footer : defaultLandingContent.visibility.footer,
+    },
     hero: { ...defaultLandingContent.hero, navAbout: text(hero.navAbout, defaultLandingContent.hero.navAbout), navAgenda: text(hero.navAgenda, defaultLandingContent.hero.navAgenda), navInstructor: text(hero.navInstructor, defaultLandingContent.hero.navInstructor), navFaq: text(hero.navFaq, defaultLandingContent.hero.navFaq), primaryCta: text(hero.primaryCta, defaultLandingContent.hero.primaryCta), secondaryCta: text(hero.secondaryCta, defaultLandingContent.hero.secondaryCta), benefitOne: text(hero.benefitOne, defaultLandingContent.hero.benefitOne), benefitTwo: text(hero.benefitTwo, defaultLandingContent.hero.benefitTwo) },
     about: { ...defaultLandingContent.about, eyebrow: text(about.eyebrow, defaultLandingContent.about.eyebrow), title: text(about.title, defaultLandingContent.about.title), description: text(about.description, defaultLandingContent.about.description), durationLabel: text(about.durationLabel, defaultLandingContent.about.durationLabel) },
     audience: { ...defaultLandingContent.audience, eyebrow: text(audience.eyebrow, defaultLandingContent.audience.eyebrow), title: text(audience.title, defaultLandingContent.audience.title), description: text(audience.description, defaultLandingContent.audience.description), badgeLabel: text(audience.badgeLabel, defaultLandingContent.audience.badgeLabel), badgeTitle: text(audience.badgeTitle, defaultLandingContent.audience.badgeTitle), stats },

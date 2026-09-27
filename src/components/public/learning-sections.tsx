@@ -7,7 +7,7 @@ const icons = [BarChart3, TrendingUp, ShieldCheck, Target];
 export function LearningSections({ outcomes, audience, landing, duration }: Pick<PublicCourseData, "outcomes" | "audience" | "landing"> & { duration: string }) {
   return (
     <>
-      <section id="about" className="fine-grid bg-[#f4f8fb] py-24 text-[#071d2f] sm:py-30">
+      {landing.visibility.about && <section id="about" className="fine-grid bg-[#f4f8fb] py-24 text-[#071d2f] sm:py-30">
         <div className="mx-auto max-w-[1240px] px-5 sm:px-8">
           <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
             <SectionHeading light eyebrow={landing.about.eyebrow} title={landing.about.title} description={landing.about.description} />
@@ -32,9 +32,9 @@ export function LearningSections({ outcomes, audience, landing, duration }: Pick
             })}
           </div>
         </div>
-      </section>
+      </section>}
 
-      <section className="relative overflow-hidden bg-[#041a2d] py-24 sm:py-30">
+      {landing.visibility.audience && <section id="audience" className="relative overflow-hidden bg-[#041a2d] py-24 sm:py-30">
         <div className="pointer-events-none absolute left-0 top-0 hidden h-full w-1/2 bg-[radial-gradient(circle_at_center,rgba(18,91,142,.17),transparent_60%)] lg:block" />
         <div className="relative mx-auto grid max-w-[1240px] gap-12 px-5 sm:px-8 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
           <div className="relative mx-auto w-full max-w-md">
@@ -58,7 +58,7 @@ export function LearningSections({ outcomes, audience, landing, duration }: Pick
             </div>
           </div>
         </div>
-      </section>
+      </section>}
     </>
   );
 }

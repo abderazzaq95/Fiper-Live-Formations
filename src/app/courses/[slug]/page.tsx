@@ -26,10 +26,10 @@ export default async function CoursePage({ params }: CoursePageProps) {
 
   return (
     <main>
-      <CourseHero course={data.course} landing={data.landing} />
-      <LearningSections outcomes={data.outcomes} audience={data.audience} landing={data.landing} duration={data.course.duration} />
-      <AgendaInstructor course={data.course} agenda={data.agenda} landing={data.landing} />
-      <RegistrationSection course={data.course} faqs={data.faqs} landing={data.landing} />
+      {data.landing.visibility.hero && <CourseHero course={data.course} landing={data.landing} />}
+      {(data.landing.visibility.about || data.landing.visibility.audience) && <LearningSections outcomes={data.outcomes} audience={data.audience} landing={data.landing} duration={data.course.duration} />}
+      {(data.landing.visibility.agenda || data.landing.visibility.instructor) && <AgendaInstructor course={data.course} agenda={data.agenda} landing={data.landing} />}
+      {(data.landing.visibility.faq || data.landing.visibility.registration || data.landing.visibility.footer) && <RegistrationSection course={data.course} faqs={data.faqs} landing={data.landing} />}
     </main>
   );
 }
