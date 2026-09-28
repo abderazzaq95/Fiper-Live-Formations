@@ -40,7 +40,7 @@ export function LandingRedesign({ course, outcomes, agenda, audience, faqs }: Pu
 
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-6 lg:px-8">
           <a href="#top" aria-label="Fiper Academy" className="relative h-11 w-40 sm:w-48">
-            <Image src="/brand/fiper-wordmark-drive.png" alt="Fiper Academy" fill className="object-contain object-right" />
+            <Image src="/brand/fiper-wordmark-drive.png" alt="Fiper Academy" fill sizes="192px" className="object-contain object-right" />
           </a>
           <div className="hidden items-center gap-8 text-xs font-semibold text-[#a9bfce] lg:flex">
             <a href="#about" className="transition hover:text-white">عن الدورة</a>
@@ -241,7 +241,7 @@ export function LandingRedesign({ course, outcomes, agenda, audience, faqs }: Pu
 
       <footer className="border-t border-white/8 bg-[#020d18] px-5 py-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-5 text-center sm:flex-row sm:text-right">
-          <div className="relative h-9 w-32"><Image src="/brand/fiper-wordmark-drive.png" alt="Fiper Academy" fill className="object-contain object-right" /></div>
+          <div className="relative h-9 w-32"><Image src="/brand/fiper-wordmark-drive.png" alt="Fiper Academy" fill sizes="128px" className="object-contain object-right" /></div>
           <p className="max-w-2xl text-[9px] leading-5 text-[#536f82]">محتوى تعليمي عام ولا يمثل نصيحة استثمارية. ينطوي تداول المنتجات المالية على مخاطر وقد يؤدي إلى خسارة رأس المال.</p>
           <span className="latin text-[9px] text-[#536f82]">© 2026 Fiper Academy</span>
         </div>
