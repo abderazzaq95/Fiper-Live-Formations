@@ -94,7 +94,7 @@ export function CourseHero({ course = featuredCourse, landing = defaultLandingCo
           </div>
           <div className="float-slow absolute -left-3 top-8 hidden w-44 rounded-2xl border border-white/12 bg-[#082740]/90 p-4 backdrop-blur-xl sm:block">
             <p className="text-[10px] font-semibold text-[#8ba7ba]">مشاركون مؤكدون</p>
-            <p className="latin mt-2 text-3xl font-extrabold leading-none text-[#D82B2B]">{displayedRegistrations}</p>
+            <p className="latin mt-2 text-3xl font-extrabold leading-none text-white">{displayedRegistrations}</p>
             <p className="mt-2 text-[11px] font-bold leading-5 text-white">شخصًا أكدوا حضورهم لهذه الدورة</p>
           </div>
         </div>
