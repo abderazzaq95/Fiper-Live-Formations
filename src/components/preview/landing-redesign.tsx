@@ -1,249 +1,171 @@
-import {
-  ArrowLeft,
-  BookOpenCheck,
-  CalendarDays,
-  Check,
-  ChevronLeft,
-  Clock3,
-  Globe2,
-  GraduationCap,
-  LineChart,
-  MessageCircleQuestion,
-  MonitorPlay,
-  ShieldCheck,
-  Sparkles,
-  Target,
-  Users,
-} from "lucide-react";
+import { ArrowLeft, CalendarDays, Clock3, Quote, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import type { PublicCourseData } from "@/lib/data/courses";
-import { Countdown } from "@/components/public/countdown";
 import { RegistrationForm } from "@/components/public/registration-form";
-
-const featureIcons = [LineChart, Target, ShieldCheck, BookOpenCheck];
+import { CourseInterfacePreview } from "@/components/preview/course-interface-preview";
 
 export function LandingRedesign({ course, outcomes, agenda, audience, faqs }: PublicCourseData) {
   const displayedRegistrations = 73 + course.registrations;
   const location = course.type === "online" ? course.platform : course.venueName || "حضوري";
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#020d18] text-white">
-      <div className="fixed inset-x-0 top-0 z-50 bg-[#d62d2d] px-4 py-2 text-center text-[10px] font-bold tracking-wide text-white">
+    <main className="min-h-screen overflow-hidden bg-[#0d0f12] text-[#f4f2ee]">
+      <div className="fixed inset-x-0 top-0 z-50 bg-[#cf3030] px-4 py-2 text-center text-[10px] font-extrabold text-white">
         نسخة تصميم تجريبية — غير ظاهرة لزوار الموقع الحالي
       </div>
 
-      <section className="relative isolate min-h-[850px] overflow-hidden border-b border-white/8 pt-9">
-        <div className="absolute inset-0 -z-20 bg-[#031522]" />
-        <Image src="/brand/hero-market-path.png" alt="" fill priority className="-z-10 object-cover object-center opacity-60" />
-        <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(2,13,24,.99)_0%,rgba(2,13,24,.9)_40%,rgba(2,13,24,.3)_75%,rgba(2,13,24,.78)_100%)]" />
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_75%_25%,rgba(37,128,194,.2),transparent_32%)]" />
-
-        <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-6 lg:px-8">
-          <a href="#top" aria-label="Fiper Academy" className="relative h-11 w-40 sm:w-48">
-            <Image src="/brand/fiper-wordmark-drive.png" alt="Fiper Academy" fill sizes="192px" className="object-contain object-right" />
+      <header className="relative border-b border-white/8 pt-9">
+        <div className="mx-auto flex max-w-[1320px] items-center justify-between px-5 py-6 lg:px-10">
+          <a href="#top" className="relative h-10 w-36 sm:w-44" aria-label="Fiper Academy">
+            <Image src="/brand/fiper-wordmark-drive.png" alt="Fiper Academy" fill sizes="176px" className="object-contain object-right" priority />
           </a>
-          <div className="hidden items-center gap-8 text-xs font-semibold text-[#a9bfce] lg:flex">
-            <a href="#about" className="transition hover:text-white">عن الدورة</a>
-            <a href="#program" className="transition hover:text-white">المحاور</a>
+          <nav className="hidden items-center gap-8 text-[11px] font-bold text-white/50 lg:flex">
+            <a href="#method" className="transition hover:text-white">المنهج</a>
+            <a href="#journey" className="transition hover:text-white">تجربة التعلم</a>
             <a href="#instructor" className="transition hover:text-white">المحاضر</a>
-            <a href="#faq" className="transition hover:text-white">الأسئلة الشائعة</a>
-          </div>
-          <a href="#register" className="group flex h-11 items-center gap-2 rounded-full bg-[#d52b2b] px-5 text-xs font-bold shadow-[0_14px_35px_rgba(213,43,43,.25)] transition hover:-translate-y-0.5 hover:bg-[#ec3434]">
-            احجز مقعدك <ArrowLeft size={15} className="transition group-hover:-translate-x-1" />
+            <a href="#faq" className="transition hover:text-white">الأسئلة</a>
+          </nav>
+          <a href="#register" className="flex items-center gap-2 border-b border-[#d83a3a] pb-1 text-[11px] font-extrabold text-white transition hover:text-[#ef6969]">
+            سجل الآن <ArrowLeft size={14} />
           </a>
-        </nav>
+        </div>
+      </header>
 
-        <div id="top" className="mx-auto grid max-w-7xl items-center gap-12 px-5 pb-24 pt-16 lg:grid-cols-[1.06fr_.94fr] lg:px-8 lg:pb-32 lg:pt-24">
-          <div className="max-w-3xl">
-            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#e63838]/25 bg-[#d62d2d]/10 px-4 py-2 text-[11px] font-bold text-[#ff7777] backdrop-blur">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-[#ef4444]" />
-              {course.eyebrow}
+      <section id="top" className="relative isolate border-b border-white/8">
+        <div className="absolute inset-0 -z-20 bg-[#0d0f12]" />
+        <div className="absolute -left-40 top-0 -z-10 h-[620px] w-[620px] rounded-full bg-[#8c2525]/8 blur-[130px]" />
+        <div className="mx-auto grid min-h-[780px] max-w-[1320px] items-center gap-14 px-5 py-20 lg:grid-cols-[1.05fr_.95fr] lg:px-10" dir="ltr">
+          <div dir="rtl" className="max-w-2xl lg:pl-12">
+            <div className="mb-7 flex items-center gap-3"><span className="h-px w-10 bg-[#d83a3a]" /><span className="text-[10px] font-extrabold tracking-wide text-[#e45858]">{course.eyebrow}</span></div>
+            <h1 className="text-balance text-5xl font-extrabold leading-[1.14] tracking-[-.055em] text-[#f6f3ed] sm:text-7xl lg:text-[78px]">{course.heroHeading}</h1>
+            <p className="mt-8 max-w-xl text-pretty text-sm font-medium leading-8 text-[#999b9f] sm:text-base sm:leading-9">{course.description}</p>
+            <div className="mt-10 flex flex-col items-start gap-5 sm:flex-row sm:items-center">
+              <a href="#register" className="group flex h-14 items-center gap-4 bg-[#cf3030] px-8 text-sm font-extrabold text-white transition hover:bg-[#df3838]">سجل الآن مجانًا <ArrowLeft size={17} className="transition group-hover:-translate-x-1" /></a>
+              <a href="#method" className="border-b border-white/25 pb-1 text-[11px] font-bold text-white/65 transition hover:border-white hover:text-white">اكتشف ما ستتعلمه</a>
             </div>
-            <h1 className="text-4xl font-extrabold leading-[1.22] tracking-[-.045em] sm:text-6xl lg:text-[68px]">
-              {course.heroHeading}
-            </h1>
-            <p className="mt-7 max-w-2xl text-sm leading-8 text-[#a4b8c8] sm:text-base sm:leading-9">{course.description}</p>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <a href="#register" className="group flex h-14 items-center justify-center gap-3 rounded-full bg-[#d52b2b] px-8 text-sm font-bold shadow-[0_18px_55px_rgba(213,43,43,.3)] transition hover:-translate-y-1 hover:bg-[#eb3434]">
-                سجل الآن مجانًا <ArrowLeft size={18} className="transition group-hover:-translate-x-1" />
-              </a>
-              <a href="#program" className="flex h-14 items-center justify-center gap-3 rounded-full border border-white/15 bg-white/[.045] px-8 text-sm font-bold backdrop-blur transition hover:border-white/30 hover:bg-white/[.08]">
-                اكتشف برنامج الدورة <ChevronLeft size={18} />
-              </a>
-            </div>
-            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-[11px] font-semibold text-[#8da7ba]">
-              <span className="flex items-center gap-2"><Check size={15} className="text-[#4bd3a1]" /> مناسبة للمبتدئين</span>
-              <span className="flex items-center gap-2"><Check size={15} className="text-[#4bd3a1]" /> حضور مباشر وتفاعلي</span>
-              <span className="flex items-center gap-2"><Check size={15} className="text-[#4bd3a1]" /> التسجيل مجاني</span>
-            </div>
+            <div className="mt-12 flex flex-wrap gap-x-8 gap-y-3 border-t border-white/8 pt-6 text-[10px] font-medium text-white/45"><span>مناسبة للمبتدئين</span><span>تطبيق مباشر</span><span>أسئلة مع المحاضر</span></div>
           </div>
 
-          <div className="relative mx-auto w-full max-w-xl lg:mr-auto">
-            <div className="absolute -inset-12 -z-10 rounded-full bg-[#126ba9]/15 blur-3xl" />
-            <div className="overflow-hidden rounded-[32px] border border-white/12 bg-[#061b2c]/85 shadow-[0_40px_100px_rgba(0,0,0,.45)] backdrop-blur-xl">
-              <div className="border-b border-white/8 p-6 sm:p-7">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <span className="text-[10px] font-bold text-[#6f91a8]">الدورة القادمة</span>
-                    <h2 className="mt-2 text-lg font-bold leading-7">{course.title}</h2>
-                  </div>
-                  <span className="rounded-full border border-[#41d8a4]/20 bg-[#41d8a4]/10 px-3 py-1.5 text-[9px] font-bold text-[#5ce1b2]">مباشر</span>
-                </div>
-                <div className="mt-6 grid grid-cols-2 gap-3 text-[11px]">
-                  <div className="rounded-2xl bg-white/[.045] p-4"><CalendarDays size={17} className="mb-3 text-[#4da9e7]" /><span className="block text-[#7e9aae]">التاريخ</span><strong className="mt-1.5 block leading-5">{course.dateLabel}</strong></div>
-                  <div className="rounded-2xl bg-white/[.045] p-4"><Clock3 size={17} className="mb-3 text-[#4da9e7]" /><span className="block text-[#7e9aae]">الوقت والمدة</span><strong className="latin mt-1.5 block text-right">{course.timeLabel} · {course.duration}</strong></div>
-                  <div className="rounded-2xl bg-white/[.045] p-4"><MonitorPlay size={17} className="mb-3 text-[#4da9e7]" /><span className="block text-[#7e9aae]">مكان الحضور</span><strong className="mt-1.5 block">{location}</strong></div>
-                  <div className="rounded-2xl bg-white/[.045] p-4"><Users size={17} className="mb-3 text-[#ef4d4d]" /><span className="block text-[#7e9aae]">أكدوا حضورهم</span><strong className="latin mt-1 block text-right text-xl">{displayedRegistrations}</strong></div>
-                </div>
-              </div>
-              <div className="bg-[#041522]/85 p-5 sm:p-6">
-                <p className="mb-3 text-center text-[10px] font-semibold text-[#7290a5]">متبقي على انطلاق الدورة</p>
-                <Countdown target={course.isoStart} />
-              </div>
-            </div>
+          <div dir="rtl" className="relative lg:pr-6">
+            <span className="latin absolute -left-6 -top-10 hidden text-[86px] font-extrabold leading-none text-white/[.025] lg:block">LIVE</span>
+            <CourseInterfacePreview title={course.title} date={course.dateLabel} time={course.timeLabel} duration={course.duration} location={location} registrations={displayedRegistrations} startsAt={course.isoStart} agenda={agenda} />
           </div>
         </div>
       </section>
 
-      <section className="border-b border-white/8 bg-[#061624]">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-x-reverse divide-white/8 px-5 sm:grid-cols-4 lg:px-8">
-          {[{ value: displayedRegistrations + "+", label: "مشارك مؤكد" }, { value: course.duration, label: "تدريب مباشر" }, { value: String(outcomes.length), label: "محاور عملية" }, { value: "Live", label: "أسئلة وإجابات" }].map((stat) => (
-            <div key={stat.label} className="px-4 py-7 text-center"><strong className="latin block text-2xl font-black text-white">{stat.value}</strong><span className="mt-2 block text-[10px] font-semibold text-[#7894a8]">{stat.label}</span></div>
-          ))}
+      <section className="border-b border-white/8 bg-[#111419]">
+        <div className="mx-auto flex max-w-[1320px] flex-wrap items-center justify-between gap-8 px-5 py-8 lg:px-10">
+          <p className="max-w-sm text-pretty text-[11px] font-medium leading-6 text-white/45">جلسة تعليمية مباشرة تضع الوضوح والانضباط قبل الوعود السريعة.</p>
+          <div className="flex flex-wrap gap-10 sm:gap-16">
+            {[{ value: `${displayedRegistrations}+`, label: "مشارك مؤكد" }, { value: course.duration, label: "تدريب مباشر" }, { value: String(outcomes.length), label: "محاور عملية" }].map((stat) => <div key={stat.label}><strong className="latin text-xl font-extrabold text-white">{stat.value}</strong><span className="mr-2 text-[9px] font-medium text-white/35">{stat.label}</span></div>)}
+          </div>
         </div>
       </section>
 
-      <section id="about" className="relative bg-[#f4f7f9] py-24 text-[#071827] sm:py-32">
-        <div className="mx-auto max-w-7xl px-5 lg:px-8">
-          <div className="grid gap-12 lg:grid-cols-[.75fr_1.25fr] lg:items-end">
-            <div>
-              <p className="text-[11px] font-extrabold text-[#cf2929]">ماذا ستتعلم؟</p>
-              <h2 className="mt-4 text-3xl font-extrabold leading-[1.35] tracking-[-.035em] sm:text-5xl">معرفة عملية تحوّل فهمك للسوق</h2>
+      <section id="method" className="bg-[#f1f0ec] py-24 text-[#17191c] sm:py-36">
+        <div className="mx-auto max-w-[1240px] px-5 lg:px-10">
+          <div className="grid gap-12 lg:grid-cols-[.62fr_1.38fr] lg:gap-20">
+            <div className="lg:sticky lg:top-24 lg:self-start">
+              <p className="text-[10px] font-extrabold text-[#c92f2f]">المنهج قبل المعلومات</p>
+              <h2 className="mt-5 text-balance text-4xl font-extrabold leading-[1.24] tracking-[-.045em] sm:text-6xl">لا نضيف ضوضاء جديدة. نمنحك طريقة تفكير.</h2>
+              <p className="mt-7 max-w-md text-pretty text-sm font-medium leading-8 text-[#676a6e]">كل محطة في الدورة تنقلك من الفهم إلى القرار، ثم من القرار إلى خطة قابلة للتنفيذ.</p>
             </div>
-            <p className="max-w-2xl text-sm leading-8 text-[#5c7080]">برنامج مركز يمنحك الأدوات الأساسية لفهم حركة الأسواق، تقييم الفرص، وإدارة قراراتك بمنهج واضح بعيدًا عن العشوائية والوعود غير الواقعية.</p>
-          </div>
-          <div className="mt-14 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {outcomes.map((item, index) => {
-              const Icon = featureIcons[index % featureIcons.length];
-              return <article key={`${item.index}-${item.title}`} className="group rounded-[26px] border border-[#dfe6eb] bg-white p-6 shadow-[0_20px_55px_rgba(11,31,48,.06)] transition hover:-translate-y-1 hover:border-[#c9d7e1] hover:shadow-[0_25px_70px_rgba(11,31,48,.1)]">
-                <div className="flex items-center justify-between"><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#edf6fc] text-[#176fa8]"><Icon size={20} /></span><span className="latin text-xs font-bold text-[#b7c4cd]">{item.index}</span></div>
-                <h3 className="mt-7 text-base font-extrabold">{item.title}</h3>
-                <p className="mt-3 text-xs leading-7 text-[#637887]">{item.text}</p>
-              </article>;
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section className="relative overflow-hidden bg-[#071b2b] py-24 sm:py-32">
-        <div className="absolute -left-24 top-16 h-80 w-80 rounded-full bg-[#166ba5]/10 blur-3xl" />
-        <div className="mx-auto grid max-w-7xl gap-14 px-5 lg:grid-cols-2 lg:items-center lg:px-8">
-          <div>
-            <p className="text-[11px] font-extrabold text-[#ef4a4a]">هل هذه الدورة مناسبة لك؟</p>
-            <h2 className="mt-4 text-3xl font-extrabold leading-[1.4] tracking-[-.035em] sm:text-5xl">بداية احترافية لمن يريد التداول بوضوح</h2>
-            <p className="mt-6 max-w-xl text-sm leading-8 text-[#8fa8ba]">هذه الدورة مصممة لتمنحك نقطة بداية صحيحة، سواء كنت تدخل الأسواق لأول مرة أو تريد إعادة ترتيب معرفتك ضمن منهج عملي.</p>
-          </div>
-          <div className="grid gap-3">
-            {audience.map((item, index) => <div key={item} className="flex items-center gap-4 rounded-2xl border border-white/8 bg-white/[.035] p-4.5 backdrop-blur">
-              <span className="latin flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#d52b2b] text-[10px] font-black">{String(index + 1).padStart(2, "0")}</span>
-              <p className="text-xs font-semibold leading-6 text-[#d7e3eb]">{item}</p>
-            </div>)}
-          </div>
-        </div>
-      </section>
-
-      <section id="program" className="bg-white py-24 text-[#071827] sm:py-32">
-        <div className="mx-auto max-w-7xl px-5 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center">
-            <p className="text-[11px] font-extrabold text-[#cf2929]">برنامج الدورة</p>
-            <h2 className="mt-4 text-3xl font-extrabold tracking-[-.035em] sm:text-5xl">رحلة تعليمية واضحة من الفكرة إلى التطبيق</h2>
-            <p className="mt-5 text-sm leading-8 text-[#647887]">محاور مرتبة بعناية حتى تبني معرفتك خطوة بخطوة وتخرج بخطة يمكنك تطبيقها.</p>
-          </div>
-          <div className="relative mx-auto mt-16 max-w-4xl">
-            <div className="absolute bottom-8 right-[23px] top-8 hidden w-px bg-[#dce5eb] sm:block" />
-            <div className="space-y-4">
-              {agenda.map((item, index) => <article key={`${item.time}-${item.title}`} className="relative grid gap-4 rounded-[24px] border border-[#e2e8ed] bg-[#f9fbfc] p-6 sm:grid-cols-[48px_1fr_auto] sm:items-center sm:bg-white sm:pr-0">
-                <span className="latin relative z-10 flex h-12 w-12 items-center justify-center rounded-full border-4 border-white bg-[#08263d] text-xs font-black text-white shadow-lg">{index + 1}</span>
-                <div><h3 className="text-sm font-extrabold">{item.title}</h3><p className="mt-2 text-xs leading-6 text-[#667b8a]">{item.text}</p></div>
-                <span className="w-fit rounded-full bg-[#edf5fa] px-4 py-2 text-[10px] font-bold text-[#277cac]">{item.time}</span>
+            <div className="border-t border-[#cfd0cd]">
+              {outcomes.map((item, index) => <article key={`${item.index}-${item.title}`} className="grid gap-5 border-b border-[#cfd0cd] py-9 sm:grid-cols-[80px_1fr] sm:py-12">
+                <span className="latin text-sm font-extrabold text-[#c92f2f]">{String(index + 1).padStart(2, "0")}</span>
+                <div><h3 className="text-balance text-2xl font-extrabold tracking-[-.025em] sm:text-3xl">{item.title}</h3><p className="mt-4 max-w-xl text-pretty text-sm font-medium leading-8 text-[#696c70]">{item.text}</p></div>
               </article>)}
             </div>
           </div>
         </div>
       </section>
 
-      <section id="instructor" className="bg-[#eef3f6] py-24 text-[#071827] sm:py-32">
-        <div className="mx-auto max-w-7xl px-5 lg:px-8">
-          <div className="overflow-hidden rounded-[34px] bg-[#071d2e] text-white shadow-[0_30px_80px_rgba(5,23,37,.18)]">
-            <div className="grid lg:grid-cols-[.9fr_1.1fr]">
-              <div className="relative min-h-[420px] overflow-hidden bg-[#0d2c45]">
-                <div
-                  role="img"
-                  aria-label={course.instructor.name}
-                  className="absolute inset-0 bg-cover bg-top"
-                  style={{
-                    backgroundImage: `url("${course.instructor.image || "/brand/instructor-ahmed-tamimi.png"}"), url("/brand/instructor-ahmed-tamimi.png")`,
-                  }}
-                />
-                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#071d2e] to-transparent lg:hidden" />
-              </div>
-              <div className="flex flex-col justify-center p-8 sm:p-12 lg:p-16">
-                <p className="text-[11px] font-extrabold text-[#ef4a4a]">محاضرك في هذه الدورة</p>
-                <h2 className="mt-4 text-3xl font-extrabold sm:text-5xl">{course.instructor.name}</h2>
-                <p className="mt-3 text-sm font-bold text-[#57a9da]">{course.instructor.role}</p>
-                <p className="mt-7 text-sm leading-8 text-[#9cb1c0]">{course.instructor.bio}</p>
-                <div className="mt-9 grid grid-cols-2 gap-3">
-                  <div className="rounded-2xl border border-white/8 bg-white/[.04] p-5"><GraduationCap size={20} className="text-[#58b3e9]" /><strong className="latin mt-4 block text-2xl">+10</strong><span className="mt-1 block text-[10px] text-[#7995a8]">سنوات خبرة</span></div>
-                  <div className="rounded-2xl border border-white/8 bg-white/[.04] p-5"><Globe2 size={20} className="text-[#58b3e9]" /><strong className="latin mt-4 block text-2xl">LIVE</strong><span className="mt-1 block text-[10px] text-[#7995a8]">تفاعل مباشر</span></div>
-                </div>
+      <section id="journey" className="relative overflow-hidden bg-[#121519] py-24 sm:py-36">
+        <div className="mx-auto max-w-[1240px] px-5 lg:px-10">
+          <div className="grid items-start gap-16 lg:grid-cols-[1.15fr_.85fr]" dir="ltr">
+            <div dir="rtl" className="relative min-h-[580px] overflow-hidden border border-white/8">
+              <Image src="/brand/hero-market-path.png" alt="مسار تعليمي لفهم الأسواق" fill sizes="(max-width: 1024px) 100vw, 58vw" className="object-cover opacity-75" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#121519] via-transparent to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 p-7 sm:p-10"><span className="latin text-7xl font-extrabold tracking-[-.07em] text-white sm:text-9xl">90</span><p className="mt-2 max-w-sm text-pretty text-sm font-medium leading-7 text-white/65">دقيقة مركزة من الفهم، التطبيق، والأسئلة المباشرة.</p></div>
+            </div>
+            <div dir="rtl" className="lg:pt-10">
+              <p className="text-[10px] font-extrabold text-[#e04a4a]">تجربة تعلم إنسانية</p>
+              <h2 className="mt-5 text-balance text-4xl font-extrabold leading-[1.25] tracking-[-.045em] sm:text-6xl">المحاضر معك، لا أمامك فقط.</h2>
+              <p className="mt-7 text-pretty text-sm font-medium leading-8 text-white/50">ليست مشاهدة سلبية لمحتوى مسجل. تتقدم مع المحاضر، ترى التطبيق، وتسأل عندما تصبح الفكرة غير واضحة.</p>
+              <div className="mt-12 border-t border-white/10">
+                {audience.map((item, index) => <div key={item} className="flex gap-5 border-b border-white/10 py-5"><span className="latin shrink-0 text-[10px] font-extrabold text-[#df4545]">0{index + 1}</span><p className="text-pretty text-xs font-medium leading-6 text-white/70">{item}</p></div>)}
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="faq" className="bg-white py-24 text-[#071827] sm:py-32">
-        <div className="mx-auto grid max-w-7xl gap-14 px-5 lg:grid-cols-[.72fr_1.28fr] lg:px-8">
-          <div>
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#edf6fc] text-[#176fa8]"><MessageCircleQuestion size={22} /></span>
-            <p className="mt-7 text-[11px] font-extrabold text-[#cf2929]">قبل أن تسجل</p>
-            <h2 className="mt-4 text-3xl font-extrabold leading-[1.4] tracking-[-.035em] sm:text-5xl">إجابات واضحة عن أهم أسئلتك</h2>
+      <section className="bg-[#f1f0ec] py-24 text-[#17191c] sm:py-36">
+        <div className="mx-auto max-w-[1120px] px-5 lg:px-10">
+          <div className="flex flex-col justify-between gap-8 border-b border-[#cfd0cd] pb-10 sm:flex-row sm:items-end">
+            <div><p className="text-[10px] font-extrabold text-[#c92f2f]">مسار الجلسة</p><h2 className="mt-5 max-w-2xl text-balance text-4xl font-extrabold leading-[1.22] tracking-[-.045em] sm:text-6xl">من السؤال الصحيح إلى قرار أكثر انضباطًا.</h2></div>
+            <span className="shrink-0 text-[11px] font-bold text-[#6d7073]">{course.duration} · بث مباشر</span>
           </div>
-          <div className="divide-y divide-[#e4eaee] border-y border-[#e4eaee]">
-            {faqs.map((faq, index) => <details key={faq.question} className="group py-5">
-              <summary className="flex cursor-pointer list-none items-center gap-4 text-sm font-extrabold"><span className="latin text-xs text-[#b3c0c8]">{String(index + 1).padStart(2, "0")}</span><span>{faq.question}</span><span className="mr-auto text-xl font-light text-[#cf2929] transition group-open:rotate-45">+</span></summary>
-              <p className="pr-10 pt-4 text-xs leading-7 text-[#607584]">{faq.answer}</p>
+          <ol>
+            {agenda.map((item, index) => <li key={`${item.title}-${index}`} className="group grid gap-4 border-b border-[#cfd0cd] py-8 sm:grid-cols-[64px_1fr_120px] sm:items-start">
+              <span className="latin text-xs font-extrabold text-[#c92f2f]">{String(index + 1).padStart(2, "0")}</span>
+              <div><h3 className="text-balance text-xl font-extrabold sm:text-2xl">{item.title}</h3><p className="mt-3 max-w-2xl text-pretty text-xs font-medium leading-7 text-[#6a6d70]">{item.text}</p></div>
+              <span className="text-[10px] font-bold text-[#777a7d] sm:text-left">{item.time}</span>
+            </li>)}
+          </ol>
+        </div>
+      </section>
+
+      <section id="instructor" className="bg-[#0d0f12] py-24 sm:py-36">
+        <div className="mx-auto grid max-w-[1240px] items-center gap-14 px-5 lg:grid-cols-[.9fr_1.1fr] lg:px-10" dir="ltr">
+          <div dir="rtl" className="relative min-h-[600px] overflow-hidden border border-white/8">
+            <div role="img" aria-label={course.instructor.name} className="absolute inset-0 bg-cover bg-top" style={{ backgroundImage: `url("${course.instructor.image || "/brand/instructor-ahmed-tamimi.png"}"), url("/brand/instructor-ahmed-tamimi.png")` }} />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0d0f12] via-transparent to-transparent" />
+          </div>
+          <div dir="rtl" className="lg:pl-8">
+            <Quote size={30} className="text-[#d83a3a]" />
+            <blockquote className="mt-8 text-balance text-3xl font-medium leading-[1.55] tracking-[-.03em] text-white sm:text-5xl">“هدفنا ليس أن تحفظ السوق، بل أن تعرف كيف تتعامل معه عندما يتغير.”</blockquote>
+            <div className="mt-10 border-r-2 border-[#d83a3a] pr-5"><h2 className="text-balance text-2xl font-extrabold">{course.instructor.name}</h2><p className="mt-2 text-pretty text-xs font-bold text-white/45">{course.instructor.role}</p></div>
+            <p className="mt-8 max-w-xl text-pretty text-sm font-medium leading-8 text-white/50">{course.instructor.bio}</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="faq" className="bg-[#f1f0ec] py-24 text-[#17191c] sm:py-36">
+        <div className="mx-auto grid max-w-[1120px] gap-14 px-5 lg:grid-cols-[.7fr_1.3fr] lg:px-10">
+          <div><p className="text-[10px] font-extrabold text-[#c92f2f]">قبل التسجيل</p><h2 className="mt-5 text-balance text-4xl font-extrabold leading-[1.22] tracking-[-.045em] sm:text-6xl">ما تحتاج إلى معرفته.</h2></div>
+          <div className="border-t border-[#cfd0cd]">
+            {faqs.map((faq, index) => <details key={faq.question} className="group border-b border-[#cfd0cd] py-6">
+              <summary className="flex cursor-pointer list-none items-start gap-5 text-sm font-extrabold leading-7"><span className="latin mt-1 text-[9px] text-[#b0b1ae]">{String(index + 1).padStart(2, "0")}</span><span className="text-balance">{faq.question}</span><span className="mr-auto text-xl font-medium text-[#c92f2f] transition group-open:rotate-45">+</span></summary>
+              <p className="max-w-2xl pr-10 pt-5 text-pretty text-xs font-medium leading-7 text-[#686b6e]">{faq.answer}</p>
             </details>)}
           </div>
         </div>
       </section>
 
-      <section id="register" className="relative overflow-hidden bg-[#031421] py-24 sm:py-32">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_40%,rgba(36,126,187,.16),transparent_28%),radial-gradient(circle_at_85%_60%,rgba(211,43,43,.12),transparent_24%)]" />
-        <div className="relative mx-auto grid max-w-7xl gap-12 px-5 lg:grid-cols-[.82fr_1.18fr] lg:items-center lg:px-8">
-          <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#ef4a4a]/20 bg-[#ef4a4a]/10 px-4 py-2 text-[10px] font-bold text-[#ff7070]"><Sparkles size={14} /> خطوتك التالية</span>
-            <h2 className="mt-6 text-4xl font-extrabold leading-[1.35] tracking-[-.04em] sm:text-6xl">ابدأ رحلتك في الأسواق بخطوة صحيحة</h2>
-            <p className="mt-6 max-w-xl text-sm leading-8 text-[#8fa8ba]">احجز مقعدك المجاني الآن. سنرسل إليك التأكيد، رابط الحضور، والتذكيرات المهمة عبر البريد الإلكتروني وواتساب.</p>
-            <div className="mt-9 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-              {[{ icon: CalendarDays, text: course.dateLabel }, { icon: Clock3, text: course.timeLabel }, { icon: MonitorPlay, text: location }].map(({ icon: Icon, text }) => <div key={text} className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[.035] p-4 text-[10px] font-bold text-[#c8d7e1]"><Icon size={17} className="shrink-0 text-[#55aee3]" /><span>{text}</span></div>)}
+      <section id="register" className="relative bg-[#121519] py-24 sm:py-36">
+        <div className="mx-auto grid max-w-[1240px] gap-16 px-5 lg:grid-cols-[.8fr_1.2fr] lg:items-start lg:px-10" dir="ltr">
+          <div dir="rtl" className="lg:sticky lg:top-24">
+            <div className="mb-7 flex items-center gap-3"><span className="h-px w-10 bg-[#d83a3a]" /><span className="text-[10px] font-extrabold text-[#e45858]">خطوتك التالية</span></div>
+            <h2 className="text-balance text-4xl font-extrabold leading-[1.2] tracking-[-.05em] sm:text-6xl">احجز مكانك. وابدأ بفهم السوق.</h2>
+            <p className="mt-7 max-w-lg text-pretty text-sm font-medium leading-8 text-white/50">أدخل بياناتك مرة واحدة وسنرسل إليك تأكيد التسجيل، رابط الحضور، والتذكيرات المهمة.</p>
+            <div className="mt-10 border-t border-white/10">
+              <div className="flex items-center gap-4 border-b border-white/10 py-5"><CalendarDays size={17} className="text-[#d83a3a]" /><span className="text-xs font-bold text-white/75">{course.dateLabel}</span></div>
+              <div className="flex items-center gap-4 border-b border-white/10 py-5"><Clock3 size={17} className="text-[#d83a3a]" /><span className="text-xs font-bold text-white/75">{course.timeLabel} · {course.duration}</span></div>
             </div>
           </div>
-          <div className="rounded-[30px] border border-white/10 bg-[#071f32]/90 p-6 shadow-[0_35px_100px_rgba(0,0,0,.35)] backdrop-blur sm:p-9">
-            <div className="mb-7 flex items-start justify-between gap-5">
-              <div><h3 className="text-xl font-extrabold">بيانات التسجيل</h3><p className="mt-2 text-[10px] text-[#7895aa]">جميع الحقول مطلوبة لإتمام الحجز</p></div>
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0d3a5b] text-[#54cba0]"><ShieldCheck size={21} /></span>
-            </div>
-            {course.registrationOpen === false ? <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-5 text-center text-sm font-bold text-amber-100">التسجيل مغلق حاليًا</div> : <RegistrationForm courseId={course.id} />}
+          <div dir="rtl" className="border-t-2 border-[#d83a3a] bg-[#171b20] px-5 py-8 sm:px-10 sm:py-10">
+            <div className="mb-9 flex items-start justify-between gap-5"><div><h3 className="text-balance text-xl font-extrabold">بيانات التسجيل</h3><p className="mt-2 text-pretty text-[10px] font-medium text-white/35">جميع الحقول مطلوبة لإتمام الحجز</p></div><ShieldCheck size={22} className="text-[#d83a3a]" /></div>
+            {course.registrationOpen === false ? <p className="border border-white/10 p-6 text-center text-sm font-bold text-white/60">التسجيل مغلق حاليًا</p> : <RegistrationForm courseId={course.id} />}
           </div>
         </div>
       </section>
 
-      <footer className="border-t border-white/8 bg-[#020d18] px-5 py-8">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-5 text-center sm:flex-row sm:text-right">
-          <div className="relative h-9 w-32"><Image src="/brand/fiper-wordmark-drive.png" alt="Fiper Academy" fill sizes="128px" className="object-contain object-right" /></div>
-          <p className="max-w-2xl text-[9px] leading-5 text-[#536f82]">محتوى تعليمي عام ولا يمثل نصيحة استثمارية. ينطوي تداول المنتجات المالية على مخاطر وقد يؤدي إلى خسارة رأس المال.</p>
-          <span className="latin text-[9px] text-[#536f82]">© 2026 Fiper Academy</span>
+      <footer className="border-t border-white/8 bg-[#0d0f12] px-5 py-8">
+        <div className="mx-auto flex max-w-[1240px] flex-col items-center justify-between gap-5 text-center sm:flex-row sm:text-right">
+          <div className="relative h-8 w-28"><Image src="/brand/fiper-wordmark-drive.png" alt="Fiper Academy" fill sizes="112px" className="object-contain object-right" /></div>
+          <p className="max-w-2xl text-pretty text-[9px] font-medium leading-5 text-white/30">محتوى تعليمي عام ولا يمثل نصيحة استثمارية. ينطوي تداول المنتجات المالية على مخاطر وقد يؤدي إلى خسارة رأس المال.</p>
+          <span className="latin text-[9px] font-medium text-white/30">© 2026 Fiper Academy</span>
         </div>
       </footer>
     </main>
