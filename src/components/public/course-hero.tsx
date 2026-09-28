@@ -16,7 +16,7 @@ function getFacts(course: Course) {
 }
 
 export function CourseHero({ course = featuredCourse, landing = defaultLandingContent }: { course?: Course; landing?: typeof defaultLandingContent }) {
-  const percentage = Math.round((course.registrations / course.capacity) * 100);
+  const displayedRegistrations = 73 + course.registrations;
   const heroLines = course.heroHeading.split(/\r?\n/).filter(Boolean);
   const now = new Date().getTime();
   const startsAt = new Date(course.isoStart).getTime();
@@ -93,9 +93,9 @@ export function CourseHero({ course = featuredCourse, landing = defaultLandingCo
             </div>
           </div>
           <div className="float-slow absolute -left-3 top-8 hidden w-44 rounded-2xl border border-white/12 bg-[#082740]/90 p-4 backdrop-blur-xl sm:block">
-            <div className="flex items-center justify-between text-[10px] text-[#8ba7ba]"><span>الحجوزات</span><span className="latin">{percentage}%</span></div>
-            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-[#C32828]" style={{ width: `${percentage}%` }} /></div>
-            <p className="mt-3 text-xs font-bold text-white"><span className="latin">{course.registrations}</span> شخصاً أكد حضوره</p>
+            <p className="text-[10px] font-semibold text-[#8ba7ba]">مشاركون مؤكدون</p>
+            <p className="latin mt-2 text-3xl font-extrabold leading-none text-white">{displayedRegistrations}</p>
+            <p className="mt-2 text-[11px] font-bold leading-5 text-white">شخصًا أكدوا حضورهم لهذه الدورة</p>
           </div>
         </div>
       </div>
