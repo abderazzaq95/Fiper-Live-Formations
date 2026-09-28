@@ -20,12 +20,7 @@ const countries: Country[] = [
   { name: "البحرين", dial: "+973", flag: "🇧🇭" },
   { name: "عُمان", dial: "+968", flag: "🇴🇲" },
   { name: "المغرب", dial: "+212", flag: "🇲🇦" },
-  { name: "فرنسا", dial: "+33", flag: "🇫🇷" },
-  { name: "ألمانيا", dial: "+49", flag: "🇩🇪" },
   { name: "تركيا", dial: "+90", flag: "🇹🇷" },
-  { name: "إسبانيا", dial: "+34", flag: "🇪🇸" },
-  { name: "إيطاليا", dial: "+39", flag: "🇮🇹" },
-  { name: "المملكة المتحدة", dial: "+44", flag: "🇬🇧" },
   { name: "دولة أخرى", dial: "+", flag: "🌐" },
 ];
 
