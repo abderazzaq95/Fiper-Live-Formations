@@ -12,6 +12,7 @@ type RegistrationFormProps = {
 type Country = { name: string; dial: string; flag: string };
 
 const countries: Country[] = [
+  { name: "العراق", dial: "+964", flag: "🇮🇶" },
   { name: "السعودية", dial: "+966", flag: "🇸🇦" },
   { name: "الإمارات العربية المتحدة", dial: "+971", flag: "🇦🇪" },
   { name: "قطر", dial: "+974", flag: "🇶🇦" },
@@ -103,7 +104,7 @@ export function RegistrationForm({ courseId, compact = false }: RegistrationForm
               <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3 flex items-center gap-1.5 text-xs font-semibold text-white"><span className="text-base leading-none">{countries.find((country) => country.dial === phoneCode)?.flag ?? "🌐"}</span><span className="latin">{phoneCode}</span></span>
               <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#8daac1]" />
             </div>
-            <input id={`phone-${compact}`} name="phone" type="tel" required minLength={6} autoComplete="tel" inputMode="tel" dir="ltr" placeholder="50 000 0000" className={`${inputClass} latin min-w-0 flex-1 text-right`} />
+            <input id={`phone-${compact}`} name="phone" type="tel" required minLength={6} autoComplete="tel" inputMode="tel" dir="ltr" placeholder="770 000 0000" className={`${inputClass} latin min-w-0 flex-1 text-right`} />
           </div>
         </div>
       </div>
