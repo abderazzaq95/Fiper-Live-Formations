@@ -49,13 +49,6 @@ function attendanceDetailsFor(session: JsonRecord | undefined) {
   return meetUrl || "\u0639\u0646 \u0628\u0639\u062f - \u0633\u064a\u062a\u0645 \u0625\u0631\u0633\u0627\u0644 \u0631\u0627\u0628\u0637 \u0627\u0644\u062f\u062e\u0648\u0644 \u0642\u0628\u0644 \u0627\u0644\u0645\u0648\u0639\u062f";
 }
 
-function reminderLead(templateKey: string) {
-  if (templateKey === "course_reminder_24h") return "تذكير: لديك دورة غداً:";
-  if (templateKey === "course_reminder_day") return "تذكير: لديك دورة اليوم:";
-  if (templateKey === "meeting_reminder") return "تبدأ الدورة خلال 10 دقائق:";
-  return "تذكير بالدورة:";
-}
-
 async function sendResend(to: string, name: string, title: string, startsAt: string, sourceTimezone: string, templateKey: string, attendanceDetails: string) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
@@ -106,31 +99,33 @@ function callbellTemplateFor(templateKey: string) {
   return templates[templateKey];
 }
 
-async function sendWhatsApp(to: string, name: string, title: string, scheduleLabel: string, templateKey: string, attendanceDetails: string, registrationId: string, deliveryId: string) {
+async function sendWhatsApp(to: string, name: string, title: string, scheduleLabel: string, templateKey: string, attendanceDetails: string, registrationId: string, deliveryId: string, channelUuid?: string) {
   if (isCallbellConfigured()) {
     const templateUuid = callbellTemplateFor(templateKey);
     if (!templateUuid) return { configured: false as const, provider: "callbell" as const, reason: "Callbell template is not configured for " + templateKey + "." };
     const values = [name, title, scheduleLabel, attendanceDetails];
-    const result = await sendCallbellTemplate({ to, templateUuid, values, registrationId, deliveryId });
+    const result = await sendCallbellTemplate({ to, templateUuid, values, registrationId, deliveryId, channelUuid });
     return { configured: true as const, provider: "callbell" as const, id: text(result.uuid) };
   }
   return sendTwilio(to, name, title, scheduleLabel, templateKey, attendanceDetails);
 }
 async function ensureDelivery(supabase: ReturnType<typeof createAdminClient>, registration: JsonRecord, channel: "email" | "whatsapp", templateKey = "registration_confirmation", scheduledFor = new Date().toISOString()) {
   const registrationId = text(registration.id);
+  const session = first(registration.course_sessions);
+  const senderChannelId = channel === "whatsapp" ? text(session?.whatsapp_channel_id) || null : null;
   // Reminder deliveries must be unique per scheduled occurrence so a rescheduled course gets a new reminder.
   // Registration confirmations remain one-time per registration/channel.
   const occurrence = templateKey === "registration_confirmation" ? "" : `:${new Date(scheduledFor).toISOString()}`;
   const key = `${registrationId}:${templateKey}:${channel}${occurrence}`;
   const { data: existing } = await supabase.from("message_deliveries").select("id,state,attempt_count").eq("idempotency_key", key).maybeSingle();
   if (existing) return existing as JsonRecord;
-  const { data } = await supabase.from("message_deliveries").insert({ registration_id: registrationId, channel, template_key: templateKey, provider: channel === "email" ? "resend" : (isCallbellConfigured() ? "callbell" : "twilio"), state: new Date(scheduledFor).getTime() <= Date.now() ? "queued" : "scheduled", scheduled_for: scheduledFor, idempotency_key: key }).select("id,state,attempt_count").single();
+  const { data } = await supabase.from("message_deliveries").insert({ registration_id: registrationId, channel, template_key: templateKey, provider: channel === "email" ? "resend" : (isCallbellConfigured() ? "callbell" : "twilio"), sender_channel_id: senderChannelId, state: new Date(scheduledFor).getTime() <= Date.now() ? "queued" : "scheduled", scheduled_for: scheduledFor, idempotency_key: key }).select("id,state,attempt_count").single();
   return data as JsonRecord;
 }
 
 async function processDelivery(supabase: ReturnType<typeof createAdminClient>, delivery: JsonRecord) {
   const id = text(delivery.id);
-  const { data: registrationData, error } = await supabase.from("registrations").select("id,full_name,email,phone_e164,whatsapp_consent,course_sessions(starts_at,timezone,delivery_type,venue_name,venue_address,maps_url,meet_url,courses(state,is_featured,course_translations(title,locale)))").eq("id", text(delivery.registration_id)).maybeSingle();
+  const { data: registrationData, error } = await supabase.from("registrations").select("id,full_name,email,phone_e164,whatsapp_consent,course_sessions(starts_at,timezone,delivery_type,venue_name,venue_address,maps_url,meet_url,whatsapp_channel_id,courses(state,is_featured,course_translations(title,locale)))").eq("id", text(delivery.registration_id)).maybeSingle();
   if (error || !registrationData) return { id, state: "failed", reason: "Registration not found" };
   const registration = record(registrationData);
   const session = first(registration.course_sessions);
@@ -143,7 +138,6 @@ async function processDelivery(supabase: ReturnType<typeof createAdminClient>, d
   const startsAtIso = text(session?.starts_at, "");
   const startsAt = formatStartsAt(startsAtIso, sourceTimezone);
   const scheduleLabel = startsAt + " (" + timezoneLabel(sourceTimezone) + ")";
-  const meetUrl = text(session?.meet_url);
   const attendanceDetails = attendanceDetailsFor(session);
   const templateKey = text(delivery.template_key, "registration_confirmation");
   if (templateKey !== "registration_confirmation" && (text(course?.state) !== "published" || course?.is_featured !== true)) {
@@ -152,7 +146,14 @@ async function processDelivery(supabase: ReturnType<typeof createAdminClient>, d
     return { id, state: "cancelled", reason };
   }
   const channel = text(delivery.channel) as "email" | "whatsapp";
-  const result = channel === "email" ? await sendResend(text(registration.email), name, title, startsAt, sourceTimezone, templateKey, attendanceDetails) : await sendWhatsApp(text(registration.phone_e164), name, title, scheduleLabel, templateKey, attendanceDetails, text(registration.id), id);
+  const senderChannelId = text(delivery.sender_channel_id, text(session?.whatsapp_channel_id));
+  let callbellChannelUuid: string | undefined;
+  if (channel === "whatsapp" && senderChannelId) {
+    const { data: sender } = await supabase.from("whatsapp_channels").select("callbell_channel_uuid,active").eq("id", senderChannelId).maybeSingle();
+    if (!sender?.active || !sender.callbell_channel_uuid) throw new Error("Selected WhatsApp sender is inactive or unavailable");
+    callbellChannelUuid = sender.callbell_channel_uuid;
+  }
+  const result = channel === "email" ? await sendResend(text(registration.email), name, title, startsAt, sourceTimezone, templateKey, attendanceDetails) : await sendWhatsApp(text(registration.phone_e164), name, title, scheduleLabel, templateKey, attendanceDetails, text(registration.id), id, callbellChannelUuid);
   if (!result.configured) return { id, state: "queued", reason: result.reason };
   await supabase.from("message_deliveries").update({ state: "sent", sent_at: new Date().toISOString(), provider_message_id: result.id || null, provider_payload: { provider: result.provider }, failure_reason: null, attempt_count: Number(delivery.attempt_count) + 1, updated_at: new Date().toISOString() }).eq("id", id);
   return { id, state: "sent" };
@@ -197,7 +198,7 @@ async function run() {
   for (const event of events ?? []) {
     const payload = record(event.payload);
     const registrationId = text(payload.registration_id, text(event.aggregate_id));
-    const { data: registration } = await supabase.from("registrations").select("id,email,phone_e164,whatsapp_consent,status,course_sessions(starts_at,timezone,delivery_type,venue_name,venue_address,maps_url,meet_url,courses(state,is_featured))").eq("id", registrationId).maybeSingle();
+    const { data: registration } = await supabase.from("registrations").select("id,email,phone_e164,whatsapp_consent,status,course_sessions(starts_at,timezone,delivery_type,venue_name,venue_address,maps_url,meet_url,whatsapp_channel_id,courses(state,is_featured))").eq("id", registrationId).maybeSingle();
     if (!registration) { await supabase.from("outbox_events").update({ processed_at: new Date().toISOString() }).eq("id", event.id); continue; }
     const row = record(registration);
     await ensureDelivery(supabase, row, "email");
@@ -207,11 +208,11 @@ async function run() {
     created += 1;
   }
   // Reconcile reminders on every run as well, so adding a Meet URL after registration still schedules it.
-  const { data: confirmedRegistrations } = await supabase.from("registrations").select("id,email,phone_e164,whatsapp_consent,status,course_sessions(starts_at,timezone,delivery_type,venue_name,venue_address,maps_url,meet_url,courses(state,is_featured))").eq("status", "confirmed").limit(200);
+  const { data: confirmedRegistrations } = await supabase.from("registrations").select("id,email,phone_e164,whatsapp_consent,status,course_sessions(starts_at,timezone,delivery_type,venue_name,venue_address,maps_url,meet_url,whatsapp_channel_id,courses(state,is_featured))").eq("status", "confirmed").limit(200);
   for (const registration of confirmedRegistrations ?? []) {
     await scheduleReminders(supabase, record(registration));
   }
-  const { data: queued } = await supabase.from("message_deliveries").select("id,registration_id,channel,template_key,state,scheduled_for,attempt_count").in("state", ["scheduled", "queued"]).lte("scheduled_for", new Date().toISOString()).order("created_at", { ascending: true }).limit(50);
+  const { data: queued } = await supabase.from("message_deliveries").select("id,registration_id,channel,template_key,state,scheduled_for,attempt_count,sender_channel_id").in("state", ["scheduled", "queued"]).lte("scheduled_for", new Date().toISOString()).order("created_at", { ascending: true }).limit(50);
   const results = [];
   for (const delivery of queued ?? []) {
 

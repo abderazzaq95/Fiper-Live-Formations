@@ -3,6 +3,8 @@ import { requireDashboardIdentity } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getStoredGoogleConfig } from "@/lib/integrations/google";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { WhatsAppChannelManager } from "@/components/dashboard/whatsapp-channel-manager";
+import { listWhatsAppChannels } from "@/lib/data/whatsapp-channels";
 
 const integrations = [
   { name: "Callbell WhatsApp", description: "إرسال التأكيدات والتذكيرات وتتبع حالة الوصول.", status: "جاهز للربط", icon: MessageCircleMore, tone: "bg-[#eaf8f3] text-[#168a65]", button: "إضافة المفاتيح" },
@@ -14,6 +16,7 @@ export default async function SettingsPage() {
   const identity = await requireDashboardIdentity("admin");
   const supabase = await createClient();
   const googleIntegration = await getStoredGoogleConfig(supabase);
+  const whatsappChannels = await listWhatsAppChannels();
   const googleConnected = googleIntegration.state === "connected" && Boolean(googleIntegration.config?.refreshToken);
   const { data: profiles } = await supabase.from("profiles").select("id,full_name,role,updated_at").order("created_at", { ascending: true });
   const emailById = new Map<string, string>();
@@ -38,11 +41,13 @@ export default async function SettingsPage() {
             <article key={name} className="rounded-[20px] border border-[#e0e8ed] p-5">
               <div className="flex items-start justify-between"><span className={`flex h-11 w-11 items-center justify-center rounded-[14px] ${tone}`}><Icon size={19} /></span><span className={`rounded-full px-3 py-1.5 text-[8px] font-bold ${tone}`}>{name === "Google Calendar & Meet" && googleConnected ? "Connected" : status}</span></div>
               <h3 className="latin mt-6 text-sm font-bold">{name}</h3><p className="mt-2 min-h-12 text-[9px] leading-5 text-[#718695]">{description}</p>
-              {name === "Google Calendar & Meet" ? <a href="/api/admin/integrations/google/start" className="mt-5 flex h-10 w-full items-center justify-center rounded-xl border border-[#dce5eb] bg-[#f8fafb] text-[9px] font-bold text-[#526a7a] transition hover:bg-[#eef4f7]">{button}</a> : <button className="mt-5 h-10 w-full rounded-xl border border-[#dce5eb] bg-[#f8fafb] text-[9px] font-bold text-[#526a7a] transition hover:bg-[#eef4f7]">{button}</button>}
+              {name === "Google Calendar & Meet" ? <a href="/api/admin/integrations/google/start" className="mt-5 flex h-10 w-full items-center justify-center rounded-xl border border-[#dce5eb] bg-[#f8fafb] text-[9px] font-bold text-[#526a7a] transition hover:bg-[#eef4f7]">{button}</a> : name === "Callbell WhatsApp" ? <a href="#whatsapp-channels" className="mt-5 flex h-10 w-full items-center justify-center rounded-xl border border-[#dce5eb] bg-[#f8fafb] text-[9px] font-bold text-[#526a7a] transition hover:bg-[#eef4f7]">إدارة الأرقام</a> : <button className="mt-5 h-10 w-full rounded-xl border border-[#dce5eb] bg-[#f8fafb] text-[9px] font-bold text-[#526a7a] transition hover:bg-[#eef4f7]">{button}</button>}
             </article>
           ))}
         </div>
       </section>
+
+      <div id="whatsapp-channels"><WhatsAppChannelManager channels={whatsappChannels} /></div>
 
       <section className="mt-5 overflow-hidden rounded-[22px] border border-[#dfe7ec] bg-white">
         <div className="flex items-center justify-between border-b border-[#e8eef2] p-5 sm:px-7"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f2effc] text-[#7059c8]"><UserCog size={18} /></span><div><h2 className="text-sm font-bold">المستخدمون والصلاحيات</h2><p className="mt-1 text-[9px] text-[#91a2ae]">دوران فقط: Admin وUser.</p></div></div><button className="flex h-10 items-center gap-2 rounded-xl bg-[#102f47] px-4 text-[9px] font-bold text-white"><Plus size={14} /> إضافة مستخدم</button></div>

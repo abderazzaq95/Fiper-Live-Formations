@@ -20,8 +20,14 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(body);
   if (!parsed.success || (!parsed.data.email && !parsed.data.whatsapp)) return Response.json({ message: "Choose at least one channel." }, { status: 422 });
   const supabase = createAdminClient();
-  const { data: recipients, error } = await supabase.from("registrations").select("id,full_name,email,phone_e164,whatsapp_consent").in("id", parsed.data.registrationIds);
+  const { data: recipients, error } = await supabase.from("registrations").select("id,session_id,full_name,email,phone_e164,whatsapp_consent").in("id", parsed.data.registrationIds);
   if (error) return Response.json({ message: "Unable to load recipients." }, { status: 500 });
+  const sessionIds = [...new Set((recipients ?? []).map((recipient) => recipient.session_id).filter(Boolean))];
+  const { data: sessions } = sessionIds.length ? await supabase.from("course_sessions").select("id,whatsapp_channel_id").in("id", sessionIds) : { data: [] };
+  const senderIds = [...new Set((sessions ?? []).map((session) => session.whatsapp_channel_id).filter(Boolean))];
+  const { data: senders } = senderIds.length ? await supabase.from("whatsapp_channels").select("id,callbell_channel_uuid,active").in("id", senderIds) : { data: [] };
+  const senderIdBySession = new Map((sessions ?? []).map((session) => [session.id, session.whatsapp_channel_id]));
+  const senderById = new Map((senders ?? []).filter((sender) => sender.active).map((sender) => [sender.id, sender.callbell_channel_uuid]));
   let emailSent = 0, whatsappSent = 0, skipped = 0;
   const failures: string[] = [];
   for (const recipient of recipients ?? []) {
@@ -41,7 +47,26 @@ export async function POST(request: Request) {
     if (parsed.data.whatsapp && recipient.phone_e164 && recipient.whatsapp_consent) {
       if (!isCallbellConfigured() || !process.env.CALLBELL_TEMPLATE_CUSTOM) skipped++;
       else {
-        try { await sendCallbellTemplate({ to: recipient.phone_e164, templateUuid: process.env.CALLBELL_TEMPLATE_CUSTOM, values: [name, personalized], registrationId: recipient.id, deliveryId: "custom" }); whatsappSent++; }
+        try {
+          const senderChannelId = senderIdBySession.get(recipient.session_id) ?? null;
+          const channelUuid = senderChannelId ? senderById.get(senderChannelId) : undefined;
+          if (senderChannelId && !channelUuid) throw new Error("selected_whatsapp_sender_unavailable");
+          const result = await sendCallbellTemplate({ to: recipient.phone_e164, templateUuid: process.env.CALLBELL_TEMPLATE_CUSTOM, values: [name, personalized], registrationId: recipient.id, deliveryId: "custom", channelUuid });
+          await supabase.from("message_deliveries").insert({
+            registration_id: recipient.id,
+            channel: "whatsapp",
+            template_key: "custom",
+            provider: "callbell",
+            provider_message_id: result.uuid || null,
+            state: "sent",
+            scheduled_for: new Date().toISOString(),
+            sent_at: new Date().toISOString(),
+            sender_channel_id: senderChannelId,
+            idempotency_key: `${recipient.id}:custom:whatsapp:${crypto.randomUUID()}`,
+            provider_payload: { provider: "callbell" },
+          });
+          whatsappSent++;
+        }
         catch (err) { failures.push(`whatsapp:${recipient.phone_e164}:${err instanceof Error ? err.message : "failed"}`); }
       }
     }

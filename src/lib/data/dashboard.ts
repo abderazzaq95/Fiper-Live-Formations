@@ -142,6 +142,7 @@ export type DeliveryRow = {
   recipient: string;
   time: string;
   failureReason: string;
+  sender: string;
 };
 
 export type DeliveryData = {
@@ -157,13 +158,14 @@ export async function getDashboardDeliveries(): Promise<DeliveryData> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("message_deliveries")
-      .select("id,channel,template_key,provider,state,failure_reason,created_at,registrations(full_name,email)")
+      .select("id,channel,template_key,provider,state,failure_reason,created_at,registrations(full_name,email),whatsapp_channels(label,phone_e164)")
       .order("created_at", { ascending: false })
       .limit(100);
     if (error || !data) return { rows: [], emailTotal: 0, whatsappTotal: 0, failed: 0, delivered: 0 };
     const rows = data.map((item) => {
       const row = asRecord(item);
       const registration = firstRecord(row.registrations);
+      const sender = firstRecord(row.whatsapp_channels);
       return {
         id: text(row.id),
         channel: text(row.channel) === "whatsapp" ? "whatsapp" : "email",
@@ -173,6 +175,7 @@ export async function getDashboardDeliveries(): Promise<DeliveryData> {
         recipient: text(registration?.full_name, text(registration?.email, "—")),
         time: formatDateTime(text(row.created_at)),
         failureReason: text(row.failure_reason),
+        sender: text(sender?.phone_e164, text(sender?.label)),
       } satisfies DeliveryRow;
     });
     return {

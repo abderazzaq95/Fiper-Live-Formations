@@ -46,6 +46,7 @@ const updateSchema = z.object({
   venueName: z.string().trim().max(240).default(""),
   venueAddress: z.string().trim().max(500).default(""),
   mapsUrl: z.string().trim().max(800).default(""),
+  whatsappChannelId: z.string().trim().regex(/^[a-z0-9_]+$/).max(80).default("uae"),
   capacity: z.number().int().positive().max(100000),
   registrationOpen: z.boolean(),
   waitlistEnabled: z.boolean().default(true),
@@ -95,13 +96,13 @@ function localMorningTimestamp(startAtMs: number, timezone: string) {
   return naive - (localAsUtc - naive);
 }
 
-async function reschedulePendingReminders(sessionId: string, startsAt: string, timezone: string, meetUrl: string, deliveryType: string) {
+async function reschedulePendingReminders(sessionId: string, startsAt: string, timezone: string, meetUrl: string, deliveryType: string, whatsappChannelId: string) {
   try {
     const admin = createAdminClient();
     const { data: registrations } = await admin.from("registrations").select("id").eq("session_id", sessionId).eq("status", "confirmed");
     const registrationIds = (registrations ?? []).map((registration: { id: string }) => registration.id).filter(Boolean);
     if (!registrationIds.length) return;
-    const { data: deliveries } = await admin.from("message_deliveries").select("id,template_key,state").in("registration_id", registrationIds).in("state", ["scheduled", "queued"]);
+    const { data: deliveries } = await admin.from("message_deliveries").select("id,channel,template_key,state").in("registration_id", registrationIds).in("state", ["scheduled", "queued"]);
     const startMs = Date.parse(startsAt);
     const now = Date.now();
     const timestamps: Record<string, number> = Number.isFinite(startMs) ? {
@@ -116,7 +117,7 @@ async function reschedulePendingReminders(sessionId: string, startsAt: string, t
         await admin.from("message_deliveries").update({ state: "cancelled", failure_reason: "Schedule changed; reminder is no longer due", updated_at: new Date().toISOString() }).eq("id", delivery.id);
         continue;
       }
-      await admin.from("message_deliveries").update({ state: "scheduled", scheduled_for: new Date(timestamp).toISOString(), failure_reason: null, updated_at: new Date().toISOString() }).eq("id", delivery.id);
+      await admin.from("message_deliveries").update({ state: "scheduled", scheduled_for: new Date(timestamp).toISOString(), sender_channel_id: delivery.channel === "whatsapp" ? whatsappChannelId : null, failure_reason: null, updated_at: new Date().toISOString() }).eq("id", delivery.id);
     }
   } catch (error) {
     console.error("reminders_reschedule_failed", error);
@@ -186,6 +187,7 @@ async function createCourse(supabase: Awaited<ReturnType<typeof createClient>>, 
     venue_name: value.deliveryType === "onsite" ? value.venueName || null : null,
     venue_address: value.deliveryType === "onsite" ? value.venueAddress || null : null,
     maps_url: value.deliveryType === "onsite" ? value.mapsUrl || null : null,
+    whatsapp_channel_id: value.whatsappChannelId,
     capacity: value.capacity,
     registration_open: value.registrationOpen,
     waitlist_enabled: value.waitlistEnabled,
@@ -210,6 +212,8 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   if (!parsed.success) return Response.json({ message: "Please check the course fields." }, { status: 422 });
 
   const value = parsed.data;
+  const channelLookup = await createAdminClient().from("whatsapp_channels").select("id").eq("id", value.whatsappChannelId).eq("active", true).maybeSingle();
+  if (channelLookup.error || !channelLookup.data) return Response.json({ message: "اختر رقم واتساب نشطاً لهذه الدورة." }, { status: 422 });
   const supabase = await createClient();
   if (id === "new") {
     try {
@@ -266,6 +270,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
     venue_name: value.deliveryType === "onsite" ? value.venueName || null : null,
     venue_address: value.deliveryType === "onsite" ? value.venueAddress || null : null,
     maps_url: value.deliveryType === "onsite" ? value.mapsUrl || null : null,
+    whatsapp_channel_id: value.whatsappChannelId,
     capacity: value.capacity,
     registration_open: value.registrationOpen,
     waitlist_enabled: value.waitlistEnabled,
@@ -275,7 +280,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
     ? await supabase.from("course_sessions").update(sessionPayload).eq("id", sessionId)
     : await supabase.from("course_sessions").insert(sessionPayload);
   if (sessionResult.error) return Response.json({ message: "Unable to update the course schedule." }, { status: 500 });
-  if (sessionId) await reschedulePendingReminders(sessionId, sessionPayload.starts_at, sessionPayload.timezone, sessionPayload.meet_url ?? "", sessionPayload.delivery_type);
+  if (sessionId) await reschedulePendingReminders(sessionId, sessionPayload.starts_at, sessionPayload.timezone, sessionPayload.meet_url ?? "", sessionPayload.delivery_type, sessionPayload.whatsapp_channel_id);
 
   if (existing.instructor_id) {
     const { error: instructorError } = await supabase.from("instructors").update({

@@ -43,8 +43,9 @@ type EditableOutcome = { title: string; text: string };
 type EditableAgenda = { time: string; title: string; text: string };
 
 type AssetKind = "cover" | "instructor";
+type WhatsAppChannelOption = { id: string; label: string; countryName: string; countryCode: string; phoneE164: string; isDefault: boolean };
 
-export function CourseEditor({ courseId, initial, isNew = false }: { courseId: string; initial: CourseEditorData | null; isNew?: boolean }) {
+export function CourseEditor({ courseId, initial, whatsappChannels, isNew = false }: { courseId: string; initial: CourseEditorData | null; whatsappChannels: WhatsAppChannelOption[]; isNew?: boolean }) {
   const router = useRouter();
   const course = initial ? { ...featuredCourse, title: initial.title, eyebrow: initial.eyebrow, description: initial.description, slug: initial.slug, coverImage: initial.coverPath || featuredCourse.coverImage, instructor: { ...featuredCourse.instructor, name: initial.instructor.name, role: initial.instructor.title, bio: initial.instructor.bio, image: initial.instructor.image || featuredCourse.instructor.image } } : featuredCourse;
   const session = initial?.session;
@@ -54,6 +55,7 @@ export function CourseEditor({ courseId, initial, isNew = false }: { courseId: s
   const dateValue = inputDateTime(session?.startsAt, timezoneValue, "date", "2026-09-06");
   const startTimeValue = inputDateTime(session?.startsAt, timezoneValue, "time", "20:00");
   const endTimeValue = inputDateTime(session?.endsAt, timezoneValue, "time", "21:30");
+  const defaultWhatsAppChannelId = session?.whatsappChannelId ?? whatsappChannels.find((channel) => channel.isDefault)?.id ?? whatsappChannels[0]?.id ?? "uae";
   const [activeTab, setActiveTab] = useState(tabs[0]);
   const [deliveryType, setDeliveryType] = useState<"online" | "onsite">(() => initial?.session.deliveryType === "onsite" ? "onsite" : "online");
   const [coverImage, setCoverImage] = useState(course.coverImage ?? "");
@@ -62,7 +64,7 @@ export function CourseEditor({ courseId, initial, isNew = false }: { courseId: s
   const [assetError, setAssetError] = useState("");
   const [faqItems, setFaqItems] = useState<EditableFaq[]>(() => initial?.faqs ?? []);
   const [outcomeItems, setOutcomeItems] = useState<EditableOutcome[]>(() => initial?.outcomes?.length ? initial.outcomes : learningOutcomes.map(({ title, text }) => ({ title, text })));
-  const [audienceItems, setAudienceItems] = useState<string[]>(() => initial?.audience?.length ? initial.audience : defaultAudience);
+  const [audienceItems] = useState<string[]>(() => initial?.audience?.length ? initial.audience : defaultAudience);
   const [agendaItems, setAgendaItems] = useState<EditableAgenda[]>(() => initial?.agenda?.length ? initial.agenda : defaultAgenda);
   const [landingContent, setLandingContent] = useState<LandingContent>(() => initial?.landingContent ?? defaultLandingContent);
   const [saving, setSaving] = useState(false);
@@ -115,6 +117,7 @@ export function CourseEditor({ courseId, initial, isNew = false }: { courseId: s
       venueName: value("course-venue-name", session?.venueName ?? ""),
       venueAddress: value("course-venue-address", session?.venueAddress ?? ""),
       mapsUrl: value("course-maps-url", session?.mapsUrl ?? ""),
+      whatsappChannelId: value("course-whatsapp-channel", defaultWhatsAppChannelId),
       capacity: Number(value("course-capacity", String(session?.capacity ?? 200)) || 0),
       registrationOpen: value("course-registration-open", session?.registrationOpen ? "open" : "closed") === "open",
       waitlistEnabled: true,
@@ -211,7 +214,16 @@ export function CourseEditor({ courseId, initial, isNew = false }: { courseId: s
             <div className="space-y-6"><div><h2 className="text-sm font-bold">بيانات المحاضر</h2></div><div className="grid gap-4 sm:grid-cols-2"><Field label="الاسم الكامل"><input id="instructor-name" className={inputClass} defaultValue={draftValues["instructor-name"] ?? course.instructor.name} /></Field><Field label="المسمى المهني"><input id="instructor-title" className={inputClass} defaultValue={draftValues["instructor-title"] ?? course.instructor.role} /></Field></div><Field label="نبذة تعريفية"><textarea id="instructor-bio" className="min-h-28 w-full rounded-xl border border-[#dce5eb] bg-[#fafbfc] p-4 text-[10px] leading-6" defaultValue={draftValues["instructor-bio"] ?? course.instructor.bio} /></Field><div><span className="mb-2 block text-[10px] font-bold text-[#425d70]">صورة المحاضر</span><label htmlFor="instructor-image-file" className="relative flex h-24 cursor-pointer items-center justify-center gap-3 overflow-hidden rounded-2xl border border-dashed border-[#b9cbd6] bg-[#f8fafb] text-[9px] font-bold text-[#7890a0]">{instructorImage && <span className="absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: `url("${instructorImage}")` }} />}{uploading === "instructor" ? <Loader2 size={18} className="relative animate-spin" /> : <ImagePlus size={18} className="relative" />}<span className="relative">{uploading === "instructor" ? "جارٍ رفع الصورة" : instructorImage ? "تغيير الصورة" : "رفع صورة احترافية"}</span></label><input id="instructor-image-file" type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadAsset(file, "instructor"); event.currentTarget.value = ""; }} /></div></div>
           )}
           {activeTab === "الإشعارات" && (
-            <div className="space-y-4"><div><h2 className="text-sm font-bold">رحلة التواصل</h2><p className="mt-1 text-[9px] text-[#91a2ae]">يمكن تعديل النصوص من صفحة التواصل.</p></div>{["تأكيد التسجيل · فوراً","تذكير أول · قبل يوم","تذكير يوم الدورة · صباحاً","رابط الدخول · قبل 10 دقائق"].map((item, i) => <div key={item} className="flex items-center gap-4 rounded-2xl border border-[#e1e8ed] p-4"><span className="latin flex h-9 w-9 items-center justify-center rounded-xl bg-[#edf4f8] text-[10px] font-bold text-[#1779b5]">0{i + 1}</span><strong className="text-[10px]">{item}</strong><span className="mr-auto rounded-full bg-[#eaf8f3] px-3 py-1 text-[8px] font-bold text-[#168a65]">مفعّل</span></div>)}</div>
+            <div className="space-y-4">
+              <div><h2 className="text-sm font-bold">رحلة التواصل</h2><p className="mt-1 text-xs text-[#91a2ae]">اختر رقم واتساب الذي يرسل تأكيد التسجيل وتذكيرات هذه الدورة.</p></div>
+              <Field label="رقم واتساب المستخدم لهذه الدورة" hint="سيستخدم الرقم المختار لجميع رسائل واتساب المرتبطة بهذه الدورة.">
+                <select id="course-whatsapp-channel" className={inputClass} defaultValue={draftValues["course-whatsapp-channel"] ?? defaultWhatsAppChannelId}>
+                  {whatsappChannels.map((channel) => <option key={channel.id} value={channel.id}>{channel.countryName} · {channel.phoneE164} · {channel.label}</option>)}
+                </select>
+              </Field>
+              {whatsappChannels.length === 0 && <p className="rounded-xl border border-[#efdfbc] bg-[#fffbf1] p-4 text-xs text-[#806d45]">لا توجد قناة واتساب نشطة. أضف قناة من صفحة الإعدادات قبل نشر الدورة.</p>}
+              {["تأكيد التسجيل · فوراً","تذكير أول · قبل يوم","تذكير يوم الدورة · صباحاً","رابط الدخول · قبل 10 دقائق"].map((item, i) => <div key={item} className="flex items-center gap-4 rounded-2xl border border-[#e1e8ed] p-4"><span className="latin flex h-9 w-9 items-center justify-center rounded-xl bg-[#edf4f8] text-[10px] font-bold text-[#1779b5]">0{i + 1}</span><strong className="text-[10px]">{item}</strong><span className="mr-auto rounded-full bg-[#eaf8f3] px-3 py-1 text-[8px] font-bold text-[#168a65]">مفعّل</span></div>)}
+            </div>
           )}
         </section>
 

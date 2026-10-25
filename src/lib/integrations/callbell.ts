@@ -4,6 +4,7 @@ type CallbellTemplateRequest = {
   values?: string[];
   registrationId: string;
   deliveryId: string;
+  channelUuid?: string;
 };
 
 type CallbellSendResult = {
@@ -21,7 +22,7 @@ export function isCallbellConfigured() {
 
 export async function sendCallbellTemplate(input: CallbellTemplateRequest) {
   const apiKey = process.env.CALLBELL_API_KEY;
-  const channelUuid = process.env.CALLBELL_CHANNEL_UUID;
+  const channelUuid = input.channelUuid || process.env.CALLBELL_CHANNEL_UUID;
   if (!apiKey || !channelUuid) {
     throw new Error("callbell_not_configured");
   }

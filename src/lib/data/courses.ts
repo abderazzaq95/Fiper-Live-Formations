@@ -298,7 +298,7 @@ export type CourseEditorData = {
   landingContent: LandingContent;
   registrationCount: number;
   instructor: { id: string; name: string; title: string; bio: string; image: string };
-  session: { id: string; startsAt: string; endsAt: string; timezone: string; deliveryType: string; platform: string; capacity: number; registrationOpen: boolean; waitlistEnabled: boolean; meetUrl: string; venueName: string; venueAddress: string; mapsUrl: string };
+  session: { id: string; startsAt: string; endsAt: string; timezone: string; deliveryType: string; platform: string; capacity: number; registrationOpen: boolean; waitlistEnabled: boolean; meetUrl: string; venueName: string; venueAddress: string; mapsUrl: string; whatsappChannelId: string };
 };
 
 export async function getCourseEditorData(id: string): Promise<CourseEditorData | null> {
@@ -306,7 +306,7 @@ export async function getCourseEditorData(id: string): Promise<CourseEditorData 
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address,maps_url),instructors(id,name,title,bio,photo_path)")
+      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address,maps_url,whatsapp_channel_id),instructors(id,name,title,bio,photo_path)")
       .eq("id", id)
       .maybeSingle();
     if (error || !data) return null;
@@ -347,6 +347,7 @@ export async function getCourseEditorData(id: string): Promise<CourseEditorData 
         venueName: asText(session.venue_name),
         venueAddress: asText(session.venue_address),
         mapsUrl: asText(session.maps_url),
+        whatsappChannelId: asText(session.whatsapp_channel_id, "uae"),
       },
     };
   } catch {
