@@ -99,9 +99,9 @@ function callbellTemplateFor(templateKey: string) {
   return templates[templateKey];
 }
 
-async function sendWhatsApp(to: string, name: string, title: string, scheduleLabel: string, templateKey: string, attendanceDetails: string, registrationId: string, deliveryId: string, channelUuid?: string) {
+async function sendWhatsApp(to: string, name: string, title: string, scheduleLabel: string, templateKey: string, attendanceDetails: string, registrationId: string, deliveryId: string, channelUuid?: string, selectedTemplateUuid?: string) {
   if (isCallbellConfigured()) {
-    const templateUuid = callbellTemplateFor(templateKey);
+    const templateUuid = selectedTemplateUuid || (!channelUuid ? callbellTemplateFor(templateKey) : undefined);
     if (!templateUuid) return { configured: false as const, provider: "callbell" as const, reason: "Callbell template is not configured for " + templateKey + "." };
     const values = [name, title, scheduleLabel, attendanceDetails];
     const result = await sendCallbellTemplate({ to, templateUuid, values, registrationId, deliveryId, channelUuid });
@@ -148,12 +148,21 @@ async function processDelivery(supabase: ReturnType<typeof createAdminClient>, d
   const channel = text(delivery.channel) as "email" | "whatsapp";
   const senderChannelId = text(delivery.sender_channel_id, text(session?.whatsapp_channel_id));
   let callbellChannelUuid: string | undefined;
+  let callbellTemplateUuid: string | undefined;
   if (channel === "whatsapp" && senderChannelId) {
-    const { data: sender } = await supabase.from("whatsapp_channels").select("callbell_channel_uuid,active").eq("id", senderChannelId).maybeSingle();
+    const { data: sender } = await supabase.from("whatsapp_channels").select("callbell_channel_uuid,active,is_default,callbell_verified_at,template_registration_uuid,template_reminder_day_uuid,template_reminder_today_uuid,template_join_now_uuid").eq("id", senderChannelId).maybeSingle();
     if (!sender?.active || !sender.callbell_channel_uuid) throw new Error("Selected WhatsApp sender is inactive or unavailable");
     callbellChannelUuid = sender.callbell_channel_uuid;
+    const senderTemplates: Record<string, string | null> = {
+      registration_confirmation: sender.template_registration_uuid,
+      course_reminder_24h: sender.template_reminder_day_uuid,
+      course_reminder_day: sender.template_reminder_today_uuid,
+      meeting_reminder: sender.template_join_now_uuid,
+    };
+    callbellTemplateUuid = (sender.callbell_verified_at ? senderTemplates[templateKey] : undefined) || (sender.is_default ? callbellTemplateFor(templateKey) : undefined);
+    if (!callbellTemplateUuid) throw new Error(`Selected WhatsApp sender has no template configured for ${templateKey}`);
   }
-  const result = channel === "email" ? await sendResend(text(registration.email), name, title, startsAt, sourceTimezone, templateKey, attendanceDetails) : await sendWhatsApp(text(registration.phone_e164), name, title, scheduleLabel, templateKey, attendanceDetails, text(registration.id), id, callbellChannelUuid);
+  const result = channel === "email" ? await sendResend(text(registration.email), name, title, startsAt, sourceTimezone, templateKey, attendanceDetails) : await sendWhatsApp(text(registration.phone_e164), name, title, scheduleLabel, templateKey, attendanceDetails, text(registration.id), id, callbellChannelUuid, callbellTemplateUuid);
   if (!result.configured) return { id, state: "queued", reason: result.reason };
   await supabase.from("message_deliveries").update({ state: "sent", sent_at: new Date().toISOString(), provider_message_id: result.id || null, provider_payload: { provider: result.provider }, failure_reason: null, attempt_count: Number(delivery.attempt_count) + 1, updated_at: new Date().toISOString() }).eq("id", id);
   return { id, state: "sent" };

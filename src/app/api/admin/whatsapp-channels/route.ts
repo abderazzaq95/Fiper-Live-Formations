@@ -10,7 +10,13 @@ const createSchema = z.object({
   countryCode: z.string().trim().length(2).transform((value) => value.toUpperCase()),
   phoneE164: z.string().trim().regex(/^\+[1-9][0-9]{6,14}$/),
   callbellChannelUuid: z.string().trim().toLowerCase().regex(/^[a-f0-9]{32}$/),
-  isDefault: z.boolean().default(false),
+  templates: z.object({
+    registration: z.string().trim().toLowerCase().regex(/^[a-f0-9]{32}$/),
+    reminderDay: z.string().trim().toLowerCase().regex(/^[a-f0-9]{32}$/),
+    reminderToday: z.string().trim().toLowerCase().regex(/^[a-f0-9]{32}$/),
+    joinNow: z.string().trim().toLowerCase().regex(/^[a-f0-9]{32}$/),
+    custom: z.string().trim().toLowerCase().regex(/^[a-f0-9]{32}$/),
+  }),
 });
 
 export async function POST(request: Request) {
@@ -32,19 +38,21 @@ export async function POST(request: Request) {
     country_code: value.countryCode,
     phone_e164: value.phoneE164,
     callbell_channel_uuid: value.callbellChannelUuid,
-    active: true,
+    template_registration_uuid: value.templates.registration,
+    template_reminder_day_uuid: value.templates.reminderDay,
+    template_reminder_today_uuid: value.templates.reminderToday,
+    template_join_now_uuid: value.templates.joinNow,
+    template_custom_uuid: value.templates.custom,
+    active: false,
     is_default: false,
+    callbell_verified_at: null,
+    callbell_verification_error: "تحقق من القناة والقوالب قبل تفعيلها.",
   });
   if (error) {
     const duplicate = error.code === "23505";
     return Response.json({ message: duplicate ? "هذا الرقم أو Channel UUID مضاف مسبقًا." : "تعذر حفظ قناة واتساب." }, { status: duplicate ? 409 : 500 });
   }
-  if (value.isDefault) {
-    await admin.from("whatsapp_channels").update({ is_default: false, updated_at: new Date().toISOString() }).eq("is_default", true);
-    const { error: defaultError } = await admin.from("whatsapp_channels").update({ is_default: true, updated_at: new Date().toISOString() }).eq("id", id);
-    if (defaultError) return Response.json({ message: "تمت إضافة الرقم، لكن تعذر تعيينه افتراضيًا." }, { status: 500 });
-  }
   revalidatePath("/admin/settings");
   revalidatePath("/admin/courses");
-  return Response.json({ ok: true, id }, { status: 201 });
+  return Response.json({ ok: true, id, requiresVerification: true }, { status: 201 });
 }

@@ -14,10 +14,7 @@ type CallbellSendResult = {
 };
 
 export function isCallbellConfigured() {
-  return Boolean(
-    process.env.CALLBELL_API_KEY &&
-    process.env.CALLBELL_CHANNEL_UUID,
-  );
+  return Boolean(process.env.CALLBELL_API_KEY);
 }
 
 export async function sendCallbellTemplate(input: CallbellTemplateRequest) {
