@@ -18,6 +18,8 @@ export default async function SettingsPage() {
   const googleIntegration = await getStoredGoogleConfig(supabase);
   const whatsappChannels = await listWhatsAppChannels();
   const googleConnected = googleIntegration.state === "connected" && Boolean(googleIntegration.config?.refreshToken);
+  const callbellConnected = Boolean(process.env.CALLBELL_API_KEY && whatsappChannels.some((channel) => channel.active));
+  const emailConnected = Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
   const { data: profiles } = await supabase.from("profiles").select("id,full_name,role,updated_at").order("created_at", { ascending: true });
   const emailById = new Map<string, string>();
   const lastLoginById = new Map<string, string>();
@@ -37,13 +39,15 @@ export default async function SettingsPage() {
       <section className="mt-7 rounded-[22px] border border-[#dfe7ec] bg-white p-5 sm:p-7">
         <div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-[#edf4f8] text-[#1779b5]"><KeyRound size={19} /></span><div><h2 className="text-sm font-bold">التكاملات</h2><p className="mt-1 text-[9px] text-[#91a2ae]">تحفظ المفاتيح مشفرة ولا تظهر مرة أخرى بعد إدخالها.</p></div></div>
         <div className="mt-6 grid gap-4 lg:grid-cols-3">
-          {integrations.map(({ name, description, status, icon: Icon, tone, button }) => (
+          {integrations.map(({ name, description, status, icon: Icon, tone, button }) => {
+            const connected = name === "Google Calendar & Meet" ? googleConnected : name === "Callbell WhatsApp" ? callbellConnected : emailConnected;
+            return (
             <article key={name} className="rounded-[20px] border border-[#e0e8ed] p-5">
-              <div className="flex items-start justify-between"><span className={`flex h-11 w-11 items-center justify-center rounded-[14px] ${tone}`}><Icon size={19} /></span><span className={`rounded-full px-3 py-1.5 text-[8px] font-bold ${tone}`}>{name === "Google Calendar & Meet" && googleConnected ? "Connected" : status}</span></div>
+              <div className="flex items-start justify-between"><span className={`flex h-11 w-11 items-center justify-center rounded-[14px] ${tone}`}><Icon size={19} /></span><span className={`rounded-full px-3 py-1.5 text-[8px] font-bold ${connected ? "bg-[#eaf8f3] text-[#168a65]" : tone}`}>{connected ? "متصل" : status}</span></div>
               <h3 className="latin mt-6 text-sm font-bold">{name}</h3><p className="mt-2 min-h-12 text-[9px] leading-5 text-[#718695]">{description}</p>
-              {name === "Google Calendar & Meet" ? <a href="/api/admin/integrations/google/start" className="mt-5 flex h-10 w-full items-center justify-center rounded-xl border border-[#dce5eb] bg-[#f8fafb] text-[9px] font-bold text-[#526a7a] transition hover:bg-[#eef4f7]">{button}</a> : name === "Callbell WhatsApp" ? <a href="#whatsapp-channels" className="mt-5 flex h-10 w-full items-center justify-center rounded-xl border border-[#dce5eb] bg-[#f8fafb] text-[9px] font-bold text-[#526a7a] transition hover:bg-[#eef4f7]">إدارة الأرقام</a> : <button className="mt-5 h-10 w-full rounded-xl border border-[#dce5eb] bg-[#f8fafb] text-[9px] font-bold text-[#526a7a] transition hover:bg-[#eef4f7]">{button}</button>}
+              {name === "Google Calendar & Meet" ? <a href="/api/admin/integrations/google/start" className="mt-5 flex h-10 w-full items-center justify-center rounded-xl border border-[#dce5eb] bg-[#f8fafb] text-[9px] font-bold text-[#526a7a] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[#eef4f7] active:scale-[.98] focus:outline-none focus:ring-2 focus:ring-[#1779b5]/20">{googleConnected ? "إعادة ربط Google" : button}</a> : name === "Callbell WhatsApp" ? <a href="#whatsapp-channels" className="mt-5 flex h-10 w-full items-center justify-center rounded-xl border border-[#dce5eb] bg-[#f8fafb] text-[9px] font-bold text-[#526a7a] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[#eef4f7] active:scale-[.98] focus:outline-none focus:ring-2 focus:ring-[#1779b5]/20">إدارة الأرقام والقوالب</a> : <button type="button" disabled={emailConnected} className="mt-5 h-10 w-full rounded-xl border border-[#dce5eb] bg-[#f8fafb] text-[9px] font-bold text-[#526a7a] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[#eef4f7] active:scale-[.98] focus:outline-none focus:ring-2 focus:ring-[#1779b5]/20 disabled:cursor-default disabled:opacity-70">{emailConnected ? "البريد متصل" : button}</button>}
             </article>
-          ))}
+          )})}
         </div>
       </section>
 
