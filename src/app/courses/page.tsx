@@ -121,17 +121,32 @@ export default async function CoursesPage() {
                 <div><Users size={22} className="text-[#C32828]" aria-hidden="true" /><dt className="mt-3 text-xs font-medium text-[#7b8994]">الحضور المؤكد</dt><dd className="mt-1 text-sm font-semibold text-[#071d2f]">{73 + featured.registrations} مشاركًا</dd></div>
               </dl>
 
-              <section aria-labelledby="instructor-heading" className="mt-8">
-                <p className="text-xs font-semibold text-[#C32828]">المحاضر</p>
-                <div className="mt-4 flex flex-col gap-6 sm:flex-row sm:items-center">
-                  {featured.instructor.image ? <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-full bg-[#eef0f1]"><Image src={featured.instructor.image} alt={`المحاضر ${featured.instructor.name}`} fill sizes="112px" className="object-cover" /></div> : <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-[#071d2f] text-2xl font-bold text-white">{featured.instructor.initials}</div>}
-                  <div className="max-w-xl">
-                    <h3 id="instructor-heading" className="text-xl font-extrabold tracking-[-0.035em] text-balance text-[#071d2f]">{featured.instructor.name}</h3>
-                    <p className="mt-1 text-sm font-semibold text-[#526575]">{featured.instructor.role}</p>
-                    <p className="mt-3 text-sm font-medium text-pretty text-[#6f7f8c]">{featured.instructor.bio}</p>
-                  </div>
-                </div>
-              </section>
+                  <section aria-labelledby="instructor-heading" className="mt-8 overflow-hidden border border-[#dce2e6] bg-white">
+                    <div className="grid sm:grid-cols-[220px_1fr]">
+                      {featured.instructor.image ? (
+                        <div className="relative min-h-64 bg-[#e3e6e8] sm:min-h-full">
+                          <Image
+                            src={featured.instructor.image}
+                            alt={`المحاضر ${featured.instructor.name}`}
+                            fill
+                            sizes="(max-width: 640px) 100vw, 220px"
+                            className="object-cover object-top"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex min-h-64 items-center justify-center bg-[#071d2f] text-4xl font-bold text-white">
+                          {featured.instructor.initials}
+                        </div>
+                      )}
+                      <div className="flex flex-col justify-center px-6 py-8 sm:px-8">
+                        <p className="text-sm font-bold text-[#124e78]">المحاضر</p>
+                        <h3 id="instructor-heading" className="mt-2 text-2xl font-extrabold tracking-[-0.035em] text-balance text-[#071d2f]">{featured.instructor.name}</h3>
+                        <span aria-hidden="true" className="mt-3 h-1 w-20 bg-[#C32828]" />
+                        <p className="mt-5 text-base font-semibold text-[#526575]">{featured.instructor.role}</p>
+                        <p className="mt-4 text-base font-medium leading-8 text-pretty text-[#6f7f8c]">{featured.instructor.bio}</p>
+                      </div>
+                    </div>
+                  </section>
             </div>
           </div>
         </article>
