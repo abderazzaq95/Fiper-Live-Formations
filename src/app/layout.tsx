@@ -22,6 +22,11 @@ export const metadata: Metadata = {
   },
   description:
     "دورات مباشرة وعملية لفهم الأسواق المالية وبناء منهج تداول أكثر وضوحاً وانضباطاً.",
+  icons: {
+    icon: [{ url: "/brand/fiper-mark.png", type: "image/png", sizes: "128x128" }],
+    shortcut: "/brand/fiper-mark.png",
+    apple: "/brand/fiper-mark.png",
+  },
   robots: { index: true, follow: true },
   openGraph: {
     title: "Fiper Academy",
