@@ -85,17 +85,8 @@ export default async function CoursesPage() {
 
         <article className="overflow-hidden rounded-2xl bg-white shadow-[0_24px_80px_rgba(7,29,47,.09)]">
           <div className="grid lg:grid-cols-[.72fr_1.28fr]">
-            <aside className="flex flex-col bg-[#071d2f] p-6 text-white sm:p-8 lg:p-10">
-              <div className="flex flex-col items-center rounded-xl bg-[#f7f7f5] px-6 py-8 text-center text-[#071d2f]">
-                <p className="text-xs font-bold text-[#C32828]">المحاضر</p>
-                {featured.instructor.image ? <div className="relative mt-5 h-44 w-44 overflow-hidden rounded-full bg-[#e4e7e9] shadow-[0_16px_40px_rgba(7,29,47,.14)]">
-                  <Image src={featured.instructor.image} alt={`المحاضر ${featured.instructor.name}`} fill priority sizes="176px" className="object-cover object-top transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-[1.03]" />
-                </div> : <div className="mt-5 flex h-44 w-44 items-center justify-center rounded-full bg-[#071d2f] text-4xl font-bold text-white shadow-[0_16px_40px_rgba(7,29,47,.14)]">{featured.instructor.initials}</div>}
-                <p className="mt-5 text-xl font-extrabold tracking-[-0.035em] text-balance">{featured.instructor.name}</p>
-                <p className="mt-2 text-xs font-semibold text-[#6f7f8c]">{featured.instructor.role}</p>
-              </div>
-
-              <div className="mt-8">
+            <aside className="flex flex-col justify-center bg-[#071d2f] p-6 text-white sm:p-8 lg:p-10">
+              <div>
                 <p className="text-xs font-semibold text-[#eaa2a2]">احجز مقعدك في الدورة</p>
                 <p className="mt-3 text-2xl font-extrabold leading-[1.45] tracking-[-0.04em] text-balance">التسجيل مجاني والمقاعد محدودة</p>
                 <p className="mt-3 text-sm leading-7 text-pretty text-[#aab9c5]">أكمل بياناتك مرة واحدة، وسنرسل إليك رابط الحضور والتذكيرات المهمة.</p>
@@ -126,13 +117,23 @@ export default async function CoursesPage() {
                 <div><Users size={22} className="text-[#C32828]" aria-hidden="true" /><dt className="mt-3 text-xs font-medium text-[#7b8994]">الحضور المؤكد</dt><dd className="mt-1 text-sm font-semibold text-[#071d2f]">{73 + featured.registrations} مشاركًا</dd></div>
               </dl>
 
-              <section aria-labelledby="instructor-heading" className="mt-8 border-t border-[#dce2e6] pt-6">
-                <p className="text-xs font-semibold text-[#C32828]">عن المحاضر</p>
-                <h3 id="instructor-heading" className="mt-3 text-xl font-extrabold tracking-[-0.035em] text-balance text-[#071d2f]">{featured.instructor.name}</h3>
-                <p className="mt-3 max-w-2xl text-sm leading-7 text-pretty text-[#6f7f8c]">{featured.instructor.bio}</p>
-              </section>
             </div>
           </div>
+
+          <section aria-labelledby="instructor-heading" className="border border-[#dce2e6] bg-white">
+            <div className="grid sm:grid-cols-[280px_1fr]">
+              {featured.instructor.image ? <div className="relative min-h-72 bg-[#dedede] sm:min-h-64">
+                <Image src={featured.instructor.image} alt={`المحاضر ${featured.instructor.name}`} fill priority sizes="(max-width: 640px) 100vw, 280px" className="object-cover object-top" />
+              </div> : <div className="flex min-h-72 items-center justify-center bg-[#e4e7e9] text-4xl font-bold text-[#071d2f] sm:min-h-64">{featured.instructor.initials}</div>}
+              <div className="flex flex-col justify-center px-6 py-8 sm:px-10">
+                <p className="text-sm font-bold text-[#124e78]">المحاضر</p>
+                <h3 id="instructor-heading" className="mt-2 text-2xl font-extrabold leading-[1.45] tracking-[-0.04em] text-balance text-[#071d2f]">{featured.instructor.name}</h3>
+                <span className="mt-3 h-1 w-20 bg-[#C32828]" aria-hidden="true" />
+                <p className="mt-5 text-base font-semibold text-[#526575]">{featured.instructor.role}</p>
+                <p className="mt-3 max-w-3xl text-sm leading-8 text-pretty text-[#6f7f8c]">{featured.instructor.bio}</p>
+              </div>
+            </div>
+          </section>
         </article>
       </section>
 
