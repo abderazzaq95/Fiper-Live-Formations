@@ -32,7 +32,7 @@ function countLabel(count: number) {
   return `${count} دورة متاحة`;
 }
 
-export default async function CoursesPage() {
+export async function CoursesIndexPage({ isHome = false }: { isHome?: boolean } = {}) {
   const courses = await listPublicActiveCourses();
   const featured = courses[0];
   const remainingCourses = courses.slice(1);
@@ -46,8 +46,16 @@ export default async function CoursesPage() {
       <div className="mx-auto flex h-20 max-w-[1280px] items-center justify-between px-5 sm:px-8">
         <FiperLogo darkText href="/" />
         <nav aria-label="التنقل الرئيسي" className="flex items-center gap-2">
-          <Link href="/" className="rounded-lg px-3 py-2 text-sm font-medium text-[#526575] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[#f1f3f4] hover:text-[#071d2f] active:scale-[.98] focus:outline-none focus:ring-2 focus:ring-[#C32828]/30">الرئيسية</Link>
-          <span aria-current="page" className="rounded-lg bg-[#071d2f] px-3 py-2 text-sm font-semibold text-white">الدورات</span>
+          {isHome ? (
+            <span aria-current="page" className="rounded-lg bg-[#071d2f] px-3 py-2 text-sm font-semibold text-white">الرئيسية</span>
+          ) : (
+            <Link href="/" className="rounded-lg px-3 py-2 text-sm font-medium text-[#526575] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[#f1f3f4] hover:text-[#071d2f] active:scale-[.98] focus:outline-none focus:ring-2 focus:ring-[#C32828]/30">الرئيسية</Link>
+          )}
+          {isHome ? (
+            <a href="#available-courses" className="rounded-lg px-3 py-2 text-sm font-medium text-[#526575] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[#f1f3f4] hover:text-[#071d2f] active:scale-[.98] focus:outline-none focus:ring-2 focus:ring-[#C32828]/30">الدورات</a>
+          ) : (
+            <span aria-current="page" className="rounded-lg bg-[#071d2f] px-3 py-2 text-sm font-semibold text-white">الدورات</span>
+          )}
         </nav>
       </div>
     </header>
@@ -215,8 +223,12 @@ export default async function CoursesPage() {
         <nav aria-label="روابط التذييل">
           <p className="text-sm font-bold text-white">استكشف</p>
           <div className="mt-5 flex flex-col items-start gap-4 text-sm font-medium text-[#aab9c5]">
-            <Link href="/" className="transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30">الرئيسية</Link>
-            <Link href="/courses" aria-current="page" className="transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30">الدورات المتاحة</Link>
+            <Link href="/" aria-current={isHome ? "page" : undefined} className="transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30">الرئيسية</Link>
+            {isHome ? (
+              <a href="#available-courses" className="transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30">الدورات المتاحة</a>
+            ) : (
+              <Link href="/courses" aria-current="page" className="transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30">الدورات المتاحة</Link>
+            )}
           </div>
         </nav>
         <div>
@@ -237,4 +249,8 @@ export default async function CoursesPage() {
       </div>
     </footer>
   </main>;
+}
+
+export default function CoursesPage() {
+  return <CoursesIndexPage />;
 }

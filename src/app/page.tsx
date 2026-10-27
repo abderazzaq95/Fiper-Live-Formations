@@ -1,20 +1,15 @@
-import { AgendaInstructor } from "@/components/public/agenda-instructor";
-import { CourseHero } from "@/components/public/course-hero";
-import { LearningSections } from "@/components/public/learning-sections";
-import { RegistrationSection } from "@/components/public/registration-section";
-import { getPublicCourseById } from "@/lib/data/courses";
+import type { Metadata } from "next";
+
+import { CoursesIndexPage } from "@/app/courses/page";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ courseId?: string }> }) {
-  const { course, outcomes, agenda, audience, faqs, landing } = await getPublicCourseById((await searchParams).courseId ?? "");
+export const metadata: Metadata = {
+  title: "الدورات المباشرة المتاحة",
+  description: "اكتشف دورات Fiper Academy المباشرة، وراجع المواعيد والمحاضرين ثم سجّل حضورك مجانًا.",
+  alternates: { canonical: "/" },
+};
 
-  return (
-    <main>
-      {landing.visibility.hero && <CourseHero course={course} landing={landing} />}
-      {(landing.visibility.about || landing.visibility.audience) && <LearningSections outcomes={outcomes} audience={audience} landing={landing} duration={course.duration} />}
-      {(landing.visibility.agenda || landing.visibility.instructor) && <AgendaInstructor course={course} agenda={agenda} landing={landing} />}
-      {(landing.visibility.faq || landing.visibility.registration || landing.visibility.footer) && <RegistrationSection course={course} faqs={faqs} landing={landing} />}
-    </main>
-  );
+export default function Home() {
+  return <CoursesIndexPage isHome />;
 }
