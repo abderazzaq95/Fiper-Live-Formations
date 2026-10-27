@@ -42,21 +42,20 @@ export async function CoursesIndexPage({ isHome = false }: { isHome?: boolean } 
       الانتقال إلى الدورات
     </a>
 
-    <header className="bg-white shadow-[0_1px_0_rgba(7,29,47,.08)]">
-      <div className="mx-auto flex h-20 max-w-[1280px] items-center justify-between px-5 sm:px-8">
-        <FiperLogo darkText href="/" />
-        <nav aria-label="التنقل الرئيسي" className="flex items-center gap-2">
-          {isHome ? (
-            <span aria-current="page" className="rounded-lg bg-[#071d2f] px-3 py-2 text-sm font-semibold text-white">الرئيسية</span>
-          ) : (
-            <Link href="/" className="rounded-lg px-3 py-2 text-sm font-medium text-[#526575] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[#f1f3f4] hover:text-[#071d2f] active:scale-[.98] focus:outline-none focus:ring-2 focus:ring-[#C32828]/30">الرئيسية</Link>
-          )}
-          {isHome ? (
-            <a href="#available-courses" className="rounded-lg px-3 py-2 text-sm font-medium text-[#526575] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[#f1f3f4] hover:text-[#071d2f] active:scale-[.98] focus:outline-none focus:ring-2 focus:ring-[#C32828]/30">الدورات</a>
-          ) : (
-            <span aria-current="page" className="rounded-lg bg-[#071d2f] px-3 py-2 text-sm font-semibold text-white">الدورات</span>
-          )}
+    <header className="sticky top-0 z-30 border-b border-white/10 bg-[#031a2d]/95 backdrop-blur-xl">
+      <div className="mx-auto flex h-20 max-w-[1240px] items-center justify-between gap-4 px-5 sm:px-8">
+        <FiperLogo variant="drive" href="/" />
+        <nav aria-label="التنقل الرئيسي" className="hidden items-center gap-8 text-xs font-semibold text-[#9bb3c5] md:flex">
+          <a href="#available-courses" className="transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30">الدورات</a>
+          {featured ? <a href="#instructor" className="transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30">المحاضر</a> : null}
         </nav>
+        {featured ? (
+          <Link href={`/courses/${encodeURIComponent(featured.slug)}`} className="flex h-11 items-center gap-2 rounded-xl bg-[#C32828] px-3 text-xs font-bold text-white transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:bg-[#A92121] active:scale-[.98] focus:outline-none focus:ring-2 focus:ring-white/70 sm:px-5">
+            <span className="sm:hidden">سجّل الآن</span><span className="hidden sm:inline">سجّل الآن مجانًا</span> <ArrowLeft size={15} aria-hidden="true" />
+          </Link>
+        ) : (
+          <a href="#available-courses" className="flex h-11 items-center gap-2 rounded-xl border border-white/15 px-3 text-xs font-bold text-white transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/10 active:scale-[.98] focus:outline-none focus:ring-2 focus:ring-white/70 sm:px-5">الدورات</a>
+        )}
       </div>
     </header>
 
@@ -129,7 +128,7 @@ export async function CoursesIndexPage({ isHome = false }: { isHome?: boolean } 
                 <div><Users size={22} className="text-[#C32828]" aria-hidden="true" /><dt className="mt-3 text-xs font-medium text-[#7b8994]">الحضور المؤكد</dt><dd className="mt-1 text-sm font-semibold text-[#071d2f]">{73 + featured.registrations} مشاركًا</dd></div>
               </dl>
 
-                  <section aria-labelledby="instructor-heading" className="mt-8 overflow-hidden border border-[#dce2e6] bg-white">
+                  <section id="instructor" aria-labelledby="instructor-heading" className="mt-8 scroll-mt-28 overflow-hidden border border-[#dce2e6] bg-white">
                     <div className="grid sm:grid-cols-[220px_1fr]">
                       {featured.instructor.image ? (
                         <div className="relative min-h-64 bg-[#e3e6e8] sm:min-h-full">
