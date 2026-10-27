@@ -86,8 +86,13 @@ export default async function CoursesPage() {
         <article className="overflow-hidden rounded-2xl bg-white shadow-[0_24px_80px_rgba(7,29,47,.09)]">
           <div className="grid lg:grid-cols-[.72fr_1.28fr]">
             <aside className="flex flex-col bg-[#071d2f] p-6 text-white sm:p-8 lg:p-10">
-              <div className="relative aspect-[1.22/1] overflow-hidden rounded-xl bg-[#d9eaf6]">
-                <Image src={featured.coverImage || "/brand/hero-reference.png"} alt={`صورة دورة ${featured.title}`} fill priority sizes="(max-width: 1024px) 100vw, 35vw" className="object-contain object-center transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-[1.03]" />
+              <div className="flex flex-col items-center rounded-xl bg-[#f7f7f5] px-6 py-8 text-center text-[#071d2f]">
+                <p className="text-xs font-bold text-[#C32828]">المحاضر</p>
+                {featured.instructor.image ? <div className="relative mt-5 h-44 w-44 overflow-hidden rounded-full bg-[#e4e7e9] shadow-[0_16px_40px_rgba(7,29,47,.14)]">
+                  <Image src={featured.instructor.image} alt={`المحاضر ${featured.instructor.name}`} fill priority sizes="176px" className="object-cover object-top transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-[1.03]" />
+                </div> : <div className="mt-5 flex h-44 w-44 items-center justify-center rounded-full bg-[#071d2f] text-4xl font-bold text-white shadow-[0_16px_40px_rgba(7,29,47,.14)]">{featured.instructor.initials}</div>}
+                <p className="mt-5 text-xl font-extrabold tracking-[-0.035em] text-balance">{featured.instructor.name}</p>
+                <p className="mt-2 text-xs font-semibold text-[#6f7f8c]">{featured.instructor.role}</p>
               </div>
 
               <div className="mt-8">
@@ -121,16 +126,10 @@ export default async function CoursesPage() {
                 <div><Users size={22} className="text-[#C32828]" aria-hidden="true" /><dt className="mt-3 text-xs font-medium text-[#7b8994]">الحضور المؤكد</dt><dd className="mt-1 text-sm font-semibold text-[#071d2f]">{73 + featured.registrations} مشاركًا</dd></div>
               </dl>
 
-              <section aria-labelledby="instructor-heading" className="mt-8">
-                <p className="text-xs font-semibold text-[#C32828]">المحاضر</p>
-                <div className="mt-4 flex flex-col gap-6 sm:flex-row sm:items-center">
-                  {featured.instructor.image ? <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-full bg-[#eef0f1]"><Image src={featured.instructor.image} alt={`المحاضر ${featured.instructor.name}`} fill sizes="112px" className="object-cover" /></div> : <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-[#071d2f] text-2xl font-bold text-white">{featured.instructor.initials}</div>}
-                  <div className="max-w-xl">
-                    <h3 id="instructor-heading" className="text-xl font-extrabold tracking-[-0.035em] text-balance text-[#071d2f]">{featured.instructor.name}</h3>
-                    <p className="mt-1 text-sm font-semibold text-[#526575]">{featured.instructor.role}</p>
-                    <p className="mt-3 text-sm font-medium text-pretty text-[#6f7f8c]">{featured.instructor.bio}</p>
-                  </div>
-                </div>
+              <section aria-labelledby="instructor-heading" className="mt-8 border-t border-[#dce2e6] pt-6">
+                <p className="text-xs font-semibold text-[#C32828]">عن المحاضر</p>
+                <h3 id="instructor-heading" className="mt-3 text-xl font-extrabold tracking-[-0.035em] text-balance text-[#071d2f]">{featured.instructor.name}</h3>
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-pretty text-[#6f7f8c]">{featured.instructor.bio}</p>
               </section>
             </div>
           </div>
@@ -180,10 +179,45 @@ export default async function CoursesPage() {
       </div>
     </section>}
 
-    <footer className="bg-white">
-      <div className="mx-auto flex max-w-[1280px] flex-col gap-4 px-5 py-8 text-xs font-medium text-[#6f7f8c] sm:flex-row sm:items-center sm:justify-between sm:px-8">
-        <FiperLogo compact href="/" />
-        <p>Fiper Academy · دورات مباشرة بمعرفة عملية واضحة</p>
+    <footer className="bg-[#071d2f] text-white">
+      {featured ? <div className="mx-auto max-w-[1280px] px-5 pt-16 sm:px-8 sm:pt-20">
+        <div className="flex flex-col gap-8 bg-[#102b40] p-8 sm:p-10 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-[680px]">
+            <p className="text-xs font-semibold text-[#eaa2a2]">خطوتك التالية</p>
+            <h2 className="mt-3 text-3xl font-extrabold leading-[1.45] tracking-[-0.045em] text-balance sm:text-4xl">اختر دورتك واحجز مقعدك المجاني الآن</h2>
+            <p className="mt-3 text-sm leading-7 text-pretty text-[#aab9c5]">أكمل التسجيل خلال دقائق، وسنرسل إليك التأكيد ورابط الحضور والتذكيرات المهمة.</p>
+          </div>
+          <Link href={`/courses/${encodeURIComponent(featured.slug)}`} className="flex h-12 shrink-0 items-center justify-center gap-3 rounded-xl bg-[#C32828] px-5 text-base font-semibold text-white shadow-[0_16px_40px_rgba(195,40,40,.24)] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[#a92121] hover:shadow-[0_20px_48px_rgba(195,40,40,.3)] active:scale-[.98] focus:outline-none focus:ring-2 focus:ring-white/70 focus:ring-offset-2 focus:ring-offset-[#102b40]">سجّل في الدورة القادمة <ArrowLeft size={18} aria-hidden="true" /></Link>
+        </div>
+      </div> : null}
+
+      <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[1.5fr_.75fr_.75fr]">
+        <div className="max-w-sm">
+          <FiperLogo variant="drive" href="/" />
+          <p className="mt-5 text-sm leading-7 text-pretty text-[#aab9c5]">دورات مباشرة وعملية تساعدك على فهم الأسواق المالية وبناء قرارات أكثر وضوحًا وانضباطًا.</p>
+        </div>
+        <nav aria-label="روابط التذييل">
+          <p className="text-sm font-bold text-white">استكشف</p>
+          <div className="mt-5 flex flex-col items-start gap-4 text-sm font-medium text-[#aab9c5]">
+            <Link href="/" className="transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30">الرئيسية</Link>
+            <Link href="/courses" aria-current="page" className="transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30">الدورات المتاحة</Link>
+          </div>
+        </nav>
+        <div>
+          <p className="text-sm font-bold text-white">ما الذي تحصل عليه</p>
+          <div className="mt-5 space-y-4 text-sm font-medium text-[#aab9c5]">
+            <p>حضور مباشر وتفاعلي</p>
+            <p>تأكيد فوري للتسجيل</p>
+            <p>تذكيرات عبر البريد وواتساب</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-white/10">
+        <div className="mx-auto flex max-w-[1280px] flex-col gap-3 px-5 py-6 text-xs font-medium text-[#7f97a9] sm:flex-row sm:items-center sm:justify-between sm:px-8">
+          <p>© 2026 Fiper Academy. جميع الحقوق محفوظة.</p>
+          <p>تعلّم الأسواق المالية بخطوات عملية واضحة</p>
+        </div>
       </div>
     </footer>
   </main>;
