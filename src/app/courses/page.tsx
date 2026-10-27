@@ -44,13 +44,13 @@ export async function CoursesIndexPage({ isHome = false }: { isHome?: boolean } 
 
     <header className="sticky top-0 z-30 border-b border-white/10 bg-[#031a2d]/95 backdrop-blur-xl">
       <div className="mx-auto flex h-20 max-w-[1240px] items-center justify-between gap-4 px-5 sm:px-8">
-        <FiperLogo variant="drive" href="/" />
+        <div className="shrink-0"><FiperLogo variant="drive" href="/" /></div>
         <nav aria-label="التنقل الرئيسي" className="hidden items-center gap-8 text-xs font-semibold text-[#9bb3c5] md:flex">
           <a href="#available-courses" className="transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30">الدورات</a>
           {featured ? <a href="#instructor" className="transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30">المحاضر</a> : null}
         </nav>
         {featured ? (
-          <Link href={`/courses/${encodeURIComponent(featured.slug)}`} className="flex h-11 items-center gap-2 rounded-xl bg-[#C32828] px-3 text-xs font-bold text-white transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:bg-[#A92121] active:scale-[.98] focus:outline-none focus:ring-2 focus:ring-white/70 sm:px-5">
+          <Link href={`/courses/${encodeURIComponent(featured.slug)}`} className="flex h-11 shrink-0 items-center gap-2 rounded-xl bg-[#C32828] px-3 text-xs font-bold text-white transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:bg-[#A92121] active:scale-[.98] focus:outline-none focus:ring-2 focus:ring-white/70 sm:px-5">
             <span className="sm:hidden">سجّل الآن</span><span className="hidden sm:inline">سجّل الآن مجانًا</span> <ArrowLeft size={15} aria-hidden="true" />
           </Link>
         ) : (
