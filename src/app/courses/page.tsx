@@ -57,10 +57,11 @@ export default async function CoursesPage() {
         <p className="text-sm font-semibold text-[#C32828]">Fiper Live Academy</p>
         <div className="mt-4 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="w-full max-w-[680px] lg:flex-1">
-            <h1 className="bg-gradient-to-l from-black to-[#666666] bg-clip-text text-4xl font-bold text-transparent text-balance sm:text-5xl lg:whitespace-nowrap">
-              اختر الدورة التي تناسب أهدافك
+            <h1 aria-label="اختر الدورة التي تناسب أهدافك" className="max-w-[680px] bg-gradient-to-l from-black to-[#666666] bg-clip-text text-[40px] font-extrabold leading-[1.32] tracking-[-0.055em] text-transparent sm:text-[54px] lg:text-[62px]">
+              <span aria-hidden="true" className="block">اختر الدورة التي</span>
+              <span aria-hidden="true" className="relative block">تناسب أهدافك<span className="absolute -bottom-2 right-0 h-1.5 w-24 rounded-full bg-[#C32828]" /></span>
             </h1>
-            <p className="mt-4 max-w-[680px] text-base font-medium text-pretty text-[#526575] sm:text-lg">
+            <p className="mt-6 max-w-[680px] text-base leading-8 text-pretty text-[#526575] sm:text-lg">
               تعرّف على محتوى كل دورة وموعدها ومحاضرها، ثم احجز مقعدك لتصلك تفاصيل الحضور والتذكيرات تلقائيًا.
             </p>
           </div>
@@ -77,7 +78,7 @@ export default async function CoursesPage() {
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-xs font-semibold text-[#C32828]">الدورة الأقرب</p>
-            <h2 id="featured-course-heading" className="mt-2 text-2xl font-bold text-balance sm:text-3xl">ابدأ من الدورة القادمة</h2>
+            <h2 id="featured-course-heading" className="mt-2 text-2xl font-extrabold leading-[1.45] tracking-[-0.04em] text-balance sm:text-3xl">ابدأ من الدورة القادمة</h2>
           </div>
           <p className="flex items-center gap-2 text-sm font-medium text-[#526575]"><Radio size={16} className="text-[#C32828]" aria-hidden="true" /> التسجيل مفتوح الآن</p>
         </div>
@@ -85,14 +86,14 @@ export default async function CoursesPage() {
         <article className="overflow-hidden rounded-2xl bg-white shadow-[0_24px_80px_rgba(7,29,47,.09)]">
           <div className="grid lg:grid-cols-[.72fr_1.28fr]">
             <aside className="flex flex-col bg-[#071d2f] p-6 text-white sm:p-8 lg:p-10">
-              <div className="relative min-h-64 overflow-hidden rounded-xl bg-[#193245]">
-                <Image src={featured.coverImage || "/brand/hero-reference.png"} alt={`صورة دورة ${featured.title}`} fill priority sizes="(max-width: 1024px) 100vw, 35vw" className="object-cover transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-[1.03]" />
+              <div className="relative aspect-[1.22/1] overflow-hidden rounded-xl bg-[#d9eaf6]">
+                <Image src={featured.coverImage || "/brand/hero-reference.png"} alt={`صورة دورة ${featured.title}`} fill priority sizes="(max-width: 1024px) 100vw, 35vw" className="object-contain object-center transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-[1.03]" />
               </div>
 
               <div className="mt-8">
                 <p className="text-xs font-semibold text-[#eaa2a2]">احجز مقعدك في الدورة</p>
-                <p className="mt-3 text-2xl font-bold text-balance">التسجيل مجاني والمقاعد محدودة</p>
-                <p className="mt-3 text-sm font-medium text-pretty text-[#aab9c5]">أكمل بياناتك مرة واحدة، وسنرسل إليك رابط الحضور والتذكيرات المهمة.</p>
+                <p className="mt-3 text-2xl font-extrabold leading-[1.45] tracking-[-0.04em] text-balance">التسجيل مجاني والمقاعد محدودة</p>
+                <p className="mt-3 text-sm leading-7 text-pretty text-[#aab9c5]">أكمل بياناتك مرة واحدة، وسنرسل إليك رابط الحضور والتذكيرات المهمة.</p>
               </div>
 
               <Link href={`/courses/${encodeURIComponent(featured.slug)}`} className="mt-8 flex h-12 items-center justify-center gap-3 rounded-xl bg-[#C32828] px-5 text-base font-semibold text-white shadow-[0_16px_40px_rgba(195,40,40,.24)] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[#a92121] hover:shadow-[0_20px_48px_rgba(195,40,40,.3)] active:scale-[.98] focus:outline-none focus:ring-2 focus:ring-white/70 focus:ring-offset-2 focus:ring-offset-[#071d2f]">
@@ -110,8 +111,8 @@ export default async function CoursesPage() {
                 <span className="text-xs font-semibold text-[#C32828]">{featured.eyebrow}</span>
               </div>
 
-              <h2 className="mt-6 max-w-[680px] text-3xl font-bold text-balance text-[#071d2f] sm:text-4xl">{featured.title}</h2>
-              <p className="mt-5 max-w-[680px] text-base font-medium text-pretty text-[#526575] sm:text-lg">{featured.description}</p>
+              <h2 className="mt-6 max-w-[680px] text-3xl font-extrabold leading-[1.45] tracking-[-0.045em] text-balance text-[#071d2f] sm:text-4xl">{featured.title}</h2>
+              <p className="mt-5 max-w-[680px] text-base leading-8 text-pretty text-[#526575] sm:text-lg">{featured.description}</p>
 
               <dl className="mt-8 grid gap-6 bg-[#f7f7f5] p-6 sm:grid-cols-2 lg:grid-cols-4">
                 <div><CalendarDays size={22} className="text-[#C32828]" aria-hidden="true" /><dt className="mt-3 text-xs font-medium text-[#7b8994]">التاريخ</dt><dd className="mt-1 text-sm font-semibold text-[#071d2f]">{featured.dateLabel}</dd></div>
@@ -125,7 +126,7 @@ export default async function CoursesPage() {
                 <div className="mt-4 flex flex-col gap-6 sm:flex-row sm:items-center">
                   {featured.instructor.image ? <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-full bg-[#eef0f1]"><Image src={featured.instructor.image} alt={`المحاضر ${featured.instructor.name}`} fill sizes="112px" className="object-cover" /></div> : <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-[#071d2f] text-2xl font-bold text-white">{featured.instructor.initials}</div>}
                   <div className="max-w-xl">
-                    <h3 id="instructor-heading" className="text-xl font-bold text-balance text-[#071d2f]">{featured.instructor.name}</h3>
+                    <h3 id="instructor-heading" className="text-xl font-extrabold tracking-[-0.035em] text-balance text-[#071d2f]">{featured.instructor.name}</h3>
                     <p className="mt-1 text-sm font-semibold text-[#526575]">{featured.instructor.role}</p>
                     <p className="mt-3 text-sm font-medium text-pretty text-[#6f7f8c]">{featured.instructor.bio}</p>
                   </div>
@@ -140,8 +141,8 @@ export default async function CoursesPage() {
         <div className="mx-auto max-w-[1280px] px-5 py-16 sm:px-8 sm:py-20">
           <div className="max-w-[680px]">
             <p className="text-xs font-semibold text-[#C32828]">مواعيد أخرى</p>
-            <h2 id="more-courses-heading" className="mt-2 text-3xl font-bold text-balance text-[#071d2f] sm:text-4xl">استكشف بقية الدورات المباشرة</h2>
-            <p className="mt-4 text-base font-medium text-pretty text-[#526575]">قارن الموضوع والموعد وطريقة الحضور، ثم انتقل مباشرة إلى صفحة التسجيل.</p>
+            <h2 id="more-courses-heading" className="mt-2 text-3xl font-extrabold leading-[1.45] tracking-[-0.045em] text-balance text-[#071d2f] sm:text-4xl">استكشف بقية الدورات المباشرة</h2>
+            <p className="mt-4 text-base leading-8 text-pretty text-[#526575]">قارن الموضوع والموعد وطريقة الحضور، ثم انتقل مباشرة إلى صفحة التسجيل.</p>
           </div>
 
           <div className="mt-10 divide-y divide-[#dce2e6] border-y border-[#dce2e6]">
@@ -149,7 +150,7 @@ export default async function CoursesPage() {
               <p className="latin text-3xl font-bold text-[#c3cbd1]">{String(index + 2).padStart(2, "0")}</p>
               <div>
                 <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-[#C32828]"><span>{course.eyebrow}</span><span className="h-1 w-1 rounded-full bg-[#c3cbd1]" /><span className="text-[#526575]">{73 + course.registrations} شخصًا أكدوا حضورهم</span></div>
-                <h3 className="mt-3 text-2xl font-bold text-balance text-[#071d2f] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:text-[#C32828]">{course.title}</h3>
+                <h3 className="mt-3 text-2xl font-extrabold leading-[1.45] tracking-[-0.04em] text-balance text-[#071d2f] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:text-[#C32828]">{course.title}</h3>
                 <div className="mt-4 flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium text-[#526575]">
                   <span className="flex items-center gap-2"><CalendarDays size={17} className="text-[#C32828]" aria-hidden="true" />{course.dateLabel}</span>
                   <span className="flex items-center gap-2"><Clock3 size={17} className="text-[#C32828]" aria-hidden="true" />{course.timeLabel} · {course.duration}</span>
@@ -164,7 +165,7 @@ export default async function CoursesPage() {
 
       <section className="bg-[#eeeae4]">
         <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[1.15fr_.85fr] lg:items-end">
-          <h2 className="max-w-[680px] text-3xl font-bold text-balance text-[#071d2f] sm:text-4xl">تعلّم مباشرة من المختصين، واسأل أثناء الجلسة، ثم حوّل ما تعلمته إلى خطوات عملية.</h2>
+          <h2 className="max-w-[680px] text-3xl font-extrabold leading-[1.45] tracking-[-0.045em] text-balance text-[#071d2f] sm:text-4xl">تعلّم مباشرة من المختصين، واسأل أثناء الجلسة، ثم حوّل ما تعلمته إلى خطوات عملية.</h2>
           <div className="space-y-4">
             {["حضور مباشر وتفاعلي", "تأكيد فوري بعد التسجيل", "تذكيرات عبر البريد وواتساب"].map((item) => <p key={item} className="flex items-center gap-3 text-sm font-semibold text-[#526575]"><CheckCircle2 size={19} className="text-[#16785f]" aria-hidden="true" />{item}</p>)}
           </div>
