@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { CoursesDirectory } from "@/components/courses/courses-directory";
+import { SimpleCoursesDirectory } from "@/components/courses/simple-courses-directory";
+import { listPublicActiveCourses } from "@/lib/data/courses";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function CoursesPage() {
-  return <CoursesDirectory />;
+export default async function CoursesPage() {
+  const courses = await listPublicActiveCourses();
+  return <SimpleCoursesDirectory courses={courses} />;
 }
