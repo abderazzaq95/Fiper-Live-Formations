@@ -13,3 +13,59 @@
 @keyframes navIn{to{transform:none;opacity:1}}@media(prefers-reduced-motion:reduce){.page *{animation:none!important;transition:none!important}.page [data-reveal]{opacity:1;transform:none;filter:none}.statement span{color:#fff}}
 .skipLink{width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}.skipLink:focus{width:auto;height:auto;padding:12px 16px;clip:auto}.formCard :global(form button[type=submit]){height:48px!important}.programList li{grid-template-columns:48px 1fr auto}.footerBrand img{height:48px}
 @media(max-width:760px){.programList li{grid-template-columns:40px 1fr}}
+
+/* Fiper visual-system refinement */
+.courseIntro h1{font-size:36px}
+.lead{font-size:18px}
+.description{font-size:16px}
+.kicker,.courseFacts svg,.faqList summary span{color:var(--red)}
+.shortRule,.formTitle span,.sectionLabel:before,.instructorCopy i{background:var(--red)}
+.formCard :global(form button[type=submit]),.sessionStrip>a,.footerAction>a{background:var(--red)!important}
+.formCard :global(form button[type=submit]:hover),.sessionStrip>a:hover,.footerAction>a:hover{background:#a92121!important}
+.statement p{font-size:36px}
+.sectionLabel span,.instructorCopy h2{font-size:24px}
+.faqSection h2{font-size:30px}
+.faqList summary{font-size:16px}
+.programSection{display:block;max-width:1472px;margin:0 auto;padding:80px 32px}
+.programBox{min-height:520px;border:1px solid var(--line);background:#fafafa;padding:64px}
+.programContent{width:58%;margin-left:auto}
+.programContent h2{font-size:30px;font-weight:700;line-height:1.4;color:#052f50;text-wrap:balance}
+.programBullets{margin:24px 0 0;padding:0 24px 0 0;list-style:disc}
+.programBullets li{padding:4px 0;font-size:18px;font-weight:400;line-height:1.9;color:#5f6368;text-wrap:pretty}
+
+@media(max-width:760px){
+  .mobileNav a{font-size:20px}
+  .heroGrid{padding:16px}
+  .courseIntro{padding:8px 0}
+  .kicker{font-size:14px}
+  .courseIntro h1{font-size:30px;line-height:1.35}
+  .lead{font-size:16px}
+  .shortRule{width:80px;margin:24px auto}
+  .description{margin-top:24px;font-size:14px;line-height:1.9}
+  .courseFacts{grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
+  .courseFacts div{grid-template-columns:32px 1fr;grid-template-rows:auto auto;column-gap:8px;padding:12px;border:1px solid #e4e7ea;border-radius:8px;background:#fff}
+  .courseFacts svg{width:32px;height:32px;padding:7px;border-radius:999px;background:#fbe9ea}
+  .courseFacts dt{font-size:12px}
+  .courseFacts dd{font-size:13px}
+  .assurances{gap:12px;margin-top:24px;font-size:12px}
+  .formCard{padding:16px}
+  .formTitle h2{font-size:20px}
+  .instructorSection{padding:48px 16px}
+  .sectionLabel span{font-size:20px}
+  .instructorPhoto{min-height:260px}
+  .instructorCopy h2{font-size:20px}
+  .instructorCopy h3{font-size:16px}
+  .instructorCopy>p:last-child{font-size:14px}
+  .sessionStrip{gap:24px}
+  .statement{padding:48px 24px}
+  .statement p{font-size:30px}
+  .programSection{padding:48px 16px}
+  .programBox{min-height:0;padding:24px}
+  .programContent{width:100%}
+  .programContent h2{font-size:24px}
+  .programBullets{padding-right:24px}
+  .programBullets li{font-size:16px;line-height:1.9}
+  .faqSection{padding:48px 16px;gap:24px}
+  .faqSection h2{font-size:24px}
+  .faqList summary{font-size:14px}
+}

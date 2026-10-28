@@ -131,19 +131,14 @@ export function ReferenceLanding({ course, agenda, outcomes, faqs, landing }: Pu
       </section>
 
       {landing.visibility.agenda || landing.visibility.about ? <section id="program" className={styles.programSection}>
-        <div className={styles.programHeading} data-reveal>
-          <p>ماذا ستتعلم؟</p>
-          <h2>محتوى البرنامج التدريبي</h2>
-          <span />
-          <p>محاور مرتبة تساعدك على الانتقال من المفهوم إلى التطبيق والنقاش المباشر.</p>
+        <div className={styles.programBox} data-reveal>
+          <div className={styles.programContent}>
+            <h2>محتوى البرنامج التدريبي</h2>
+            <ul className={styles.programBullets}>
+              {curriculum.map((item, index) => <li key={`${item.title}-${index}`}>{item.title}</li>)}
+            </ul>
+          </div>
         </div>
-        <ol className={styles.programList}>
-          {curriculum.map((item, index) => <li key={`${item.title}-${index}`} data-reveal>
-            <span>{String(index + 1).padStart(2, "0")}</span>
-            <div><h3>{item.title}</h3>{item.text ? <p>{item.text}</p> : null}</div>
-            {"time" in item && item.time ? <small>{item.time}</small> : null}
-          </li>)}
-        </ol>
       </section> : null}
 
       {landing.visibility.faq && faqs.length ? <section id="questions" className={styles.faqSection}>
