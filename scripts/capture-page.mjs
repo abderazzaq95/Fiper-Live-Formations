@@ -21,6 +21,14 @@ for (const viewport of [
 ]) {
   const page = await browser.newPage({ viewport });
   await page.goto(url, { waitUntil: "networkidle", timeout: 60_000 });
+  await page.evaluate(async () => {
+    for (let position = 0; position < document.documentElement.scrollHeight; position += Math.max(320, window.innerHeight * 0.75)) {
+      window.scrollTo({ top: position });
+      await new Promise((resolve) => window.setTimeout(resolve, 240));
+    }
+    window.scrollTo({ top: 0 });
+  });
+  await page.waitForTimeout(600);
   await page.screenshot({
     path: path.join(outputDirectory, `${prefix}-${viewport.name}.png`),
     fullPage: true,
