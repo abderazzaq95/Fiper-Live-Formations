@@ -36,8 +36,6 @@ export function ReferenceLanding({ course, agenda, outcomes, faqs, landing }: Pu
   }, []);
 
   const curriculum = agenda.length ? agenda : outcomes.map((item) => ({ title: item.title, text: item.text, time: "" }));
-  const statement = "افهم الفكرة من مصدرها، وناقشها مباشرة، ثم غادر بخطوات أوضح يمكنك تطبيقها.";
-
   return (
     <main ref={root} className={styles.page} dir="rtl">
       <a href="#main-content" className={styles.skipLink}>انتقل إلى المحتوى</a>
@@ -125,10 +123,6 @@ export function ReferenceLanding({ course, agenda, outcomes, faqs, landing }: Pu
           <a href="#register">سجل الآن<ArrowLeft size={18} /></a>
         </div>
       </section> : null}
-
-      <section className={styles.statement} aria-label="قيمة الدورة">
-        <p>{statement.split(" ").map((word, index) => <span key={`${word}-${index}`} data-word style={{ transitionDelay: `${index * 55}ms` }}>{word} </span>)}</p>
-      </section>
 
       {landing.visibility.agenda || landing.visibility.about ? <section id="program" className={styles.programSection}>
         <div className={styles.programBox} data-reveal>

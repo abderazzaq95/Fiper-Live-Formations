@@ -1,8 +1,8 @@
 "use client";
 
-import { ArrowLeft, Check, ChevronDown, Loader2, LockKeyhole, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Loader2, LockKeyhole, Search, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type RegistrationFormProps = {
   courseId: string;
@@ -24,12 +24,89 @@ const countries: Country[] = [
   { name: "دولة أخرى", dial: "+", flag: "🌐" },
 ];
 
+const previewCountries: Country[] = [
+  ...countries.slice(0, -1),
+  { name: "الأردن", dial: "+962", flag: "🇯🇴" },
+  { name: "لبنان", dial: "+961", flag: "🇱🇧" },
+  { name: "مصر", dial: "+20", flag: "🇪🇬" },
+  { name: "سوريا", dial: "+963", flag: "🇸🇾" },
+  { name: "فلسطين", dial: "+970", flag: "🇵🇸" },
+  { name: "تونس", dial: "+216", flag: "🇹🇳" },
+  { name: "الجزائر", dial: "+213", flag: "🇩🇿" },
+  { name: "ليبيا", dial: "+218", flag: "🇱🇾" },
+  { name: "اليمن", dial: "+967", flag: "🇾🇪" },
+  { name: "السودان", dial: "+249", flag: "🇸🇩" },
+  { name: "ألمانيا", dial: "+49", flag: "🇩🇪" },
+  { name: "النمسا", dial: "+43", flag: "🇦🇹" },
+  { name: "سويسرا", dial: "+41", flag: "🇨🇭" },
+  { name: "فرنسا", dial: "+33", flag: "🇫🇷" },
+  { name: "هولندا", dial: "+31", flag: "🇳🇱" },
+  { name: "بلجيكا", dial: "+32", flag: "🇧🇪" },
+  { name: "المملكة المتحدة", dial: "+44", flag: "🇬🇧" },
+  { name: "إيطاليا", dial: "+39", flag: "🇮🇹" },
+  { name: "إسبانيا", dial: "+34", flag: "🇪🇸" },
+  { name: "البرتغال", dial: "+351", flag: "🇵🇹" },
+  { name: "السويد", dial: "+46", flag: "🇸🇪" },
+  { name: "النرويج", dial: "+47", flag: "🇳🇴" },
+  { name: "الدنمارك", dial: "+45", flag: "🇩🇰" },
+  { name: "فنلندا", dial: "+358", flag: "🇫🇮" },
+  { name: "بولندا", dial: "+48", flag: "🇵🇱" },
+  { name: "اليونان", dial: "+30", flag: "🇬🇷" },
+  { name: "رومانيا", dial: "+40", flag: "🇷🇴" },
+  { name: "أوكرانيا", dial: "+380", flag: "🇺🇦" },
+  { name: "الولايات المتحدة", dial: "+1", flag: "🇺🇸" },
+  { name: "كندا", dial: "+1", flag: "🇨🇦" },
+  { name: "أستراليا", dial: "+61", flag: "🇦🇺" },
+  { name: "نيوزيلندا", dial: "+64", flag: "🇳🇿" },
+  { name: "الهند", dial: "+91", flag: "🇮🇳" },
+  { name: "باكستان", dial: "+92", flag: "🇵🇰" },
+  { name: "بنغلاديش", dial: "+880", flag: "🇧🇩" },
+  { name: "الصين", dial: "+86", flag: "🇨🇳" },
+  { name: "اليابان", dial: "+81", flag: "🇯🇵" },
+  { name: "كوريا الجنوبية", dial: "+82", flag: "🇰🇷" },
+  { name: "إندونيسيا", dial: "+62", flag: "🇮🇩" },
+  { name: "ماليزيا", dial: "+60", flag: "🇲🇾" },
+  { name: "سنغافورة", dial: "+65", flag: "🇸🇬" },
+  { name: "تايلاند", dial: "+66", flag: "🇹🇭" },
+  { name: "الفلبين", dial: "+63", flag: "🇵🇭" },
+  { name: "إيران", dial: "+98", flag: "🇮🇷" },
+  { name: "أفغانستان", dial: "+93", flag: "🇦🇫" },
+  { name: "جنوب أفريقيا", dial: "+27", flag: "🇿🇦" },
+  { name: "نيجيريا", dial: "+234", flag: "🇳🇬" },
+  countries[countries.length - 1],
+];
+
 export function RegistrationForm({ courseId, compact = false }: RegistrationFormProps) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [selectedCountry, setSelectedCountry] = useState(countries[0].name);
   const [phoneCode, setPhoneCode] = useState(countries[0].dial);
+  const [phonePickerOpen, setPhonePickerOpen] = useState(false);
+  const [phoneSearch, setPhoneSearch] = useState("");
+  const phonePickerRef = useRef<HTMLDivElement>(null);
+  const availableCountries = compact ? previewCountries : countries;
+  const filteredPhoneCountries = useMemo(() => {
+    const query = phoneSearch.trim().toLocaleLowerCase("ar");
+    if (!query) return availableCountries;
+    return availableCountries.filter((country) => `${country.name} ${country.dial}`.toLocaleLowerCase("ar").includes(query));
+  }, [availableCountries, phoneSearch]);
+
+  useEffect(() => {
+    if (!compact || !phonePickerOpen) return;
+    function closePicker(event: MouseEvent) {
+      if (!phonePickerRef.current?.contains(event.target as Node)) setPhonePickerOpen(false);
+    }
+    function closeWithEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setPhonePickerOpen(false);
+    }
+    document.addEventListener("mousedown", closePicker);
+    document.addEventListener("keydown", closeWithEscape);
+    return () => {
+      document.removeEventListener("mousedown", closePicker);
+      document.removeEventListener("keydown", closeWithEscape);
+    };
+  }, [compact, phonePickerOpen]);
 
   function handleCountryChange(value: string) {
     setSelectedCountry(value);
@@ -84,7 +161,7 @@ export function RegistrationForm({ courseId, compact = false }: RegistrationForm
         <input id={`name-${compact}`} name="name" required minLength={3} autoComplete="name" placeholder="مثال: أحمد التميمي" className={inputClass} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className={compact ? "grid gap-4" : "grid gap-4 sm:grid-cols-2"}>
         <div>
           <label htmlFor={`email-${compact}`} className={labelClass}>البريد الإلكتروني</label>
           <input id={`email-${compact}`} name="email" type="email" required autoComplete="email" dir="ltr" placeholder="name@email.com" className={`${inputClass} latin text-right`} />
@@ -92,13 +169,29 @@ export function RegistrationForm({ courseId, compact = false }: RegistrationForm
         <div>
           <label htmlFor={`phone-${compact}`} className={labelClass}>رقم واتساب</label>
           <div className="flex gap-2" dir="ltr">
-            <div className="relative w-[116px] shrink-0">
+            {compact ? <div ref={phonePickerRef} className="relative w-40 shrink-0">
+              <button type="button" aria-label="اختيار رمز الدولة" aria-haspopup="listbox" aria-expanded={phonePickerOpen} onClick={() => setPhonePickerOpen((open) => !open)} className="flex h-13 w-full items-center justify-between rounded border border-[#d7d7d7] bg-white px-3 text-sm text-[#333] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] focus:border-[#C32828] focus:outline-none">
+                <span className="flex items-center gap-2"><span>{availableCountries.find((country) => country.name === selectedCountry)?.flag ?? "🌐"}</span><span className="latin font-semibold">{phoneCode}</span></span>
+                <ChevronDown size={14} className={`transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${phonePickerOpen ? "rotate-180" : ""}`} />
+              </button>
+              {phonePickerOpen ? <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-72 overflow-hidden rounded-lg border border-[#d7d7d7] bg-white p-2 text-right shadow-[0_20px_50px_rgba(7,29,47,.18)]" dir="rtl">
+                <div className="relative mb-2">
+                  <Search size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#7a838b]" />
+                  <input type="search" value={phoneSearch} onChange={(event) => setPhoneSearch(event.target.value)} placeholder="ابحث عن دولة أو رمز" autoFocus className="h-11 w-full rounded border border-[#d7d7d7] bg-white pr-9 pl-3 text-sm text-[#333] outline-none focus:border-[#C32828]" />
+                </div>
+                <div role="listbox" aria-label="رموز الاتصال الدولية" className="max-h-64 overflow-y-auto overscroll-contain">
+                  {filteredPhoneCountries.length ? filteredPhoneCountries.map((country) => <button key={`${country.name}-${country.dial}`} type="button" role="option" aria-selected={country.name === selectedCountry} onClick={() => { setPhoneCode(country.dial); setSelectedCountry(country.name); setPhonePickerOpen(false); setPhoneSearch(""); }} className={`flex w-full items-center justify-between rounded px-3 py-2 text-sm transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[#f4f4f4] ${country.name === selectedCountry ? "bg-[#fbe9ea] text-[#C32828]" : "text-[#333]"}`}>
+                    <span className="flex items-center gap-2"><span>{country.flag}</span><span>{country.name}</span></span><span className="latin" dir="ltr">{country.dial}</span>
+                  </button>) : <p className="px-3 py-6 text-center text-sm text-[#6b7280]">لا توجد نتيجة مطابقة</p>}
+                </div>
+              </div> : null}
+            </div> : <div className="relative w-[116px] shrink-0">
               <select aria-label="رمز الدولة" value={phoneCode} onChange={(event) => { const value = event.target.value; setPhoneCode(value); const country = countries.find((item) => item.dial === value); if (country) setSelectedCountry(country.name); }} className="latin h-13 w-full appearance-none rounded-2xl border border-white/10 bg-[#06233a] pl-8 pr-7 text-transparent [&>option]:text-white focus:border-[#3e8ec7] focus:outline-none">
                 {countries.map((country) => <option key={`${country.name}-${country.dial}`} value={country.dial}>{country.flag} {country.dial}</option>)}
               </select>
               <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3 flex items-center gap-1.5 text-xs font-semibold text-white"><span className="text-base leading-none">{countries.find((country) => country.dial === phoneCode)?.flag ?? "🌐"}</span><span className="latin">{phoneCode}</span></span>
               <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#8daac1]" />
-            </div>
+            </div>}
             <input id={`phone-${compact}`} name="phone" type="tel" required minLength={6} autoComplete="tel" inputMode="tel" dir="ltr" placeholder="770 000 0000" className={`${inputClass} latin min-w-0 flex-1 text-right`} />
           </div>
         </div>
@@ -108,7 +201,7 @@ export function RegistrationForm({ courseId, compact = false }: RegistrationForm
         <label htmlFor={`country-${compact}`} className={labelClass}>الدولة</label>
         <div className="relative">
           <select id={`country-${compact}`} name="country" required value={selectedCountry} onChange={(event) => handleCountryChange(event.target.value)} className={`${inputClass} appearance-none`}>
-            {countries.map((country) => <option key={country.name} value={country.name}>{country.flag} {country.name}</option>)}
+            {availableCountries.map((country) => <option key={country.name} value={country.name}>{country.flag} {country.name}</option>)}
           </select>
           <ChevronDown size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8daac1]" />
         </div>
