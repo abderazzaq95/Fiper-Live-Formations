@@ -226,6 +226,62 @@ export async function getPublicCourseByPath(path: string): Promise<PublicCourseD
     return null;
   }
 }
+
+const publicActiveCourseSelect: string = "id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,venue_name,venue_address,maps_url),instructors(name,title,bio,photo_path)";
+
+export async function listPublicActiveCourses(): Promise<Course[]> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("courses")
+      .select(publicActiveCourseSelect)
+      .eq("state", "published")
+      .order("is_featured", { ascending: false })
+      .order("published_at", { ascending: false });
+
+    if (error || !data?.length) return [];
+
+    const now = Date.now();
+    const candidates = (data as unknown as JsonRecord[]).flatMap((row) => {
+      const session = asArray(row.course_sessions)
+        .filter((item) => {
+          const start = Date.parse(asText(item.starts_at));
+          const explicitEnd = Date.parse(asText(item.ends_at));
+          const end = Number.isFinite(explicitEnd) ? explicitEnd : start + 90 * 60 * 1000;
+          return item.registration_open === true && Number.isFinite(start) && end > now;
+        })
+        .sort((a, b) => Date.parse(asText(a.starts_at)) - Date.parse(asText(b.starts_at)))[0];
+      if (!session) return [];
+      return [{ row, session, start: Date.parse(asText(session.starts_at)), featured: row.is_featured === true }];
+    }).sort((a, b) => Number(b.featured) - Number(a.featured) || a.start - b.start);
+
+    if (!candidates.length) return [];
+
+    const counts = new Map<string, number>();
+    const serviceUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (serviceUrl && serviceKey) {
+      const sessionIds = candidates.map(({ session }) => asText(session.id)).filter(Boolean);
+      const admin = createSupabaseClient(serviceUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+      const result = await admin.from("registrations").select("session_id,status").in("session_id", sessionIds).in("status", ["confirmed", "attended"]);
+      for (const registration of asArray(result.data)) {
+        const sessionId = asText(registration.session_id);
+        counts.set(sessionId, (counts.get(sessionId) ?? 0) + 1);
+      }
+    }
+
+    return candidates.map(({ row, session }) => {
+      const translations = asArray(row.course_translations);
+      const locale = asText(row.default_locale, "ar");
+      const translation = translations.find((item) => item.locale === locale) ?? translations[0];
+      const instructor = firstRecord(row.instructors);
+      return mapPublicData(row, translation, session, instructor, counts.get(asText(session.id)) ?? 0).course;
+    });
+  } catch {
+    return [];
+  }
+}
+
 export async function listDashboardCourses(): Promise<DashboardCourse[]> {
   try {
     const supabase = await createClient();
