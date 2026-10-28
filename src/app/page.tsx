@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
-
-import { CoursesIndexPage } from "@/app/courses/page";
+import { CoursesDirectory } from "@/components/courses/courses-directory";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "الدورات المباشرة المتاحة",
-  description: "اكتشف دورات Fiper Academy المباشرة، وراجع المواعيد والمحاضرين ثم سجّل حضورك مجانًا.",
+  title: "الدورات المباشرة المجانية",
+  description: "اختر من دورات Fiper Academy المباشرة واحجز مقعدك المجاني.",
   alternates: { canonical: "/" },
 };
 
-export default function Home() {
-  return <CoursesIndexPage isHome />;
+export default function HomePage() {
+  return <CoursesDirectory isHome />;
 }
