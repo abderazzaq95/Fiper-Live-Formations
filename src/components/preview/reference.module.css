@@ -71,7 +71,7 @@
 }
 
 /* Reference-scale header, hero and registration treatment */
-.page{--red:#c32828;--red-hover:#a92121}
+.page{--red:var(--color-fiper-red,#C32828);--red-hover:var(--red-dark,#A92121)}
 .page ::selection{background:rgba(195,40,40,.16);color:var(--ink)}
 .header{min-height:64px;grid-template-columns:180px 1fr 180px;gap:24px;padding:8px max(32px,calc((100vw - 1488px)/2))}
 .brand img{height:40px}
@@ -105,6 +105,7 @@
 .formCard :global(form label:has([type=checkbox])>span:has(svg)){margin-top:0!important;border-color:#9ca3af!important;border-radius:4px!important}
 .formCard :global(form label:has([type=checkbox])>span:last-child){font-size:12px!important;line-height:20px!important;color:#59616a!important}
 .formCard :global(form label:has(input:checked)>span:has(svg)){background:var(--red)!important;border-color:var(--red)!important}
+.formCard :global(form label:has(input:checked)>span:last-child){background:transparent!important;border-color:transparent!important;color:#59616a!important}
 .formCard :global(form button[type=submit]){height:48px!important;border-radius:4px!important;background:var(--red)!important;font-size:16px!important}
 .formCard :global(form button[type=submit]:hover){background:var(--red-hover)!important}
 .formCard :global(form button[type=submit] svg){color:#fff!important}
