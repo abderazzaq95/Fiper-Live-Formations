@@ -135,7 +135,7 @@ function toIso(date: string, time: string, timezone: string) {
 async function createCourse(supabase: Awaited<ReturnType<typeof createClient>>, identity: { id: string }, value: z.infer<typeof updateSchema>) {
   const newId = `crs_${crypto.randomUUID().replaceAll("-", "").slice(0, 20)}`;
   const newSlug = await nextCourseSlug(supabase);
-  const instructorResult = await supabase.from("instructors").insert({
+  let instructorResult = await supabase.from("instructors").insert({
     name: value.instructorName,
     title: value.instructorTitle,
     bio: value.instructorBio,
@@ -143,6 +143,13 @@ async function createCourse(supabase: Awaited<ReturnType<typeof createClient>>, 
     focus_markets: value.instructorFocusMarkets || null,
     credentials: value.instructorCredentials || null,
   }).select("id").single();
+  if (instructorResult.error) {
+    instructorResult = await supabase.from("instructors").insert({
+      name: value.instructorName,
+      title: value.instructorTitle,
+      bio: value.instructorBio,
+    }).select("id").single();
+  }
   if (instructorResult.error || !instructorResult.data) throw new Error("instructor_create_failed");
 
   const cleanup = async () => {
@@ -151,7 +158,7 @@ async function createCourse(supabase: Awaited<ReturnType<typeof createClient>>, 
     await admin.from("instructors").delete().eq("id", instructorResult.data.id);
   };
 
-  const courseResult = await supabase.from("courses").insert({
+  let courseResult = await supabase.from("courses").insert({
     id: newId,
     slug: newSlug,
     state: value.publish ? "published" : "draft",
@@ -163,6 +170,18 @@ async function createCourse(supabase: Awaited<ReturnType<typeof createClient>>, 
     level: value.level || null,
     topic: value.topic || null,
   });
+  if (courseResult.error) {
+    courseResult = await supabase.from("courses").insert({
+      id: newId,
+      slug: newSlug,
+      state: value.publish ? "published" : "draft",
+      default_locale: "ar",
+      instructor_id: instructorResult.data.id,
+      created_by: identity.id === "preview" ? null : identity.id,
+      published_at: value.publish ? new Date().toISOString() : null,
+      is_featured: false,
+    });
+  }
   if (courseResult.error) {
     await cleanup();
     throw new Error(courseResult.error.code === "23505" ? "slug_already_exists" : "course_create_failed");
@@ -249,7 +268,11 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   if (stableSlug !== oldSlug) await saveSlugAlias(oldSlug, id);
   const now = new Date().toISOString();
   const courseUpdate = { slug: stableSlug, updated_at: now, state: value.publish ? "published" : "draft", published_at: value.publish ? now : null, level: value.level || null, topic: value.topic || null };
-  const { error: courseError } = await supabase.from("courses").update(courseUpdate).eq("id", id);
+  let { error: courseError } = await supabase.from("courses").update(courseUpdate).eq("id", id);
+  if (courseError) {
+    const legacyCourseUpdate = { slug: stableSlug, updated_at: now, state: value.publish ? "published" : "draft", published_at: value.publish ? now : null };
+    ({ error: courseError } = await supabase.from("courses").update(legacyCourseUpdate).eq("id", id));
+  }
   if (courseError) return Response.json({ message: "Unable to update the course." }, { status: 500 });
 
   const { error: translationError } = await supabase.from("course_translations").upsert({
@@ -293,7 +316,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   if (sessionId) await reschedulePendingReminders(sessionId, sessionPayload.starts_at, sessionPayload.timezone, sessionPayload.meet_url ?? "", sessionPayload.delivery_type, sessionPayload.whatsapp_channel_id);
 
   if (existing.instructor_id) {
-    const { error: instructorError } = await supabase.from("instructors").update({
+    let { error: instructorError } = await supabase.from("instructors").update({
       name: value.instructorName,
       title: value.instructorTitle,
       bio: value.instructorBio,
@@ -302,6 +325,14 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
       credentials: value.instructorCredentials || null,
       updated_at: new Date().toISOString(),
     }).eq("id", existing.instructor_id);
+    if (instructorError) {
+      ({ error: instructorError } = await supabase.from("instructors").update({
+        name: value.instructorName,
+        title: value.instructorTitle,
+        bio: value.instructorBio,
+        updated_at: new Date().toISOString(),
+      }).eq("id", existing.instructor_id));
+    }
     if (instructorError) return Response.json({ message: "Unable to update instructor details." }, { status: 500 });
   }
 

@@ -382,11 +382,18 @@ export type CourseEditorData = {
 export async function getCourseEditorData(id: string): Promise<CourseEditorData | null> {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
+    const primary = await supabase
       .from("courses")
       .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,level,topic,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address,maps_url,whatsapp_channel_id),instructors(id,name,title,bio,photo_path,years_active,focus_markets,credentials)")
       .eq("id", id)
       .maybeSingle();
+    const fallback = primary.error ? await supabase
+      .from("courses")
+      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address,maps_url,whatsapp_channel_id),instructors(id,name,title,bio,photo_path)")
+      .eq("id", id)
+      .maybeSingle() : null;
+    const data = fallback?.data ?? primary.data;
+    const error = fallback?.error ?? primary.error;
     if (error || !data) return null;
     const row = data as unknown as JsonRecord;
     const translations = asArray(row.course_translations);
