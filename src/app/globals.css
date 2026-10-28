@@ -13,6 +13,11 @@
   --muted: #8daac1;
   --line: rgba(143, 186, 218, 0.16);
   --surface: rgba(9, 39, 64, 0.72);
+  --academy-accent: #c32828;
+  --academy-live: #0f8f6f;
+  --academy-paper: #f8f9f9;
+  --academy-radius: 1rem;
+  --academy-shadow: 0 24px 70px rgba(3, 26, 45, 0.12);
   --background: var(--navy-950);
   --foreground: #f7fbff;
 }
@@ -37,6 +42,9 @@ body {
   min-height: 100vh;
   text-rendering: optimizeLegibility;
 }
+
+h1, h2 { text-wrap: balance; }
+p { text-wrap: pretty; }
 
 button, input, select, textarea { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }

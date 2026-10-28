@@ -87,6 +87,7 @@ function mapPublicData(row: JsonRecord, translation: JsonRecord | undefined, ses
     isoEnd: endDate.toISOString(),
     dateLabel: formatDate(startsAt),
     timeLabel: new Intl.DateTimeFormat("ar", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: asText(session?.timezone, "Africa/Casablanca") }).format(startDate),
+    timezone: asText(session?.timezone, "Africa/Casablanca"),
     duration: String(durationMinutes) + " دقيقة",
     type,
     platform,

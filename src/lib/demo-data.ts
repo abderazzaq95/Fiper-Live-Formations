@@ -11,6 +11,7 @@ export type Course = {
   isoStart: string;
   isoEnd: string;
   timeLabel: string;
+  timezone?: string;
   duration: string;
   type: "online" | "onsite";
   platform: string;
