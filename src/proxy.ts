@@ -2,7 +2,13 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function proxy(request: NextRequest) {
-  if (process.env.ADMIN_PREVIEW_MODE === "true") return NextResponse.next();
+  const applyIndexPolicy = (response: NextResponse) => {
+    if (request.nextUrl.hostname.endsWith(".vercel.app")) response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+    return response;
+  };
+  const protectedRoute = request.nextUrl.pathname.startsWith("/admin") || request.nextUrl.pathname === "/login";
+  if (!protectedRoute) return applyIndexPolicy(NextResponse.next());
+  if (process.env.ADMIN_PREVIEW_MODE === "true") return applyIndexPolicy(NextResponse.next());
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -10,7 +16,7 @@ export async function proxy(request: NextRequest) {
     if (request.nextUrl.pathname.startsWith("/admin")) {
       return NextResponse.redirect(new URL("/login?error=configuration", request.url));
     }
-    return NextResponse.next();
+    return applyIndexPolicy(NextResponse.next());
   }
 
   let response = NextResponse.next({ request });
@@ -35,9 +41,9 @@ export async function proxy(request: NextRequest) {
   if (authenticated && request.nextUrl.pathname === "/login") {
     return NextResponse.redirect(new URL("/admin", request.url));
   }
-  return response;
+  return applyIndexPolicy(response);
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/login"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
