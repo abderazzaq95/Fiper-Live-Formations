@@ -125,15 +125,21 @@ function mapPublicData(row: JsonRecord, translation: JsonRecord | undefined, ses
   };
 }
 
+const publicCourseSelect = "id,slug,state,is_featured,default_locale,instructor_id,cover_path,level,topic,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,venue_name,venue_address,maps_url),instructors(name,title,bio,photo_path,years_active,focus_markets,credentials)";
+const legacyPublicCourseSelect = "id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,venue_name,venue_address,maps_url),instructors(name,title,bio,photo_path)";
+
 export async function getPublicCourse(): Promise<PublicCourseData> {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
+    const primary = await supabase
       .from("courses")
-      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,level,topic,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,venue_name,venue_address,maps_url),instructors(name,title,bio,photo_path,years_active,focus_markets,credentials)")
+      .select(publicCourseSelect)
       .eq("state", "published")
       .order("is_featured", { ascending: false })
       .order("published_at", { ascending: false });
+    const fallback = primary.error ? await supabase.from("courses").select(legacyPublicCourseSelect).eq("state", "published").order("is_featured", { ascending: false }).order("published_at", { ascending: false }) : null;
+    const data = fallback?.data ?? primary.data;
+    const error = fallback?.error ?? primary.error;
 
     if (error || !data?.length) return { course: featuredCourse, outcomes: learningOutcomes, agenda: demoAgenda, audience: demoAudience, faqs: demoFaqs, landing: defaultLandingContent };
 
@@ -177,11 +183,14 @@ export async function getPublicCourseById(id: string): Promise<PublicCourseData>
 
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
+    const primary = await supabase
       .from("courses")
-      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,level,topic,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,venue_name,venue_address,maps_url),instructors(name,title,bio,photo_path,years_active,focus_markets,credentials)")
+      .select(publicCourseSelect)
       .eq("id", id)
       .maybeSingle();
+    const fallback = primary.error ? await supabase.from("courses").select(legacyPublicCourseSelect).eq("id", id).maybeSingle() : null;
+    const data = fallback?.data ?? primary.data;
+    const error = fallback?.error ?? primary.error;
 
     if (error || !data) return getPublicCourse();
 
@@ -240,12 +249,15 @@ export async function getPublicCourseByPath(path: string): Promise<PublicCourseD
 export async function listPublicActiveCourses(): Promise<Course[]> {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
+    const primary = await supabase
       .from("courses")
-      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,level,topic,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,venue_name,venue_address,maps_url),instructors(name,title,bio,photo_path,years_active,focus_markets,credentials)")
+      .select(publicCourseSelect)
       .eq("state", "published")
       .order("is_featured", { ascending: false })
       .order("published_at", { ascending: false });
+    const fallback = primary.error ? await supabase.from("courses").select(legacyPublicCourseSelect).eq("state", "published").order("is_featured", { ascending: false }).order("published_at", { ascending: false }) : null;
+    const data = fallback?.data ?? primary.data;
+    const error = fallback?.error ?? primary.error;
 
     if (error || !data?.length) return [];
 
