@@ -137,9 +137,9 @@ export async function getPublicCourse(): Promise<PublicCourseData> {
       .eq("state", "published")
       .order("is_featured", { ascending: false })
       .order("published_at", { ascending: false });
-    const fallback = primary.error ? await supabase.from("courses").select(legacyPublicCourseSelect).eq("state", "published").order("is_featured", { ascending: false }).order("published_at", { ascending: false }) : null;
-    const data = fallback?.data ?? primary.data;
-    const error = fallback?.error ?? primary.error;
+    const fallback = await supabase.from("courses").select(legacyPublicCourseSelect).eq("state", "published").order("is_featured", { ascending: false }).order("published_at", { ascending: false });
+    const data = primary.data?.length ? primary.data : fallback.data;
+    const error = data?.length ? null : primary.error ?? fallback.error;
 
     if (error || !data?.length) return { course: featuredCourse, outcomes: learningOutcomes, agenda: demoAgenda, audience: demoAudience, faqs: demoFaqs, landing: defaultLandingContent };
 
@@ -188,9 +188,9 @@ export async function getPublicCourseById(id: string): Promise<PublicCourseData>
       .select(publicCourseSelect)
       .eq("id", id)
       .maybeSingle();
-    const fallback = primary.error ? await supabase.from("courses").select(legacyPublicCourseSelect).eq("id", id).maybeSingle() : null;
-    const data = fallback?.data ?? primary.data;
-    const error = fallback?.error ?? primary.error;
+    const fallback = await supabase.from("courses").select(legacyPublicCourseSelect).eq("id", id).maybeSingle();
+    const data = primary.data ?? fallback.data;
+    const error = data ? null : primary.error ?? fallback.error;
 
     if (error || !data) return getPublicCourse();
 
@@ -255,9 +255,9 @@ export async function listPublicActiveCourses(): Promise<Course[]> {
       .eq("state", "published")
       .order("is_featured", { ascending: false })
       .order("published_at", { ascending: false });
-    const fallback = primary.error ? await supabase.from("courses").select(legacyPublicCourseSelect).eq("state", "published").order("is_featured", { ascending: false }).order("published_at", { ascending: false }) : null;
-    const data = fallback?.data ?? primary.data;
-    const error = fallback?.error ?? primary.error;
+    const fallback = await supabase.from("courses").select(legacyPublicCourseSelect).eq("state", "published").order("is_featured", { ascending: false }).order("published_at", { ascending: false });
+    const data = primary.data?.length ? primary.data : fallback.data;
+    const error = data?.length ? null : primary.error ?? fallback.error;
 
     if (error || !data?.length) return [];
 
