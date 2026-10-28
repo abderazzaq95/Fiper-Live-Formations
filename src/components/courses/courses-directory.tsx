@@ -1,17 +1,22 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, CalendarCheck, ChatCircleDots, CheckCircle, EnvelopeSimple, NumberCircleOne, NumberCircleThree, NumberCircleTwo } from "@phosphor-icons/react/dist/ssr";
+import { ArrowLeft, CalendarCheck, ChatCircleDots, CheckCircle, EnvelopeSimple, FacebookLogo, InstagramLogo, LinkedinLogo, NumberCircleOne, NumberCircleThree, NumberCircleTwo, WhatsappLogo, YoutubeLogo } from "@phosphor-icons/react/dist/ssr";
 
 import { FiperLogo } from "@/components/brand/fiper-logo";
 import { AcademyHeader } from "@/components/courses/academy-header";
 import { CourseCatalog } from "@/components/courses/course-catalog";
+import { CommunityLink } from "@/components/courses/course-actions";
+import { CourseReplays } from "@/components/courses/course-replays";
 import { FaqAccordion, type AcademyFaq } from "@/components/courses/faq-accordion";
 import { MobileRegisterBar } from "@/components/courses/mobile-register-bar";
 import { Reveal, TaglineReveal } from "@/components/courses/motion";
 import { NextSession } from "@/components/courses/next-session";
 import { SocialProof } from "@/components/courses/social-proof";
 import { TrackedLink } from "@/components/courses/tracked-link";
-import { courseTestimonials, academySocialLinks } from "@/lib/course-social-proof";
+import { TimezoneProvider } from "@/components/courses/timezone-provider";
+import { academySocialLinks, registrationTrustThreshold, whatsappCommunityUrl } from "@/lib/academy-config";
+import { courseReplays } from "@/lib/course-replays";
+import { courseTestimonials } from "@/lib/course-social-proof";
 import { listPublicActiveCourses } from "@/lib/data/courses";
 
 const faqs: AcademyFaq[] = [
@@ -47,12 +52,35 @@ function structuredData(courses: Awaited<ReturnType<typeof listPublicActiveCours
       eventAttendanceMode: course.type === "online" ? "https://schema.org/OnlineEventAttendanceMode" : "https://schema.org/OfflineEventAttendanceMode",
       eventStatus: "https://schema.org/EventScheduled",
       location: course.type === "online" ? { "@type": "VirtualLocation", url: `https://fiperacademy.com/courses/${course.slug}` } : { "@type": "Place", name: course.venueName, address: course.venueAddress },
-      image: [`https://fiperacademy.com${course.coverImage || "/brand/hero-reference.png"}`],
+      image: [course.coverImage?.startsWith("http") ? course.coverImage : `https://fiperacademy.com${course.coverImage || "/opengraph-image"}`],
       organizer: { "@type": "Organization", name: "Fiper Academy", url: "https://fiperacademy.com" },
       performer: { "@type": "Person", name: course.instructor.name, jobTitle: course.instructor.role },
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD", availability: "https://schema.org/InStock", url: `https://fiperacademy.com/courses/${course.slug}` },
     })),
   ];
+}
+
+function InstructorFacts({ instructor }: { instructor: Awaited<ReturnType<typeof listPublicActiveCourses>>[number]["instructor"] }) {
+  const facts = [
+    instructor.yearsActive ? `${instructor.yearsActive.toLocaleString("ar")} سنوات خبرة` : "",
+    instructor.focusMarkets || "",
+    instructor.credentials || "",
+  ].filter(Boolean);
+
+  if (!facts.length) return <p className="mt-4 text-pretty text-sm leading-7 text-[#91a8b8]">تُعرض هنا المعلومات المهنية التي تم توثيقها وإضافتها من لوحة التحكم.</p>;
+  return <ul className="mt-4 space-y-2 text-pretty text-sm leading-7 text-[#91a8b8]">{facts.map((fact) => <li key={fact} className="flex gap-2"><CheckCircle className="mt-1 shrink-0 text-[#ef8b8b]" size={16} weight="fill" /><span>{fact}</span></li>)}</ul>;
+}
+
+function SocialIcon({ network }: { network: (typeof academySocialLinks)[number]["network"] }) {
+  const props = { size: 20, weight: "duotone" as const };
+  if (network === "instagram") return <InstagramLogo {...props} />;
+  if (network === "facebook") return <FacebookLogo {...props} />;
+  if (network === "youtube") return <YoutubeLogo {...props} />;
+  return <LinkedinLogo {...props} />;
+}
+
+function LiveSessionPreview() {
+  return <section aria-label="معاينة تجربة الجلسة المباشرة" className="bg-[#efece7] pb-20 sm:pb-24"><div className="mx-auto max-w-[1280px] px-5 sm:px-8"><Reveal><div className="overflow-hidden rounded-2xl bg-[#071d2f] text-white shadow-[0_26px_80px_rgba(7,29,47,.18)]"><div className="flex items-center justify-between border-b border-white/10 px-5 py-4"><div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#26c08a] pulse-dot" /><span className="text-sm font-semibold">جلسة مباشرة الآن</span></div><span className="text-xs text-[#93aabd]">Fiper Live Classroom</span></div><div className="grid min-h-[360px] lg:grid-cols-[1.45fr_.55fr]"><div className="relative flex items-center justify-center overflow-hidden bg-[#0a263c] p-8"><div aria-hidden="true" className="absolute inset-0 fine-grid opacity-20" /><div className="relative w-full max-w-2xl"><div className="flex items-end gap-2" dir="ltr">{[42, 58, 49, 76, 68, 91, 84, 112, 102, 132, 124, 154].map((height, index) => <span key={index} className={`w-full rounded-t-sm ${index % 3 === 0 ? "bg-[#c32828]" : "bg-[#66a9c9]"}`} style={{ height }} />)}</div><svg className="absolute inset-x-0 top-0 h-full w-full" viewBox="0 0 600 180" preserveAspectRatio="none" aria-hidden="true"><path d="M0 150 C70 130 95 145 150 100 S250 120 310 70 S410 92 470 40 S550 55 600 12" fill="none" stroke="white" strokeOpacity=".75" strokeWidth="3" /></svg></div></div><aside className="border-t border-white/10 bg-[#061827] p-6 lg:border-r lg:border-t-0"><p className="text-sm font-bold">أسئلة المشاركين</p><div className="mt-6 space-y-5">{["كيف أحدد مستوى المخاطرة؟", "هل ينطبق المثال على الذهب؟", "هل يمكن إعادة شرح نقطة الدخول؟"].map((question, index) => <div key={question} className="flex gap-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-bold">{index + 1}</span><p className="text-pretty text-sm leading-6 text-[#afc0cc]">{question}</p></div>)}</div><div className="mt-8 flex items-center gap-2 border-t border-white/10 pt-5 text-xs text-[#69d7b1]"><ChatCircleDots size={18} weight="duotone" />تفاعل مباشر مع المحاضر</div></aside></div></div></Reveal></div></section>;
 }
 
 export async function CoursesDirectory({ isHome = false }: { isHome?: boolean }) {
@@ -62,8 +90,10 @@ export async function CoursesDirectory({ isHome = false }: { isHome?: boolean })
   const instructors = Array.from(new Map(courses.map((course) => [course.instructor.name, course.instructor])).values());
   const registrationTotal = courses.reduce((total, course) => total + course.registrations, 0);
   const registerHref = featured ? `/courses/${encodeURIComponent(featured.slug)}#register` : "#courses";
+  const showRegistrationTotal = registrationTotal >= registrationTrustThreshold;
 
   return (
+    <TimezoneProvider>
     <main id="main-content" className="min-h-screen overflow-x-clip bg-[#f3f6f7] pb-20 text-[#071d2f] md:pb-0">
       <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:right-4 focus:top-4 focus:z-[70] focus:rounded-lg focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:text-[#071d2f]">انتقل إلى المحتوى</a>
       <AcademyHeader registerHref={registerHref} courseSlug={featured?.slug} />
@@ -90,9 +120,9 @@ export async function CoursesDirectory({ isHome = false }: { isHome?: boolean })
               <p className="text-sm font-semibold text-[#ef8b8b]">أكاديمية مصممة للحضور الفعلي</p>
               <p className="mt-4 text-balance text-3xl font-bold leading-tight">من اختيار الجلسة إلى رابط Meet، كل خطوة في مكان واحد.</p>
               <div className="mt-8 grid grid-cols-3 gap-3 border-t border-white/10 pt-6 text-center">
-                <div><strong className="latin block text-3xl font-bold">{registrationTotal.toLocaleString("ar")}</strong><span className="mt-2 block text-xs text-[#8daac1]">تسجيل مؤكد</span></div>
-                <div><strong className="latin block text-3xl font-bold">{courses.length.toLocaleString("ar")}</strong><span className="mt-2 block text-xs text-[#8daac1]">جلسة متاحة</span></div>
-                <div><strong className="latin block text-3xl font-bold">{instructors.length.toLocaleString("ar")}</strong><span className="mt-2 block text-xs text-[#8daac1]">محاضر</span></div>
+                <div><strong className="block text-xl font-bold">{showRegistrationTotal ? registrationTotal.toLocaleString("ar") : "مجاني"}</strong><span className="mt-2 block text-xs text-[#8daac1]">{showRegistrationTotal ? "مسجل فعلي" : "بلا رسوم"}</span></div>
+                <div><strong className="block text-xl font-bold">مباشر</strong><span className="mt-2 block text-xs text-[#8daac1]">أسئلة فورية</span></div>
+                <div><strong className="block text-xl font-bold">واتساب</strong><span className="mt-2 block text-xs text-[#8daac1]">تأكيد وتذكير</span></div>
               </div>
               <p className="mt-5 text-pretty text-xs leading-6 text-[#7f99aa]">هذه الأرقام محسوبة من الدورات والتسجيلات النشطة حاليًا، من دون أرقام تسويقية مضافة.</p>
             </div>
@@ -127,6 +157,8 @@ export async function CoursesDirectory({ isHome = false }: { isHome?: boolean })
         </div>
       </section>
 
+      <LiveSessionPreview />
+
       <section aria-labelledby="steps-title" className="bg-white">
         <div className="mx-auto max-w-[1280px] px-5 py-20 sm:px-8 sm:py-24">
           <Reveal><p className="text-sm font-semibold text-[#c32828]">ثلاث خطوات فقط</p><h2 id="steps-title" className="mt-3 max-w-[680px] text-balance text-4xl font-bold tracking-tight sm:text-5xl">من اختيار الدورة إلى الحضور المباشر</h2></Reveal>
@@ -138,17 +170,21 @@ export async function CoursesDirectory({ isHome = false }: { isHome?: boolean })
         </div>
       </section>
 
-      {instructors.length ? <section id="instructors" aria-labelledby="instructors-title" className="scroll-mt-20 bg-[#031a2d] text-white"><div className="mx-auto max-w-[1280px] px-5 py-20 sm:px-8 sm:py-24"><Reveal><p className="text-sm font-semibold text-[#ef8b8b]">تعرّف إلى المحاضرين</p><h2 id="instructors-title" className="mt-3 max-w-[680px] text-balance text-4xl font-bold tracking-tight sm:text-5xl">خبرة تشرح لك الفكرة في سياقها العملي</h2></Reveal><div className="mt-12 grid gap-6 md:grid-cols-2">{instructors.map((instructor, index) => <Reveal key={instructor.name} delay={index * 0.08}><article className="grid overflow-hidden rounded-2xl bg-[#08243a] ring-1 ring-white/10 sm:grid-cols-[180px_1fr]">{instructor.image ? <div className="relative min-h-56 bg-[#d7e0e5]"><Image src={instructor.image} alt={`المحاضر ${instructor.name}`} fill sizes="(max-width: 639px) 100vw, 180px" className="object-cover object-top" /></div> : <div className="flex min-h-48 items-center justify-center bg-[#102f47] text-3xl font-bold">{instructor.initials}</div>}<div className="p-6"><p className="text-xs font-semibold text-[#ef8b8b]">المحاضر</p><h3 className="mt-2 text-2xl font-bold">{instructor.name}</h3><p className="mt-2 text-sm font-semibold text-[#a9bdcb]">{instructor.role}</p><p className="mt-4 line-clamp-4 text-pretty text-sm leading-7 text-[#91a8b8]">{instructor.bio}</p><a href="#courses" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-white underline decoration-[#c32828] decoration-2 underline-offset-8">عرض جلساته <ArrowLeft size={16} /></a></div></article></Reveal>)}</div></div></section> : null}
+      {instructors.length ? <section id="instructors" aria-labelledby="instructors-title" className="scroll-mt-20 bg-[#031a2d] text-white"><div className="mx-auto max-w-[1280px] px-5 py-20 sm:px-8 sm:py-24"><Reveal><p className="text-sm font-semibold text-[#ef8b8b]">تعرّف إلى المحاضرين</p><h2 id="instructors-title" className="mt-3 max-w-[680px] text-balance text-4xl font-bold tracking-tight sm:text-5xl">خبرة موثقة تشرح لك الفكرة في سياقها العملي</h2></Reveal><div className="mt-12 grid gap-6 md:grid-cols-2">{instructors.map((instructor, index) => <Reveal key={instructor.name} delay={index * 0.08}><article className="grid overflow-hidden rounded-2xl bg-[#08243a] ring-1 ring-white/10 sm:grid-cols-[180px_1fr]">{instructor.image ? <div className="relative min-h-56 bg-[#d7e0e5]"><Image src={instructor.image} alt={`المحاضر ${instructor.name}`} fill sizes="(max-width: 639px) 100vw, 180px" className="object-cover object-top" /></div> : <div className="flex min-h-48 items-center justify-center bg-[#102f47] text-3xl font-bold">{instructor.initials}</div>}<div className="p-6"><p className="text-xs font-semibold text-[#ef8b8b]">المحاضر</p><h3 className="mt-2 text-2xl font-bold">{instructor.name}</h3><p className="mt-2 text-sm font-semibold text-[#a9bdcb]">{instructor.role}</p><InstructorFacts instructor={instructor} /><a href="#courses" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-white underline decoration-[#c32828] decoration-2 underline-offset-8">عرض جلساته <ArrowLeft size={16} /></a></div></article></Reveal>)}</div></div></section> : null}
 
       <SocialProof testimonials={courseTestimonials} />
 
+      <CourseReplays replays={courseReplays} />
+
       <section id="faq" aria-labelledby="faq-title" className="scroll-mt-20 bg-[#f8f9f9]"><div className="mx-auto grid max-w-[1280px] gap-12 px-5 py-20 sm:px-8 sm:py-24 lg:grid-cols-[.72fr_1.28fr]"><Reveal><p className="text-sm font-semibold text-[#c32828]">قبل أن تسجّل</p><h2 id="faq-title" className="mt-3 text-balance text-4xl font-bold tracking-tight sm:text-5xl">إجابات واضحة عن رحلة الحضور</h2><p className="mt-5 text-pretty text-base leading-8 text-[#5f7382]">إذا بقي لديك سؤال عن دورة محددة، ستجد تفاصيل إضافية في صفحتها.</p></Reveal><Reveal delay={0.08}><FaqAccordion items={faqs} /></Reveal></div></section>
+
+      {whatsappCommunityUrl ? <section className="bg-[#e8f5ef]"><div className="mx-auto flex max-w-[1280px] flex-col gap-6 px-5 py-12 sm:px-8 lg:flex-row lg:items-center lg:justify-between"><div><p className="text-sm font-semibold text-[#08765a]">مجتمع Fiper</p><h2 className="mt-2 text-balance text-3xl font-bold text-[#071d2f]">تابع الدورات القادمة عبر واتساب</h2><p className="mt-3 max-w-2xl text-pretty text-sm leading-7 text-[#526575]">انضم اختياريًا لتصلك أخبار الجلسات الجديدة. تسجيلك في أي دورة يبقى مستقلًا وآمنًا.</p></div><CommunityLink href={whatsappCommunityUrl} className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#08765a] px-5 text-sm font-semibold text-white transition hover:bg-[#07644d]"><WhatsappLogo size={20} weight="duotone" />الانضمام إلى المجتمع</CommunityLink></div></section> : null}
 
       {featured ? <section className="bg-[#c32828] text-white"><div className="mx-auto flex max-w-[1280px] flex-col gap-8 px-5 py-16 sm:px-8 lg:flex-row lg:items-center lg:justify-between"><Reveal><h2 className="max-w-[680px] text-balance text-4xl font-bold tracking-tight sm:text-5xl">موعد واحد قد يكون بداية فهم أوضح للسوق</h2><p className="mt-4 max-w-2xl text-pretty text-base leading-8 text-white/80">احجز مقعدك في الجلسة القادمة، واستلم رابط الحضور والتذكيرات دون أي رسوم.</p></Reveal><TrackedLink href={`${registerHref}`} source="final_cta" courseSlug={featured.slug} className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-3 text-base font-semibold text-[#8f1f1f] shadow-[0_16px_45px_rgba(90,10,10,.2)] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#031a2d]">سجّل مجانًا <ArrowLeft size={18} /></TrackedLink></div></section> : null}
 
       <footer className="bg-[#021525] text-white">
         <div className="mx-auto grid max-w-[1280px] gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[1.35fr_.7fr_.7fr]">
-          <div className="max-w-md"><FiperLogo variant="drive" href="/" /><p className="mt-5 text-pretty text-sm leading-7 text-[#9eb1bf]">أكاديمية Fiper للدورات المباشرة في الأسواق المالية، من التسجيل إلى التذكير والحضور في رحلة واحدة واضحة.</p><a href="mailto:meetings@fiperacademy.com" className="latin mt-5 inline-block text-sm font-semibold text-white underline decoration-[#c32828] decoration-2 underline-offset-8">meetings@fiperacademy.com</a>{academySocialLinks.length ? <div className="mt-5 flex flex-wrap gap-3">{academySocialLinks.map((item) => <a key={item.href} href={item.href} rel="noreferrer" target="_blank">{item.label}</a>)}</div> : null}</div>
+          <div className="max-w-md"><FiperLogo variant="drive" href="/" /><p className="mt-5 text-pretty text-sm leading-7 text-[#9eb1bf]">أكاديمية Fiper للدورات المباشرة في الأسواق المالية، من التسجيل إلى التذكير والحضور في رحلة واحدة واضحة.</p><a href="mailto:meetings@fiperacademy.com" className="latin mt-5 inline-block text-sm font-semibold text-white underline decoration-[#c32828] decoration-2 underline-offset-8">meetings@fiperacademy.com</a>{academySocialLinks.length ? <div className="mt-5 flex flex-wrap gap-3">{academySocialLinks.map((item) => <a key={item.href} href={item.href} rel="noreferrer" target="_blank" aria-label={item.label} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-[#b9c8d2] transition hover:border-white/35 hover:bg-white/10 hover:text-white"><SocialIcon network={item.network} /></a>)}</div> : null}</div>
           <nav aria-label="روابط الأكاديمية"><p className="text-sm font-bold">استكشف</p><div className="mt-5 flex flex-col items-start gap-4 text-sm text-[#9eb1bf]"><Link href="/" aria-current={isHome ? "page" : undefined}>الرئيسية</Link><Link href="/courses" aria-current={isHome ? undefined : "page"}>الدورات</Link><a href="#why-fiper">لماذا Fiper</a><a href="#faq">الأسئلة الشائعة</a></div></nav>
           <div><p className="text-sm font-bold">معلومات مهمة</p><div className="mt-5 flex flex-col items-start gap-4 text-sm text-[#9eb1bf]"><Link href="/privacy">سياسة الخصوصية</Link><Link href="/terms">الشروط والأحكام</Link></div></div>
         </div>
@@ -159,5 +195,6 @@ export async function CoursesDirectory({ isHome = false }: { isHome?: boolean })
       {featured ? <MobileRegisterBar href={registerHref} slug={featured.slug} title={featured.title} /> : null}
       {structuredData(courses).map((data, index) => <script key={index} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }} />)}
     </main>
+    </TimezoneProvider>
   );
 }

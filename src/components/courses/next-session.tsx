@@ -1,11 +1,14 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { CalendarBlank, Clock, UsersThree, VideoCamera } from "@phosphor-icons/react";
+import { CalendarBlank, Clock, VideoCamera } from "@phosphor-icons/react";
 
+import { CalendarAction, ShareCourseButton } from "@/components/courses/course-actions";
+import { CourseCover } from "@/components/courses/course-cover";
+import { CourseTrustSignal } from "@/components/courses/course-trust-signal";
+import { LocalizedCourseTime, TimezoneSelector } from "@/components/courses/timezone-provider";
 import type { Course } from "@/lib/demo-data";
 import { trackAcademyEvent } from "@/lib/analytics";
 
@@ -36,6 +39,7 @@ export function NextSession({ course }: { course: Course }) {
   const starts = new Date(course.isoStart).getTime();
   const ends = new Date(course.isoEnd).getTime();
   const live = now >= starts && now < ends;
+  const startingSoon = !live && starts > now && starts - now <= 60 * 60 * 1000;
   const courseHref = `/courses/${encodeURIComponent(course.slug)}`;
   const calendarUrl = useMemo(() => googleCalendarUrl(course), [course]);
 
@@ -52,11 +56,10 @@ export function NextSession({ course }: { course: Course }) {
     <article className="overflow-hidden rounded-2xl bg-[#08243a] text-white shadow-[0_28px_80px_rgba(3,26,45,.18)]">
       <div className="grid lg:grid-cols-[1.08fr_.92fr]">
         <div className="relative min-h-72 overflow-hidden bg-[#d8e7f0] lg:min-h-full">
-          <Image src={course.coverImage || "/brand/hero-reference.png"} alt={`صورة دورة ${course.title}`} fill priority sizes="(max-width: 1023px) 100vw, 46vw" className="object-cover" />
-          <div className="absolute inset-0 bg-[#031a2d]/15" />
+          <CourseCover course={course} priority className="absolute inset-0 h-full min-h-full" />
           <span className={`absolute right-5 top-5 inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-bold text-white ${live ? "bg-[#0f8f6f]" : "bg-[#c32828]"}`}>
             <span className="h-2 w-2 rounded-full bg-white pulse-dot" />
-            {live ? "مباشر الآن" : "الجلسة القادمة"}
+            {live ? "مباشر الآن" : startingSoon ? "تبدأ قريبًا" : "الجلسة القادمة"}
           </span>
         </div>
 
@@ -84,18 +87,20 @@ export function NextSession({ course }: { course: Course }) {
           ) : null}
 
           <dl className="mt-6 grid gap-3 text-sm sm:grid-cols-2">
-            <div className="flex items-center gap-3"><CalendarBlank size={20} weight="duotone" className="text-[#ef6b6b]" /><div><dt className="text-xs text-[#8daac1]">الموعد</dt><dd className="mt-1 font-semibold">{course.dateLabel}</dd></div></div>
-            <div className="flex items-center gap-3"><Clock size={20} weight="duotone" className="text-[#ef6b6b]" /><div><dt className="text-xs text-[#8daac1]">الوقت</dt><dd className="mt-1 font-semibold"><span className="latin">{course.timeLabel}</span> · {course.duration}</dd></div></div>
+            <div className="flex items-center gap-3"><CalendarBlank size={20} weight="duotone" className="text-[#ef6b6b]" /><div><dt className="text-xs text-[#8daac1]">الموعد</dt><dd className="mt-1"><LocalizedCourseTime iso={course.isoStart} courseTimezone={course.timezone} part="date" dark /></dd></div></div>
+            <div className="flex items-center gap-3"><Clock size={20} weight="duotone" className="text-[#ef6b6b]" /><div><dt className="text-xs text-[#8daac1]">الوقت والمدة</dt><dd className="mt-1"><LocalizedCourseTime iso={course.isoStart} courseTimezone={course.timezone} part="time" dark /><span className="mt-1 block text-xs text-[#8daac1]">المدة: {course.duration}</span></dd></div></div>
             <div className="flex items-center gap-3"><VideoCamera size={20} weight="duotone" className="text-[#ef6b6b]" /><div><dt className="text-xs text-[#8daac1]">طريقة الحضور</dt><dd className="mt-1 font-semibold">{course.type === "online" ? course.platform : course.venueName || "حضوري"}</dd></div></div>
-            <div className="flex items-center gap-3"><UsersThree size={20} weight="duotone" className="text-[#ef6b6b]" /><div><dt className="text-xs text-[#8daac1]">حضور مؤكد</dt><dd className="mt-1 font-semibold">{course.registrations.toLocaleString("ar")} مسجل</dd></div></div>
+            <div className="flex items-center gap-3"><div><dt className="text-xs text-[#8daac1]">توفر المقاعد</dt><dd className="mt-2"><CourseTrustSignal course={course} dark /></dd></div></div>
           </dl>
+
+          <div className="mt-6"><TimezoneSelector className="text-[#b7c7d2]" /></div>
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
             <Link href={`${courseHref}#register`} onClick={() => trackAcademyEvent({ name: "academy_register_start", source: "next_session", courseSlug: course.slug })} className="inline-flex h-12 flex-1 items-center justify-center rounded-xl bg-[#c32828] px-3 text-base font-semibold text-white transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:bg-[#a92121] active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">احجز مقعدك مجانًا</Link>
-            <a href={calendarUrl} target="_blank" rel="noreferrer" className="inline-flex h-12 items-center justify-center rounded-xl border border-white/15 px-3 text-sm font-semibold text-white transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/10 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">Google Calendar</a>
-            <a href={`${courseHref}/calendar`} className="inline-flex h-12 items-center justify-center rounded-xl border border-white/15 px-3 text-sm font-semibold text-white transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/10 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">تنزيل الموعد</a>
+            <CalendarAction href={calendarUrl} provider="google" courseSlug={course.slug} className="inline-flex h-12 items-center justify-center rounded-xl border border-white/15 px-3 text-sm font-semibold text-white transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/10 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">Google Calendar</CalendarAction>
+            <CalendarAction href={`${courseHref}/calendar`} provider="ics" courseSlug={course.slug} className="inline-flex h-12 items-center justify-center rounded-xl border border-white/15 px-3 text-sm font-semibold text-white transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/10 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">تنزيل الموعد</CalendarAction>
+            <ShareCourseButton slug={course.slug} title={course.title} dark />
           </div>
-          <p className="mt-3 text-xs text-[#8daac1]">التوقيت المعروض حسب المنطقة الزمنية: <span className="latin">{course.timezone || "Africa/Casablanca"}</span></p>
         </div>
       </div>
     </article>
