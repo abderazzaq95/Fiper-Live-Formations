@@ -231,7 +231,11 @@ const publicActiveCourseSelect: string = "id,slug,state,is_featured,default_loca
 
 export async function listPublicActiveCourses(): Promise<Course[]> {
   try {
-    const supabase = await createClient();
+    const serviceUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabase = serviceUrl && serviceKey
+      ? createSupabaseClient(serviceUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } })
+      : await createClient();
     const { data, error } = await supabase
       .from("courses")
       .select(publicActiveCourseSelect)
@@ -241,25 +245,17 @@ export async function listPublicActiveCourses(): Promise<Course[]> {
 
     if (error || !data?.length) return [];
 
-    const now = Date.now();
     const candidates = (data as unknown as JsonRecord[]).flatMap((row) => {
       const session = asArray(row.course_sessions)
-        .filter((item) => {
-          const start = Date.parse(asText(item.starts_at));
-          const explicitEnd = Date.parse(asText(item.ends_at));
-          const end = Number.isFinite(explicitEnd) ? explicitEnd : start + 90 * 60 * 1000;
-          return item.registration_open === true && Number.isFinite(start) && end > now;
-        })
+        .filter((item) => item.registration_open === true && Number.isFinite(Date.parse(asText(item.starts_at))))
         .sort((a, b) => Date.parse(asText(a.starts_at)) - Date.parse(asText(b.starts_at)))[0];
       if (!session) return [];
       return [{ row, session, start: Date.parse(asText(session.starts_at)), featured: row.is_featured === true }];
-    }).sort((a, b) => Number(b.featured) - Number(a.featured) || a.start - b.start);
+    }).sort((a, b) => Number(b.featured) - Number(a.featured) || b.start - a.start);
 
     if (!candidates.length) return [];
 
     const counts = new Map<string, number>();
-    const serviceUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (serviceUrl && serviceKey) {
       const sessionIds = candidates.map(({ session }) => asText(session.id)).filter(Boolean);
       const admin = createSupabaseClient(serviceUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
