@@ -8,5 +8,3 @@ export type CourseTestimonial = {
 
 // Intentionally empty until Fiper supplies verified, publishable testimonials.
 export const courseTestimonials: CourseTestimonial[] = [];
-
-export const academySocialLinks: Array<{ label: string; href: string }> = [];

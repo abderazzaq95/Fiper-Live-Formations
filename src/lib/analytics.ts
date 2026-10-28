@@ -1,7 +1,10 @@
 export type AcademyEvent =
   | { name: "academy_cta_click"; source: string; courseSlug?: string }
   | { name: "academy_filter_use"; filter: string; value: string }
-  | { name: "academy_register_start"; source: string; courseSlug: string };
+  | { name: "academy_register_start"; source: string; courseSlug: string }
+  | { name: "academy_calendar_add"; provider: "google" | "ics"; courseSlug: string }
+  | { name: "academy_share"; method: "native" | "copy"; courseSlug: string }
+  | { name: "academy_community_click"; source: string };
 
 declare global {
   interface Window {
