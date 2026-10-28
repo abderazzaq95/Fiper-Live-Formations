@@ -29,6 +29,8 @@ const updateSchema = z.object({
   heroHeading: z.string().trim().min(1).max(300).default("افهم السوق. تداول بوضوح."),
   eyebrow: z.string().trim().max(180).default(""),
   description: z.string().trim().max(2000).default(""),
+  level: z.union([z.enum(["beginner", "intermediate", "advanced"]), z.literal("")]).default(""),
+  topic: z.string().trim().max(120).default(""),
   faqs: z.array(z.object({ question: z.string().trim().min(1).max(300), answer: z.string().trim().min(1).max(2000) })).max(30).default([]),
   outcomes: z.array(z.object({ title: z.string().trim().min(1).max(240), text: z.string().trim().min(1).max(1000) })).max(20).default([]),
   audience: z.array(z.string().trim().min(1).max(300)).max(20).default([]),
@@ -53,6 +55,9 @@ const updateSchema = z.object({
   instructorName: z.string().trim().min(1).max(120),
   instructorTitle: z.string().trim().max(180).default(""),
   instructorBio: z.string().trim().max(3000).default(""),
+  instructorYearsActive: z.number().int().min(0).max(80).nullable().default(null),
+  instructorFocusMarkets: z.string().trim().max(500).default(""),
+  instructorCredentials: z.string().trim().max(500).default(""),
 });
 
 function canonicalSlug(value: unknown) {
@@ -134,6 +139,9 @@ async function createCourse(supabase: Awaited<ReturnType<typeof createClient>>, 
     name: value.instructorName,
     title: value.instructorTitle,
     bio: value.instructorBio,
+    years_active: value.instructorYearsActive,
+    focus_markets: value.instructorFocusMarkets || null,
+    credentials: value.instructorCredentials || null,
   }).select("id").single();
   if (instructorResult.error || !instructorResult.data) throw new Error("instructor_create_failed");
 
@@ -152,6 +160,8 @@ async function createCourse(supabase: Awaited<ReturnType<typeof createClient>>, 
     created_by: identity.id === "preview" ? null : identity.id,
     published_at: value.publish ? new Date().toISOString() : null,
     is_featured: false,
+    level: value.level || null,
+    topic: value.topic || null,
   });
   if (courseResult.error) {
     await cleanup();
@@ -238,7 +248,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   const stableSlug = canonicalSlug(oldSlug) || await nextCourseSlug(supabase);
   if (stableSlug !== oldSlug) await saveSlugAlias(oldSlug, id);
   const now = new Date().toISOString();
-  const courseUpdate = { slug: stableSlug, updated_at: now, state: value.publish ? "published" : "draft", published_at: value.publish ? now : null };
+  const courseUpdate = { slug: stableSlug, updated_at: now, state: value.publish ? "published" : "draft", published_at: value.publish ? now : null, level: value.level || null, topic: value.topic || null };
   const { error: courseError } = await supabase.from("courses").update(courseUpdate).eq("id", id);
   if (courseError) return Response.json({ message: "Unable to update the course." }, { status: 500 });
 
@@ -287,6 +297,9 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
       name: value.instructorName,
       title: value.instructorTitle,
       bio: value.instructorBio,
+      years_active: value.instructorYearsActive,
+      focus_markets: value.instructorFocusMarkets || null,
+      credentials: value.instructorCredentials || null,
       updated_at: new Date().toISOString(),
     }).eq("id", existing.instructor_id);
     if (instructorError) return Response.json({ message: "Unable to update instructor details." }, { status: 500 });

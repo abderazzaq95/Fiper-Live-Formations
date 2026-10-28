@@ -78,10 +78,12 @@ function mapPublicData(row: JsonRecord, translation: JsonRecord | undefined, ses
     ...featuredCourse,
     id: asText(row.id, featuredCourse.id),
     slug: asText(row.slug, featuredCourse.slug),
-    coverImage: asText(row.cover_path, featuredCourse.coverImage),
+    coverImage: asText(row.cover_path),
     title,
     heroHeading,
     eyebrow,
+    level: row.level === "beginner" || row.level === "intermediate" || row.level === "advanced" ? row.level : undefined,
+    topic: asText(row.topic),
     description,
     isoStart: startsAt,
     isoEnd: endDate.toISOString(),
@@ -102,6 +104,9 @@ function mapPublicData(row: JsonRecord, translation: JsonRecord | undefined, ses
       bio: asText(instructor?.bio, featuredCourse.instructor.bio),
       initials: featuredCourse.instructor.initials,
       image: asText(instructor?.photo_path, featuredCourse.instructor.image),
+      yearsActive: typeof instructor?.years_active === "number" ? instructor.years_active : undefined,
+      focusMarkets: asText(instructor?.focus_markets),
+      credentials: asText(instructor?.credentials),
     },
   };
 
@@ -125,7 +130,7 @@ export async function getPublicCourse(): Promise<PublicCourseData> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,venue_name,venue_address,maps_url),instructors(name,title,bio,photo_path)")
+      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,level,topic,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,venue_name,venue_address,maps_url),instructors(name,title,bio,photo_path,years_active,focus_markets,credentials)")
       .eq("state", "published")
       .order("is_featured", { ascending: false })
       .order("published_at", { ascending: false });
@@ -174,7 +179,7 @@ export async function getPublicCourseById(id: string): Promise<PublicCourseData>
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,venue_name,venue_address,maps_url),instructors(name,title,bio,photo_path)")
+      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,level,topic,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,venue_name,venue_address,maps_url),instructors(name,title,bio,photo_path,years_active,focus_markets,credentials)")
       .eq("id", id)
       .maybeSingle();
 
@@ -237,7 +242,7 @@ export async function listPublicActiveCourses(): Promise<Course[]> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,venue_name,venue_address,maps_url),instructors(name,title,bio,photo_path)")
+      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,level,topic,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,venue_name,venue_address,maps_url),instructors(name,title,bio,photo_path,years_active,focus_markets,credentials)")
       .eq("state", "published")
       .order("is_featured", { ascending: false })
       .order("published_at", { ascending: false });
@@ -350,13 +355,15 @@ export type CourseEditorData = {
   description: string
   heroHeading: string
   coverPath: string;
+  level: "beginner" | "intermediate" | "advanced" | "";
+  topic: string;
   faqs: Array<{ question: string; answer: string }>;
   outcomes: Array<{ title: string; text: string }>;
   audience: string[];
   agenda: Array<{ time: string; title: string; text: string }>;
   landingContent: LandingContent;
   registrationCount: number;
-  instructor: { id: string; name: string; title: string; bio: string; image: string };
+  instructor: { id: string; name: string; title: string; bio: string; image: string; yearsActive: number | null; focusMarkets: string; credentials: string };
   session: { id: string; startsAt: string; endsAt: string; timezone: string; deliveryType: string; platform: string; capacity: number; registrationOpen: boolean; waitlistEnabled: boolean; meetUrl: string; venueName: string; venueAddress: string; mapsUrl: string; whatsappChannelId: string };
 };
 
@@ -365,7 +372,7 @@ export async function getCourseEditorData(id: string): Promise<CourseEditorData 
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address,maps_url,whatsapp_channel_id),instructors(id,name,title,bio,photo_path)")
+      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,level,topic,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address,maps_url,whatsapp_channel_id),instructors(id,name,title,bio,photo_path,years_active,focus_markets,credentials)")
       .eq("id", id)
       .maybeSingle();
     if (error || !data) return null;
@@ -385,13 +392,15 @@ export async function getCourseEditorData(id: string): Promise<CourseEditorData 
       eyebrow: asText(translation.eyebrow),
       description: asText(translation.description),
       coverPath: asText(row.cover_path),
+      level: row.level === "beginner" || row.level === "intermediate" || row.level === "advanced" ? row.level : "",
+      topic: asText(row.topic),
       faqs: asArray(translation.faqs).map((item) => ({ question: asText(item.question), answer: asText(item.answer) })).filter((item) => item.question && item.answer),
       outcomes: asArray(translation.outcomes).map((item, index) => ({ title: asText(item.title, learningOutcomes[index]?.title ?? ""), text: asText(item.text, learningOutcomes[index]?.text ?? "") })).filter((item) => item.title && item.text),
       audience: Array.isArray(translation.audience) ? translation.audience.map((item) => asText(item)).filter(Boolean) : [],
       agenda: asArray(translation.agenda).map((item) => ({ time: asText(item.time), title: asText(item.title), text: asText(item.text) })).filter((item) => item.time && item.title && item.text),
       landingContent: mergeLandingContent(translation.landing_content),
       registrationCount: registrationCount ?? 0,
-      instructor: { id: asText(instructor.id), name: asText(instructor.name), title: asText(instructor.title), bio: asText(instructor.bio), image: asText(instructor.photo_path) },
+      instructor: { id: asText(instructor.id), name: asText(instructor.name), title: asText(instructor.title), bio: asText(instructor.bio), image: asText(instructor.photo_path), yearsActive: typeof instructor.years_active === "number" ? instructor.years_active : null, focusMarkets: asText(instructor.focus_markets), credentials: asText(instructor.credentials) },
       session: {
         id: asText(session.id),
         startsAt: asText(session.starts_at),

@@ -6,6 +6,8 @@ export type Course = {
   title: string;
   heroHeading: string;
   eyebrow: string;
+  level?: "beginner" | "intermediate" | "advanced";
+  topic?: string;
   description: string;
   dateLabel: string;
   isoStart: string;
@@ -21,7 +23,7 @@ export type Course = {
   status: CourseStatus;
   registrationOpen?: boolean;
   coverImage?: string;
-  instructor: { name: string; role: string; bio: string; initials: string; image?: string };
+  instructor: { name: string; role: string; bio: string; initials: string; image?: string; yearsActive?: number; focusMarkets?: string; credentials?: string };
 };
 
 export const featuredCourse: Course = {
