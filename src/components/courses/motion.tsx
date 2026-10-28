@@ -29,7 +29,7 @@ export function TaglineReveal({ text }: { text: string }) {
         <motion.span
           key={`${word}-${index}`}
           className="inline-block"
-          initial={reduceMotion ? false : { color: "rgba(255,255,255,.28)" }}
+          initial={reduceMotion ? false : { color: "rgba(255,255,255,.45)" }}
           whileInView={reduceMotion ? undefined : { color: "rgba(255,255,255,1)" }}
           viewport={{ once: true, amount: 0.2, margin: "0px 0px -10% 0px" }}
           transition={{ duration: 0.7, delay: index * 0.035, ease }}

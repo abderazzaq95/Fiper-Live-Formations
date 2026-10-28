@@ -75,7 +75,7 @@ export async function CoursesDirectory({ isHome = false }: { isHome?: boolean })
           <path d="M0 372 C140 350 220 380 330 320 S500 340 610 270 S790 300 920 225 S1080 240 1200 175" fill="none" stroke="#6aa7ca" strokeWidth="2" />
         </svg>
         <div className="relative mx-auto grid min-h-[680px] max-w-[1280px] items-center gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[1.05fr_.95fr] lg:py-24">
-          <Reveal>
+          <div>
             <p className="inline-flex items-center gap-2 rounded-full border border-[#c32828]/40 bg-[#c32828]/10 px-3 py-2 text-sm font-semibold text-[#f2a2a2]"><span className="h-2 w-2 rounded-full bg-[#c32828] pulse-dot" />جلسات تعليمية مباشرة ومجانية</p>
             <h1 className="mt-6 max-w-[680px] text-balance bg-gradient-to-l from-white to-[#9b9b9b] bg-clip-text text-5xl font-bold leading-tight tracking-tight text-transparent sm:text-6xl">تعلّم الأسواق مباشرة، وابدأ بخطوات أوضح</h1>
             <p className="mt-6 max-w-[680px] text-pretty text-lg leading-8 text-[#b7c7d2]">اختر دورة مباشرة، تعرّف إلى المحاضر والبرنامج، ثم احجز مقعدك لتصلك تفاصيل الحضور والتذكيرات تلقائيًا.</p>
@@ -83,9 +83,9 @@ export async function CoursesDirectory({ isHome = false }: { isHome?: boolean })
               <TrackedLink href={registerHref} source="hero_primary" courseSlug={featured?.slug} className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#c32828] px-3 text-base font-semibold text-white transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-0.5 hover:bg-[#a92121] active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">سجّل في أقرب دورة <ArrowLeft size={18} /></TrackedLink>
               <a href="#courses" className="inline-flex h-12 items-center justify-center rounded-xl border border-white/15 px-3 text-base font-semibold text-white transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/10 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">استعرض جميع الدورات</a>
             </div>
-          </Reveal>
+          </div>
 
-          <Reveal delay={0.12} className="lg:justify-self-end">
+          <div className="lg:justify-self-end">
             <div className="max-w-xl rounded-2xl bg-[#08243a]/90 p-6 shadow-[0_32px_90px_rgba(0,0,0,.24)] ring-1 ring-white/10 backdrop-blur-md sm:p-8">
               <p className="text-sm font-semibold text-[#ef8b8b]">أكاديمية مصممة للحضور الفعلي</p>
               <p className="mt-4 text-balance text-3xl font-bold leading-tight">من اختيار الجلسة إلى رابط Meet، كل خطوة في مكان واحد.</p>
@@ -96,7 +96,7 @@ export async function CoursesDirectory({ isHome = false }: { isHome?: boolean })
               </div>
               <p className="mt-5 text-pretty text-xs leading-6 text-[#7f99aa]">هذه الأرقام محسوبة من الدورات والتسجيلات النشطة حاليًا، من دون أرقام تسويقية مضافة.</p>
             </div>
-          </Reveal>
+          </div>
         </div>
       </section>
 
