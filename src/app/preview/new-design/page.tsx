@@ -1,4 +1,4 @@
-import { AtelierLanding as LandingRedesign } from "@/components/preview/atelier-landing";
+import { ReferenceLanding as LandingRedesign } from "@/components/preview/reference-landing";
 import { getPublicCourseById } from "@/lib/data/courses";
 
 export const dynamic = "force-dynamic";
