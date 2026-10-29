@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { AgendaInstructor } from "@/components/public/agenda-instructor";
-import { CourseHero } from "@/components/public/course-hero";
-import { LearningSections } from "@/components/public/learning-sections";
-import { RegistrationSection } from "@/components/public/registration-section";
+import { ReferenceLanding } from "@/components/preview/reference-landing";
 import { getPublicCourseByPath } from "@/lib/data/courses";
 
 export const dynamic = "force-dynamic";
@@ -37,12 +34,5 @@ export default async function CoursePage({ params }: CoursePageProps) {
   if (!data) notFound();
   if (slug !== data.course.slug) redirect(`/courses/${encodeURIComponent(data.course.slug)}`);
 
-  return (
-    <main>
-      {data.landing.visibility.hero && <CourseHero course={data.course} landing={data.landing} />}
-      {(data.landing.visibility.about || data.landing.visibility.audience) && <LearningSections outcomes={data.outcomes} audience={data.audience} landing={data.landing} duration={data.course.duration} />}
-      {(data.landing.visibility.agenda || data.landing.visibility.instructor) && <AgendaInstructor course={data.course} agenda={data.agenda} landing={data.landing} />}
-      {(data.landing.visibility.faq || data.landing.visibility.registration || data.landing.visibility.footer) && <RegistrationSection course={data.course} faqs={data.faqs} landing={data.landing} />}
-    </main>
-  );
+  return <ReferenceLanding {...data} />;
 }
