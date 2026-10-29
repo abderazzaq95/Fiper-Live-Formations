@@ -56,6 +56,20 @@ function asText(value: unknown, fallback = "") {
   return typeof value === "string" && value.trim() ? value : fallback;
 }
 
+function courseCoverPath(row: JsonRecord) {
+  const coverPath = asText(row.cover_path);
+  const courseId = asText(row.id);
+  if (!coverPath) return "";
+
+  // This legacy upload is the generic Fiper logo, not a course-specific cover.
+  if (coverPath.includes("cover-50f25fa2-24e6-44c0-b522-276432a11f8e.png")) return "";
+
+  // A duplicated course used to inherit the source course's storage URL.
+  // Only accept a managed course asset when it belongs to this course.
+  if (coverPath.includes("/course-assets/") && courseId && !coverPath.includes(`/course-assets/${courseId}/`)) return "";
+  return coverPath;
+}
+
 function formatDate(value: string | null | undefined) {
   if (!value) return "—";
   return new Intl.DateTimeFormat("ar", { day: "numeric", month: "long", year: "numeric" }).format(new Date(value));
@@ -78,7 +92,7 @@ function mapPublicData(row: JsonRecord, translation: JsonRecord | undefined, ses
     ...featuredCourse,
     id: asText(row.id, featuredCourse.id),
     slug: asText(row.slug, featuredCourse.slug),
-    coverImage: asText(row.cover_path),
+    coverImage: courseCoverPath(row),
     title,
     heroHeading,
     eyebrow,

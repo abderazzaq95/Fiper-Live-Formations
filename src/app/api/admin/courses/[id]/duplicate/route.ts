@@ -36,7 +36,9 @@ export async function POST(_request: Request, context: RouteContext<"/api/admin/
     state: "draft",
     default_locale: text(source.default_locale, "ar"),
     instructor_id: text(source.instructor_id) || null,
-    cover_path: text(source.cover_path) || null,
+    // A copied course needs its own cover upload. Reusing the source URL makes
+    // unrelated courses display the same image in the public directory.
+    cover_path: null,
     created_by: identity.id === "preview" ? null : identity.id,
     published_at: null,
     is_featured: false,
