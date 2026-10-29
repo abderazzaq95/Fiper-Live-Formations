@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getDashboardIdentity } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
@@ -23,7 +23,7 @@ export async function POST(request: Request, context: RouteContext<"/api/admin/c
   if (!extensions[file.type]) return Response.json({ message: "يسمح فقط بصور PNG أو JPG أو WebP." }, { status: 422 });
   if (file.size > maxSize) return Response.json({ message: "حجم الصورة يجب ألا يتجاوز 5MB." }, { status: 422 });
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   if (id === "new") {
     const path = `pending/${identity.id}/${kind}-${crypto.randomUUID()}.${extensions[file.type]}`;
     const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file, { contentType: file.type, cacheControl: "3600", upsert: false });

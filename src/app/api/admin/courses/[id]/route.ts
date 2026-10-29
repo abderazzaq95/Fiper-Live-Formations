@@ -1,5 +1,4 @@
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getDashboardIdentity } from "@/lib/auth";
 import { z } from "zod";
@@ -63,11 +62,13 @@ const updateSchema = z.object({
   instructorImage: z.string().trim().max(2000).default(""),
 });
 
+type CourseDatabase = ReturnType<typeof createAdminClient>;
+
 function canonicalSlug(value: unknown) {
   return typeof value === "string" && /^id\d+$/i.test(value.trim()) ? value.trim().toLowerCase() : "";
 }
 
-async function nextCourseSlug(supabase: Awaited<ReturnType<typeof createClient>>) {
+async function nextCourseSlug(supabase: CourseDatabase) {
   const [{ data: courses }, { data: aliases }] = await Promise.all([
     supabase.from("courses").select("slug"),
     supabase.from("course_slug_aliases").select("slug"),
@@ -79,7 +80,7 @@ async function nextCourseSlug(supabase: Awaited<ReturnType<typeof createClient>>
   return `id${String(max + 1).padStart(2, "0")}`;
 }
 
-async function slugIsAvailable(supabase: Awaited<ReturnType<typeof createClient>>, slug: string, courseId = "") {
+async function slugIsAvailable(supabase: CourseDatabase, slug: string, courseId = "") {
   const [{ data: course }, { data: alias }] = await Promise.all([
     supabase.from("courses").select("id").eq("slug", slug).maybeSingle(),
     supabase.from("course_slug_aliases").select("course_id").eq("slug", slug).maybeSingle(),
@@ -160,7 +161,7 @@ function toIso(date: string, time: string, timezone: string) {
   return new Date(result).toISOString();
 }
 
-async function createCourse(supabase: Awaited<ReturnType<typeof createClient>>, identity: { id: string }, value: z.infer<typeof updateSchema>) {
+async function createCourse(supabase: CourseDatabase, identity: { id: string }, value: z.infer<typeof updateSchema>) {
   const newId = `crs_${crypto.randomUUID().replaceAll("-", "").slice(0, 20)}`;
   const newSlug = canonicalSlug(value.slug) || await nextCourseSlug(supabase);
   if (!await slugIsAvailable(supabase, newSlug)) throw new Error("slug_already_exists");
@@ -276,7 +277,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   const value = parsed.data;
   const channelLookup = await createAdminClient().from("whatsapp_channels").select("id").eq("id", value.whatsappChannelId).eq("active", true).maybeSingle();
   if (channelLookup.error || !channelLookup.data) return Response.json({ message: "اختر رقم واتساب نشطاً لهذه الدورة." }, { status: 422 });
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   if (id === "new") {
     try {
       const created = await createCourse(supabase, identity, value);
@@ -301,15 +302,15 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   if (!await slugIsAvailable(supabase, stableSlug, id)) return Response.json({ message: "هذا الرابط المختصر مستخدم لدورة أخرى." }, { status: 409 });
   const now = new Date().toISOString();
   const courseUpdate = { slug: stableSlug, cover_path: value.coverImage || null, updated_at: now, state: value.publish ? "published" : "draft", published_at: value.publish ? now : null, level: value.level || null, topic: value.topic || null };
-  let { error: courseError } = await supabase.from("courses").update(courseUpdate).eq("id", id);
-  if (courseError) {
+  let courseWrite = await supabase.from("courses").update(courseUpdate).eq("id", id).select("id").maybeSingle();
+  if (courseWrite.error) {
     const legacyCourseUpdate = { slug: stableSlug, cover_path: value.coverImage || null, updated_at: now, state: value.publish ? "published" : "draft", published_at: value.publish ? now : null };
-    ({ error: courseError } = await supabase.from("courses").update(legacyCourseUpdate).eq("id", id));
+    courseWrite = await supabase.from("courses").update(legacyCourseUpdate).eq("id", id).select("id").maybeSingle();
   }
-  if (courseError) return Response.json({ message: "Unable to update the course." }, { status: 500 });
+  if (courseWrite.error || !courseWrite.data) return Response.json({ message: "تعذر حفظ بيانات الدورة. أعد فتح الدورة وحاول مرة أخرى." }, { status: 500 });
   if (stableSlug !== oldSlug) await saveSlugAlias(oldSlug, id);
 
-  const { error: translationError } = await supabase.from("course_translations").upsert({
+  const translationWrite = await supabase.from("course_translations").upsert({
     course_id: id,
     locale,
     title: value.title,
@@ -321,8 +322,8 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
     audience: value.audience,
     agenda: value.agenda,
     landing_content: value.landingContent,
-  }, { onConflict: "course_id,locale" });
-  if (translationError) return Response.json({ message: "Unable to update course content." }, { status: 500 });
+  }, { onConflict: "course_id,locale" }).select("course_id").maybeSingle();
+  if (translationWrite.error || !translationWrite.data) return Response.json({ message: "تعذر حفظ محتوى الدورة." }, { status: 500 });
 
   const sessions = Array.isArray(existing.course_sessions) ? existing.course_sessions : [];
   const sessionId = sessions.some((session) => session.id === value.sessionId) ? value.sessionId : sessions[0]?.id;
@@ -344,9 +345,9 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
     updated_at: new Date().toISOString(),
   };
   const sessionResult = sessionId
-    ? await supabase.from("course_sessions").update(sessionPayload).eq("id", sessionId)
-    : await supabase.from("course_sessions").insert(sessionPayload);
-  if (sessionResult.error) return Response.json({ message: "Unable to update the course schedule." }, { status: 500 });
+    ? await supabase.from("course_sessions").update(sessionPayload).eq("id", sessionId).select("id").maybeSingle()
+    : await supabase.from("course_sessions").insert(sessionPayload).select("id").maybeSingle();
+  if (sessionResult.error || !sessionResult.data) return Response.json({ message: "تعذر حفظ موعد الدورة." }, { status: 500 });
   if (sessionId) await reschedulePendingReminders(sessionId, sessionPayload.starts_at, sessionPayload.timezone, sessionPayload.meet_url ?? "", sessionPayload.delivery_type, sessionPayload.whatsapp_channel_id);
 
   if (existing.instructor_id) {

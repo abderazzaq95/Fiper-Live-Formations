@@ -2,6 +2,7 @@ import "server-only";
 
 import { agenda as demoAgenda, audience as demoAudience, faqs as demoFaqs, featuredCourse, learningOutcomes, type Course } from "@/lib/demo-data";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { defaultLandingContent, mergeLandingContent, type LandingContent } from "@/lib/landing-content";
 
@@ -405,20 +406,37 @@ export type CourseEditorData = {
 
 export async function getCourseEditorData(id: string): Promise<CourseEditorData | null> {
   try {
-    const supabase = await createClient();
-    const primary = await supabase
+    const supabase = createAdminClient();
+    let primary = await supabase
       .from("courses")
       .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,level,topic,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address,maps_url,whatsapp_channel_id),instructors(id,name,title,bio,photo_path,years_active,focus_markets,credentials)")
       .eq("id", id)
       .maybeSingle();
-    const fallback = primary.error ? await supabase
+    if (!primary.data && !primary.error) {
+      primary = await supabase
+        .from("courses")
+        .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,level,topic,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address,maps_url,whatsapp_channel_id),instructors(id,name,title,bio,photo_path,years_active,focus_markets,credentials)")
+        .eq("slug", id)
+        .maybeSingle();
+    }
+    let fallback = primary.error ? await supabase
       .from("courses")
       .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address,maps_url,whatsapp_channel_id),instructors(id,name,title,bio,photo_path)")
       .eq("id", id)
       .maybeSingle() : null;
+    if (fallback && !fallback.data && !fallback.error) {
+      fallback = await supabase
+        .from("courses")
+        .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address,maps_url,whatsapp_channel_id),instructors(id,name,title,bio,photo_path)")
+        .eq("slug", id)
+        .maybeSingle();
+    }
     const data = fallback?.data ?? primary.data;
     const error = fallback?.error ?? primary.error;
-    if (error || !data) return null;
+    if (error || !data) {
+      if (error) console.error("course_editor_load_failed", { id, message: error.message });
+      return null;
+    }
     const row = data as unknown as JsonRecord;
     const translations = asArray(row.course_translations);
     const translation = translations.find((item) => item.locale === row.default_locale) ?? translations[0] ?? {};
@@ -461,7 +479,8 @@ export async function getCourseEditorData(id: string): Promise<CourseEditorData 
         whatsappChannelId: asText(session.whatsapp_channel_id, "uae"),
       },
     };
-  } catch {
+  } catch (error) {
+    console.error("course_editor_load_failed", { id, error });
     return null;
   }
 }
