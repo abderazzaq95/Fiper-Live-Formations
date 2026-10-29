@@ -407,41 +407,43 @@ export type CourseEditorData = {
 export async function getCourseEditorData(id: string): Promise<CourseEditorData | null> {
   try {
     const supabase = createAdminClient();
-    let primary = await supabase
-      .from("courses")
-      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,level,topic,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address,maps_url,whatsapp_channel_id),instructors(id,name,title,bio,photo_path,years_active,focus_markets,credentials)")
-      .eq("id", id)
-      .maybeSingle();
-    if (!primary.data && !primary.error) {
-      primary = await supabase
-        .from("courses")
-        .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,level,topic,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address,maps_url,whatsapp_channel_id),instructors(id,name,title,bio,photo_path,years_active,focus_markets,credentials)")
-        .eq("slug", id)
-        .maybeSingle();
+    const loadCourse = (column: "id" | "slug", select: string) => supabase.from("courses").select(select).eq(column, id).maybeSingle();
+    let courseResult = await loadCourse("id", "id,slug,state,is_featured,default_locale,instructor_id,cover_path,level,topic");
+    if (!courseResult.data && !courseResult.error) courseResult = await loadCourse("slug", "id,slug,state,is_featured,default_locale,instructor_id,cover_path,level,topic");
+    if (courseResult.error) {
+      courseResult = await loadCourse("id", "id,slug,state,is_featured,default_locale,instructor_id,cover_path");
+      if (!courseResult.data && !courseResult.error) courseResult = await loadCourse("slug", "id,slug,state,is_featured,default_locale,instructor_id,cover_path");
     }
-    let fallback = primary.error ? await supabase
-      .from("courses")
-      .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address,maps_url,whatsapp_channel_id),instructors(id,name,title,bio,photo_path)")
-      .eq("id", id)
-      .maybeSingle() : null;
-    if (fallback && !fallback.data && !fallback.error) {
-      fallback = await supabase
-        .from("courses")
-        .select("id,slug,state,is_featured,default_locale,instructor_id,cover_path,course_translations(locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content),course_sessions(id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address,maps_url,whatsapp_channel_id),instructors(id,name,title,bio,photo_path)")
-        .eq("slug", id)
-        .maybeSingle();
-    }
-    const data = fallback?.data ?? primary.data;
-    const error = fallback?.error ?? primary.error;
-    if (error || !data) {
-      if (error) console.error("course_editor_load_failed", { id, message: error.message });
+    if (courseResult.error || !courseResult.data) {
+      if (courseResult.error) console.error("course_editor_course_load_failed", { id, message: courseResult.error.message });
       return null;
     }
-    const row = data as unknown as JsonRecord;
-    const translations = asArray(row.course_translations);
-    const translation = translations.find((item) => item.locale === row.default_locale) ?? translations[0] ?? {};
-    const session = preferredCourseSession(row.course_sessions) ?? {};
-    const instructor = firstRecord(row.instructors) ?? {};
+
+    const row = courseResult.data as unknown as JsonRecord;
+    const courseId = asText(row.id);
+    const locale = asText(row.default_locale, "ar");
+    let translationResult = await supabase.from("course_translations").select("locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs,landing_content").eq("course_id", courseId).eq("locale", locale).maybeSingle();
+    if (translationResult.error) translationResult = await supabase.from("course_translations").select("locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs").eq("course_id", courseId).eq("locale", locale).maybeSingle();
+    if (!translationResult.data && !translationResult.error) translationResult = await supabase.from("course_translations").select("locale,title,hero_heading,eyebrow,description,outcomes,agenda,audience,faqs").eq("course_id", courseId).limit(1).maybeSingle();
+
+    let sessionsResult = await supabase.from("course_sessions").select("id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address,maps_url,whatsapp_channel_id").eq("course_id", courseId);
+    if (sessionsResult.error) sessionsResult = await supabase.from("course_sessions").select("id,starts_at,ends_at,timezone,delivery_type,platform,capacity,registration_open,waitlist_enabled,meet_url,venue_name,venue_address").eq("course_id", courseId) as unknown as typeof sessionsResult;
+
+    const instructorId = asText(row.instructor_id);
+    let instructorResult = instructorId ? await supabase.from("instructors").select("id,name,title,bio,photo_path,years_active,focus_markets,credentials").eq("id", instructorId).maybeSingle() : { data: null, error: null };
+    if (instructorResult.error && instructorId) instructorResult = await supabase.from("instructors").select("id,name,title,bio,photo_path").eq("id", instructorId).maybeSingle();
+
+    if (translationResult.error || sessionsResult.error || instructorResult.error) {
+      console.error("course_editor_related_data_load_failed", {
+        id,
+        translation: translationResult.error?.message,
+        sessions: sessionsResult.error?.message,
+        instructor: instructorResult.error?.message,
+      });
+    }
+    const translation = (translationResult.data ?? {}) as unknown as JsonRecord;
+    const session = preferredCourseSession(sessionsResult.data) ?? {};
+    const instructor = (instructorResult.data ?? {}) as unknown as JsonRecord;
     const editorSessionId = asText(session.id);
     const { count: registrationCount } = editorSessionId ? await supabase.from("registrations").select("id", { count: "exact", head: true }).eq("session_id", editorSessionId).in("status", ["confirmed", "attended"]) : { count: 0 };
     return {
