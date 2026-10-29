@@ -134,3 +134,16 @@
   .formTitle h2{font-size:20px;line-height:28px}
   .formCard :global(form label:has([type=checkbox])){padding:12px}
 }
+
+/* Final section spacing overrides for the production course layout. */
+.heroSection{padding:16px 32px 8px}
+.instructorSection{padding:24px 32px 8px}
+.programSection{padding:8px 32px 16px}
+.faqSection{padding:16px 32px 24px}
+
+@media(max-width:760px){
+  .heroSection{padding:8px}
+  .instructorSection{padding:24px 16px 8px}
+  .programSection{padding:8px 16px 16px}
+  .faqSection{padding:16px 16px 24px}
+}
