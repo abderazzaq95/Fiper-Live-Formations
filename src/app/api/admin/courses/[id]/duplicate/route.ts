@@ -1,6 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { getDashboardIdentity } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type JsonRecord = Record<string, unknown>;
 function record(value: unknown): JsonRecord { return value && typeof value === "object" ? value as JsonRecord : {}; }
@@ -13,7 +13,7 @@ export async function POST(_request: Request, context: RouteContext<"/api/admin/
   const { id } = await context.params;
   if (!id || id === "new") return Response.json({ message: "Course not found." }, { status: 400 });
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data: source, error: sourceError } = await supabase
     .from("courses")
     .select("id,slug,default_locale,instructor_id,cover_path,course_translations(*),course_sessions(*)")
@@ -29,12 +29,33 @@ export async function POST(_request: Request, context: RouteContext<"/api/admin/
     return match ? Math.max(max, Number(match[1])) : max;
   }, 0) + 1;
   const newSlug = `id${String(nextNumber).padStart(2, "0")}`;
+  let newInstructorId: string | null = null;
+  if (source.instructor_id) {
+    const { data: instructor, error: instructorLookupError } = await supabase
+      .from("instructors")
+      .select("name,title,bio,years_active,focus_markets,credentials,photo_path")
+      .eq("id", source.instructor_id)
+      .maybeSingle();
+    if (instructorLookupError || !instructor) return Response.json({ message: "Unable to copy the instructor." }, { status: 500 });
+
+    let instructorCopy = await supabase.from("instructors").insert(instructor).select("id").single();
+    if (instructorCopy.error) {
+      instructorCopy = await supabase.from("instructors").insert({
+        name: instructor.name,
+        title: instructor.title,
+        bio: instructor.bio,
+        photo_path: instructor.photo_path,
+      }).select("id").single();
+    }
+    if (instructorCopy.error || !instructorCopy.data) return Response.json({ message: "Unable to copy the instructor." }, { status: 500 });
+    newInstructorId = instructorCopy.data.id;
+  }
   const coursePayload = {
     id: newId,
     slug: newSlug,
     state: "draft",
     default_locale: text(source.default_locale, "ar"),
-    instructor_id: text(source.instructor_id) || null,
+    instructor_id: newInstructorId,
     // A copied course needs its own cover upload. Reusing the source URL makes
     // unrelated courses display the same image in the public directory.
     cover_path: null,
@@ -44,7 +65,10 @@ export async function POST(_request: Request, context: RouteContext<"/api/admin/
   };
 
   const { error: courseError } = await supabase.from("courses").insert(coursePayload);
-  if (courseError) return Response.json({ message: "Unable to copy the course." }, { status: 500 });
+  if (courseError) {
+    if (newInstructorId) await supabase.from("instructors").delete().eq("id", newInstructorId);
+    return Response.json({ message: "Unable to copy the course." }, { status: 500 });
+  }
 
   const translations = rows(source.course_translations).map((translation) => ({
     course_id: newId,
@@ -65,6 +89,7 @@ export async function POST(_request: Request, context: RouteContext<"/api/admin/
     const { error } = await supabase.from("course_translations").insert(translations);
     if (error) {
       await supabase.from("courses").delete().eq("id", newId);
+      if (newInstructorId) await supabase.from("instructors").delete().eq("id", newInstructorId);
       return Response.json({ message: "Unable to copy course content." }, { status: 500 });
     }
   }
@@ -90,6 +115,7 @@ export async function POST(_request: Request, context: RouteContext<"/api/admin/
     const { error } = await supabase.from("course_sessions").insert(sessions);
     if (error) {
       await supabase.from("courses").delete().eq("id", newId);
+      if (newInstructorId) await supabase.from("instructors").delete().eq("id", newInstructorId);
       return Response.json({ message: "Unable to copy the course schedule." }, { status: 500 });
     }
   }

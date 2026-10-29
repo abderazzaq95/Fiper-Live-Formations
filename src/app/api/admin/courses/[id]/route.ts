@@ -350,27 +350,63 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   if (sessionResult.error || !sessionResult.data) return Response.json({ message: "تعذر حفظ موعد الدورة." }, { status: 500 });
   if (sessionId) await reschedulePendingReminders(sessionId, sessionPayload.starts_at, sessionPayload.timezone, sessionPayload.meet_url ?? "", sessionPayload.delivery_type, sessionPayload.whatsapp_channel_id);
 
+  const instructorPayload = {
+    name: value.instructorName,
+    title: value.instructorTitle,
+    bio: value.instructorBio,
+    years_active: value.instructorYearsActive,
+    focus_markets: value.instructorFocusMarkets || null,
+    credentials: value.instructorCredentials || null,
+    photo_path: value.instructorImage || null,
+    updated_at: new Date().toISOString(),
+  };
+  const legacyInstructorPayload = {
+    name: value.instructorName,
+    title: value.instructorTitle,
+    bio: value.instructorBio,
+    photo_path: value.instructorImage || null,
+    updated_at: new Date().toISOString(),
+  };
+
   if (existing.instructor_id) {
-    let { error: instructorError } = await supabase.from("instructors").update({
-      name: value.instructorName,
-      title: value.instructorTitle,
-      bio: value.instructorBio,
-      years_active: value.instructorYearsActive,
-      focus_markets: value.instructorFocusMarkets || null,
-      credentials: value.instructorCredentials || null,
-      photo_path: value.instructorImage || null,
-      updated_at: new Date().toISOString(),
-    }).eq("id", existing.instructor_id);
-    if (instructorError) {
-      ({ error: instructorError } = await supabase.from("instructors").update({
-        name: value.instructorName,
-        title: value.instructorTitle,
-        bio: value.instructorBio,
-        photo_path: value.instructorImage || null,
-        updated_at: new Date().toISOString(),
-      }).eq("id", existing.instructor_id));
+    const { count: linkedCourseCount, error: linkedCourseError } = await supabase
+      .from("courses")
+      .select("id", { count: "exact", head: true })
+      .eq("instructor_id", existing.instructor_id);
+    if (linkedCourseError) return Response.json({ message: "Unable to verify instructor details." }, { status: 500 });
+
+    if ((linkedCourseCount ?? 0) > 1) {
+      let instructorCreate = await supabase.from("instructors").insert(instructorPayload).select("id").single();
+      if (instructorCreate.error) instructorCreate = await supabase.from("instructors").insert(legacyInstructorPayload).select("id").single();
+      if (instructorCreate.error || !instructorCreate.data) return Response.json({ message: "Unable to create independent instructor details." }, { status: 500 });
+
+      const instructorRelink = await supabase.from("courses")
+        .update({ instructor_id: instructorCreate.data.id, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select("id")
+        .maybeSingle();
+      if (instructorRelink.error || !instructorRelink.data) {
+        await supabase.from("instructors").delete().eq("id", instructorCreate.data.id);
+        return Response.json({ message: "Unable to link the instructor to this course." }, { status: 500 });
+      }
+    } else {
+      let { error: instructorError } = await supabase.from("instructors").update(instructorPayload).eq("id", existing.instructor_id);
+      if (instructorError) ({ error: instructorError } = await supabase.from("instructors").update(legacyInstructorPayload).eq("id", existing.instructor_id));
+      if (instructorError) return Response.json({ message: "Unable to update instructor details." }, { status: 500 });
     }
-    if (instructorError) return Response.json({ message: "Unable to update instructor details." }, { status: 500 });
+  } else {
+    let instructorCreate = await supabase.from("instructors").insert(instructorPayload).select("id").single();
+    if (instructorCreate.error) instructorCreate = await supabase.from("instructors").insert(legacyInstructorPayload).select("id").single();
+    if (instructorCreate.error || !instructorCreate.data) return Response.json({ message: "Unable to create instructor details." }, { status: 500 });
+    const instructorRelink = await supabase.from("courses")
+      .update({ instructor_id: instructorCreate.data.id, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
+    if (instructorRelink.error || !instructorRelink.data) {
+      await supabase.from("instructors").delete().eq("id", instructorCreate.data.id);
+      return Response.json({ message: "Unable to link the instructor to this course." }, { status: 500 });
+    }
   }
 
   revalidatePath("/");

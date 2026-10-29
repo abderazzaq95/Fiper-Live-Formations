@@ -41,12 +41,14 @@ export async function POST(request: Request, context: RouteContext<"/api/admin/c
 
   const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(path);
   const publicUrl = publicData.publicUrl;
-  const updateResult = kind === "cover"
-    ? await supabase.from("courses").update({ cover_path: publicUrl, updated_at: new Date().toISOString() }).eq("id", id)
-    : await supabase.from("instructors").update({ photo_path: publicUrl, updated_at: new Date().toISOString() }).eq("id", course.instructor_id);
-  if (updateResult.error) {
-    await supabase.storage.from(bucket).remove([path]);
-    return Response.json({ message: "تعذر حفظ رابط الصورة." }, { status: 500 });
+  // The course save endpoint persists instructor images after isolating any
+  // instructor record shared by older courses.
+  if (kind === "cover") {
+    const updateResult = await supabase.from("courses").update({ cover_path: publicUrl, updated_at: new Date().toISOString() }).eq("id", id);
+    if (updateResult.error) {
+      await supabase.storage.from(bucket).remove([path]);
+      return Response.json({ message: "تعذر حفظ رابط الصورة." }, { status: 500 });
+    }
   }
 
   revalidatePath("/");
