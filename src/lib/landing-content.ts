@@ -15,6 +15,7 @@ export type LandingSectionVisibility = {
 export type LandingContent = {
   visibility: LandingSectionVisibility;
   hero: {
+    navCourse: string;
     navAbout: string;
     navAgenda: string;
     navInstructor: string;
@@ -23,6 +24,7 @@ export type LandingContent = {
     secondaryCta: string;
     benefitOne: string;
     benefitTwo: string;
+    benefitThree: string;
   };
   about: { eyebrow: string; title: string; description: string; durationLabel: string };
   audience: { eyebrow: string; title: string; description: string; badgeLabel: string; badgeTitle: string; stats: LandingStat[] };
@@ -30,7 +32,20 @@ export type LandingContent = {
   instructor: { eyebrow: string; yearsValue: string; yearsLabel: string; liveValue: string; liveLabel: string };
   faq: { eyebrow: string; title: string };
   registration: { eyebrow: string; title: string; description: string; formTitle: string; formDescription: string };
-  footer: { disclaimer: string; privacyLabel: string; termsLabel: string };
+  footer: {
+    brandDescription: string;
+    courseLinksTitle: string;
+    courseDetailsLabel: string;
+    instructorLabel: string;
+    programLabel: string;
+    importantLinksTitle: string;
+    contactLabel: string;
+    contactEmail: string;
+    backToTopLabel: string;
+    disclaimer: string;
+    privacyLabel: string;
+    termsLabel: string;
+  };
 };
 
 export const defaultLandingContent: LandingContent = {
@@ -45,6 +60,7 @@ export const defaultLandingContent: LandingContent = {
     footer: true,
   },
   hero: {
+    navCourse: "الدورة",
     navAbout: "عن الدورة",
     navAgenda: "المحاور",
     navInstructor: "المحاضر",
@@ -53,6 +69,7 @@ export const defaultLandingContent: LandingContent = {
     secondaryCta: "استكشف محاور الدورة",
     benefitOne: "لا تحتاج خبرة سابقة",
     benefitTwo: "حضور مباشر وتفاعلي",
+    benefitThree: "تأكيد وتذكير قبل الموعد",
   },
   about: {
     eyebrow: "ما الذي ستخرج به؟",
@@ -93,6 +110,15 @@ export const defaultLandingContent: LandingContent = {
     formDescription: "جميع الحقول مطلوبة",
   },
   footer: {
+    brandDescription: "تعليم مباشر يساعد المتداول العربي على فهم السوق وبناء قرارات أكثر وضوحاً.",
+    courseLinksTitle: "الدورة",
+    courseDetailsLabel: "تفاصيل الدورة",
+    instructorLabel: "المحاضر",
+    programLabel: "البرنامج",
+    importantLinksTitle: "معلومات مهمة",
+    contactLabel: "تواصل معنا",
+    contactEmail: "meetings@fiperacademy.com",
+    backToTopLabel: "العودة إلى الأعلى",
     disclaimer: "محتوى تعليمي عام ولا يمثل نصيحة استثمارية. ينطوي تداول المنتجات المالية على مخاطر وقد يؤدي إلى خسارة رأس المال.",
     privacyLabel: "الخصوصية",
     termsLabel: "الشروط",
@@ -132,13 +158,13 @@ export function mergeLandingContent(value: unknown): LandingContent {
       registration: typeof visibility.registration === "boolean" ? visibility.registration : defaultLandingContent.visibility.registration,
       footer: typeof visibility.footer === "boolean" ? visibility.footer : defaultLandingContent.visibility.footer,
     },
-    hero: { ...defaultLandingContent.hero, navAbout: text(hero.navAbout, defaultLandingContent.hero.navAbout), navAgenda: text(hero.navAgenda, defaultLandingContent.hero.navAgenda), navInstructor: text(hero.navInstructor, defaultLandingContent.hero.navInstructor), navFaq: text(hero.navFaq, defaultLandingContent.hero.navFaq), primaryCta: text(hero.primaryCta, defaultLandingContent.hero.primaryCta), secondaryCta: text(hero.secondaryCta, defaultLandingContent.hero.secondaryCta), benefitOne: text(hero.benefitOne, defaultLandingContent.hero.benefitOne), benefitTwo: text(hero.benefitTwo, defaultLandingContent.hero.benefitTwo) },
+    hero: { ...defaultLandingContent.hero, navCourse: text(hero.navCourse, defaultLandingContent.hero.navCourse), navAbout: text(hero.navAbout, defaultLandingContent.hero.navAbout), navAgenda: text(hero.navAgenda, defaultLandingContent.hero.navAgenda), navInstructor: text(hero.navInstructor, defaultLandingContent.hero.navInstructor), navFaq: text(hero.navFaq, defaultLandingContent.hero.navFaq), primaryCta: text(hero.primaryCta, defaultLandingContent.hero.primaryCta), secondaryCta: text(hero.secondaryCta, defaultLandingContent.hero.secondaryCta), benefitOne: text(hero.benefitOne, defaultLandingContent.hero.benefitOne), benefitTwo: text(hero.benefitTwo, defaultLandingContent.hero.benefitTwo), benefitThree: text(hero.benefitThree, defaultLandingContent.hero.benefitThree) },
     about: { ...defaultLandingContent.about, eyebrow: text(about.eyebrow, defaultLandingContent.about.eyebrow), title: text(about.title, defaultLandingContent.about.title), description: text(about.description, defaultLandingContent.about.description), durationLabel: text(about.durationLabel, defaultLandingContent.about.durationLabel) },
     audience: { ...defaultLandingContent.audience, eyebrow: text(audience.eyebrow, defaultLandingContent.audience.eyebrow), title: text(audience.title, defaultLandingContent.audience.title), description: text(audience.description, defaultLandingContent.audience.description), badgeLabel: text(audience.badgeLabel, defaultLandingContent.audience.badgeLabel), badgeTitle: text(audience.badgeTitle, defaultLandingContent.audience.badgeTitle), stats },
     agenda: { ...defaultLandingContent.agenda, eyebrow: text(agenda.eyebrow, defaultLandingContent.agenda.eyebrow), title: text(agenda.title, defaultLandingContent.agenda.title), description: text(agenda.description, defaultLandingContent.agenda.description) },
     instructor: { ...defaultLandingContent.instructor, eyebrow: text(instructor.eyebrow, defaultLandingContent.instructor.eyebrow), yearsValue: text(instructor.yearsValue, defaultLandingContent.instructor.yearsValue), yearsLabel: text(instructor.yearsLabel, defaultLandingContent.instructor.yearsLabel), liveValue: text(instructor.liveValue, defaultLandingContent.instructor.liveValue), liveLabel: text(instructor.liveLabel, defaultLandingContent.instructor.liveLabel) },
     faq: { eyebrow: text(faq.eyebrow, defaultLandingContent.faq.eyebrow), title: text(faq.title, defaultLandingContent.faq.title) },
     registration: { ...defaultLandingContent.registration, eyebrow: text(registration.eyebrow, defaultLandingContent.registration.eyebrow), title: text(registration.title, defaultLandingContent.registration.title), description: text(registration.description, defaultLandingContent.registration.description), formTitle: text(registration.formTitle, defaultLandingContent.registration.formTitle), formDescription: text(registration.formDescription, defaultLandingContent.registration.formDescription) },
-    footer: { ...defaultLandingContent.footer, disclaimer: text(footer.disclaimer, defaultLandingContent.footer.disclaimer), privacyLabel: text(footer.privacyLabel, defaultLandingContent.footer.privacyLabel), termsLabel: text(footer.termsLabel, defaultLandingContent.footer.termsLabel) },
+    footer: { ...defaultLandingContent.footer, brandDescription: text(footer.brandDescription, defaultLandingContent.footer.brandDescription), courseLinksTitle: text(footer.courseLinksTitle, defaultLandingContent.footer.courseLinksTitle), courseDetailsLabel: text(footer.courseDetailsLabel, defaultLandingContent.footer.courseDetailsLabel), instructorLabel: text(footer.instructorLabel, defaultLandingContent.footer.instructorLabel), programLabel: text(footer.programLabel, defaultLandingContent.footer.programLabel), importantLinksTitle: text(footer.importantLinksTitle, defaultLandingContent.footer.importantLinksTitle), contactLabel: text(footer.contactLabel, defaultLandingContent.footer.contactLabel), contactEmail: text(footer.contactEmail, defaultLandingContent.footer.contactEmail), backToTopLabel: text(footer.backToTopLabel, defaultLandingContent.footer.backToTopLabel), disclaimer: text(footer.disclaimer, defaultLandingContent.footer.disclaimer), privacyLabel: text(footer.privacyLabel, defaultLandingContent.footer.privacyLabel), termsLabel: text(footer.termsLabel, defaultLandingContent.footer.termsLabel) },
   };
 }

@@ -45,7 +45,7 @@ export function ReferenceLanding({ course, agenda, outcomes, faqs, landing }: Pu
           <Image src="/brand/fiper-wordmark-drive.png" alt="Fiper Academy" width={190} height={66} priority />
         </a>
         <nav className={styles.desktopNav} aria-label="التنقل الرئيسي">
-          <a href="#main-content" aria-current="page">الدورة</a>
+          <a href="#main-content" aria-current="page">{landing.hero.navCourse}</a>
           <a href="#instructor">{landing.hero.navInstructor}</a>
           <a href="#program">{landing.hero.navAgenda}</a>
           <a href="#questions">{landing.hero.navFaq}</a>
@@ -60,7 +60,7 @@ export function ReferenceLanding({ course, agenda, outcomes, faqs, landing }: Pu
       </header>
 
       {menuOpen ? <nav className={styles.mobileNav} aria-label="قائمة الهاتف">{[
-        ["main-content", "الدورة"],
+        ["main-content", landing.hero.navCourse],
         ["instructor", landing.hero.navInstructor],
         ["program", landing.hero.navAgenda],
         ["questions", landing.hero.navFaq],
@@ -83,7 +83,7 @@ export function ReferenceLanding({ course, agenda, outcomes, faqs, landing }: Pu
             <p className={styles.description}>{course.description}</p>
             <div className={styles.assurances}>
               <span><CheckCircle size={18} weight="fill" />{landing.hero.benefitOne}</span>
-              <span><CheckCircle size={18} weight="fill" />تأكيد وتذكير قبل الموعد</span>
+              <span><CheckCircle size={18} weight="fill" />{landing.hero.benefitThree}</span>
               <span><CheckCircle size={18} weight="fill" />{landing.hero.benefitTwo}</span>
             </div>
           </article>
@@ -124,7 +124,7 @@ export function ReferenceLanding({ course, agenda, outcomes, faqs, landing }: Pu
         </div>
       </section> : null}
 
-      {landing.visibility.agenda || landing.visibility.about ? <section id="program" className={styles.programSection}>
+      {landing.visibility.agenda ? <section id="program" className={styles.programSection}>
         <div className={styles.programBox} data-reveal>
           <div className={styles.programContent}>
             <h2>{landing.agenda.title}</h2>
@@ -142,13 +142,13 @@ export function ReferenceLanding({ course, agenda, outcomes, faqs, landing }: Pu
 
       {landing.visibility.footer ? <footer id="footer" className={styles.footer}>
         <div className={styles.footerTop}>
-          <div className={styles.footerBrand}><Image src="/brand/fiper-wordmark-drive.png" alt="Fiper Academy" width={210} height={73} /><p>تعليم مباشر يساعد المتداول العربي على فهم السوق وبناء قرارات أكثر وضوحًا.</p></div>
-          <nav aria-label="روابط الدورة"><h2>الدورة</h2><a href="#main-content">تفاصيل الدورة</a><a href="#instructor">المحاضر</a><a href="#program">البرنامج</a></nav>
-          <nav aria-label="روابط مهمة"><h2>معلومات مهمة</h2><a href="/privacy">{landing.footer.privacyLabel}</a><a href="/terms">{landing.footer.termsLabel}</a><a href="mailto:meetings@fiperacademy.com">تواصل معنا</a></nav>
+          <div className={styles.footerBrand}><Image src="/brand/fiper-wordmark-drive.png" alt="Fiper Academy" width={210} height={73} /><p>{landing.footer.brandDescription}</p></div>
+          <nav aria-label="روابط الدورة"><h2>{landing.footer.courseLinksTitle}</h2><a href="#main-content">{landing.footer.courseDetailsLabel}</a><a href="#instructor">{landing.footer.instructorLabel}</a><a href="#program">{landing.footer.programLabel}</a></nav>
+          <nav aria-label="روابط مهمة"><h2>{landing.footer.importantLinksTitle}</h2><a href="/privacy">{landing.footer.privacyLabel}</a><a href="/terms">{landing.footer.termsLabel}</a><a href={`mailto:${landing.footer.contactEmail}`}>{landing.footer.contactLabel}</a></nav>
           <div className={styles.footerAction}><h2>{landing.registration.title}</h2><p>{landing.registration.description}</p><a href="#register">{landing.hero.primaryCta}<ArrowLeft size={18} /></a></div>
         </div>
         <div className={styles.disclaimer}><p>{landing.footer.disclaimer}</p></div>
-        <div className={styles.copyright}><span>© {new Date().getFullYear()} Fiper Academy</span><a href="#main-content">العودة إلى الأعلى</a></div>
+        <div className={styles.copyright}><span>© {new Date().getFullYear()} Fiper Academy</span><a href="#main-content">{landing.footer.backToTopLabel}</a></div>
       </footer> : null}
     </main>
   );
