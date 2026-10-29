@@ -49,6 +49,7 @@ export function CourseEditor({ courseId, initial, whatsappChannels, isNew = fals
   const router = useRouter();
   const course = initial ? { ...featuredCourse, title: initial.title, eyebrow: initial.eyebrow, description: initial.description, slug: initial.slug, coverImage: initial.coverPath, instructor: { ...featuredCourse.instructor, name: initial.instructor.name, role: initial.instructor.title, bio: initial.instructor.bio, image: initial.instructor.image } } : { ...featuredCourse, slug: "", coverImage: "", instructor: { ...featuredCourse.instructor, image: "" } };
   const session = initial?.session;
+  const isPublished = initial?.state === "published";
   const registrationCount = initial?.registrationCount ?? 0;
   const capacity = session?.capacity ?? 200;
   const timezoneValue = ["Europe/Berlin", "Europe/Istanbul", "Asia/Qatar", "Asia/Muscat", "Asia/Beirut", "Africa/Casablanca", "Asia/Riyadh", "Asia/Dubai", "Asia/Amman", "Asia/Baghdad"].includes(session?.timezone ?? "") ? session?.timezone ?? "Europe/Berlin" : "Europe/Berlin";
@@ -167,10 +168,10 @@ export function CourseEditor({ courseId, initial, whatsappChannels, isNew = fals
     <div className="mx-auto max-w-[1240px]" onChange={(event) => { const target = event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement; if (target.id) setDraftValues((values) => ({ ...values, [target.id]: target.value })); }}>
       <div className="flex flex-col gap-4 border-b border-[#dce5eb] pb-6 sm:flex-row sm:items-center">
         <Link href="/admin/courses" className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#dce5eb] bg-white text-[#5e7484]"><ArrowRight size={17} /></Link>
-        <div><div className="flex items-center gap-2"><h1 className="text-xl font-bold sm:text-2xl">{isNew ? "إنشاء دورة جديدة" : "تعديل الدورة"}</h1>{!isNew && <span className="rounded-full bg-[#eaf8f3] px-3 py-1 text-[8px] font-bold text-[#168a65]">منشورة</span>}</div><p className="mt-1 text-[9px] text-[#8598a6]">تظهر التغييرات المنشورة تلقائياً في صفحة التسجيل.</p></div>
+        <div><div className="flex items-center gap-2"><h1 className="text-xl font-bold sm:text-2xl">{isNew ? "إنشاء دورة جديدة" : "تعديل الدورة"}</h1>{!isNew && <span className={`rounded-full px-3 py-1 text-[8px] font-bold ${isPublished ? "bg-[#eaf8f3] text-[#168a65]" : "bg-[#fff4df] text-[#9a6412]"}`}>{isPublished ? "منشورة" : "مسودة"}</span>}</div><p className="mt-1 text-[9px] text-[#8598a6]">{isPublished ? "حفظ التغييرات يبقي الدورة منشورة ويحدّث صفحة التسجيل." : "احفظ المسودة أو انشر الدورة عندما تصبح جاهزة."}</p></div>
         <div className="mr-auto flex flex-wrap gap-2">
           <Link href={isNew ? "/" : `/courses/${encodeURIComponent(course.slug)}`} target="_blank" className="flex h-10 items-center gap-2 rounded-xl border border-[#dce5eb] bg-white px-4 text-[9px] font-bold text-[#51697a]"><Eye size={14} /> معاينة</Link>
-          <button onClick={() => void save()} className="flex h-10 items-center gap-2 rounded-xl border border-[#dce5eb] bg-white px-4 text-[9px] font-bold text-[#51697a]">{saving ? <Loader2 size={14} className="animate-spin" /> : saved ? <Check size={14} className="text-[#168a65]" /> : <Save size={14} />}{saving ? "جارٍ الحفظ" : saved ? "تم الحفظ" : "حفظ المسودة"}</button>
+          <button onClick={() => void save()} className="flex h-10 items-center gap-2 rounded-xl border border-[#dce5eb] bg-white px-4 text-[9px] font-bold text-[#51697a]">{saving ? <Loader2 size={14} className="animate-spin" /> : saved ? <Check size={14} className="text-[#168a65]" /> : <Save size={14} />}{saving ? "جارٍ الحفظ" : saved ? "تم الحفظ" : isPublished ? "حفظ التغييرات" : "حفظ المسودة"}</button>
           <button onClick={() => void save(true)} disabled={saving} className="flex h-10 items-center gap-2 rounded-xl bg-[#C32828] px-4 text-[9px] font-bold text-white disabled:opacity-70"><Send size={14} /> {isNew ? "نشر الدورة" : "نشر التحديثات"}</button>
         </div>
       </div>
@@ -184,7 +185,7 @@ export function CourseEditor({ courseId, initial, whatsappChannels, isNew = fals
         <section className="rounded-[22px] border border-[#dfe7ec] bg-white p-5 sm:p-7">
           {activeTab === "المحتوى" && (
             <div className="space-y-6">
-              <div><h2 className="text-sm font-bold">محتوى صفحة الدورة</h2><p className="mt-1 text-[9px] text-[#91a2ae]">اكتب رسالة واضحة ومحددة؛ التغييرات تبقى مسودة حتى النشر.</p></div>
+              <div><h2 className="text-sm font-bold">محتوى صفحة الدورة</h2><p className="mt-1 text-[9px] text-[#91a2ae]">{isPublished ? "اكتب رسالة واضحة ومحددة؛ عند الحفظ ستبقى الدورة متاحة على رابطها." : "اكتب رسالة واضحة ومحددة؛ التغييرات تبقى مسودة حتى النشر."}</p></div>
               <Field label="اسم الدورة"><input id="course-title" className={inputClass} defaultValue={draftValues["course-title"] ?? (isNew ? "" : course.title)} placeholder="مثال: أساسيات التداول..." /></Field>
                             <Field label="العنوان الرئيسي للصفحة"><textarea id="course-hero-heading" className="min-h-20 w-full resize-y rounded-xl border border-[#dce5eb] bg-[#fafbfc] p-4 text-[10px] leading-6 focus:border-[#8eb8d2] focus:bg-white focus:outline-none" defaultValue={draftValues["course-hero-heading"] ?? (isNew ? featuredCourse.heroHeading : initial?.heroHeading ?? featuredCourse.heroHeading)} /></Field>
               <Field label="العبارة التعريفية"><input id="course-eyebrow" className={inputClass} defaultValue={draftValues["course-eyebrow"] ?? (isNew ? "" : course.eyebrow)} /></Field>

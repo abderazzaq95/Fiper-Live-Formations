@@ -291,7 +291,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   }
   const { data: existing, error: existingError } = await supabase
     .from("courses")
-    .select("id,slug,default_locale,instructor_id,course_sessions(id)")
+    .select("id,slug,state,default_locale,instructor_id,course_sessions(id)")
     .eq("id", id)
     .maybeSingle();
   if (existingError || !existing) return Response.json({ message: "Course not found." }, { status: 404 });
@@ -301,10 +301,11 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   const stableSlug = canonicalSlug(value.slug) || canonicalSlug(oldSlug) || await nextCourseSlug(supabase);
   if (!await slugIsAvailable(supabase, stableSlug, id)) return Response.json({ message: "هذا الرابط المختصر مستخدم لدورة أخرى." }, { status: 409 });
   const now = new Date().toISOString();
-  const courseUpdate = { slug: stableSlug, cover_path: value.coverImage || null, updated_at: now, state: value.publish ? "published" : "draft", published_at: value.publish ? now : null, level: value.level || null, topic: value.topic || null };
+  const publicationUpdate = value.publish ? { state: "published", published_at: now } : {};
+  const courseUpdate = { slug: stableSlug, cover_path: value.coverImage || null, updated_at: now, level: value.level || null, topic: value.topic || null, ...publicationUpdate };
   let courseWrite = await supabase.from("courses").update(courseUpdate).eq("id", id).select("id").maybeSingle();
   if (courseWrite.error) {
-    const legacyCourseUpdate = { slug: stableSlug, cover_path: value.coverImage || null, updated_at: now, state: value.publish ? "published" : "draft", published_at: value.publish ? now : null };
+    const legacyCourseUpdate = { slug: stableSlug, cover_path: value.coverImage || null, updated_at: now, ...publicationUpdate };
     courseWrite = await supabase.from("courses").update(legacyCourseUpdate).eq("id", id).select("id").maybeSingle();
   }
   if (courseWrite.error || !courseWrite.data) return Response.json({ message: "تعذر حفظ بيانات الدورة. أعد فتح الدورة وحاول مرة أخرى." }, { status: 500 });
