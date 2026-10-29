@@ -1,5 +1,4 @@
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { getDashboardIdentity } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -50,7 +49,7 @@ export async function POST(_request: Request, context: RouteContext<"/api/admin/
   const translations = rows(source.course_translations).map((translation) => ({
     course_id: newId,
     locale: text(translation.locale, text(source.default_locale, "ar")),
-    title: text(translation.title, "نسخة من الدورة"),
+    title: `نسخة من ${text(translation.title, "الدورة")}`,
     hero_heading: text(translation.hero_heading, "افهم السوق. تداول بوضوح."),
     eyebrow: text(translation.eyebrow),
     description: text(translation.description),

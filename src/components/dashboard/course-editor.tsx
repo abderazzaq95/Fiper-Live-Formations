@@ -69,6 +69,7 @@ export function CourseEditor({ courseId, initial, whatsappChannels, isNew = fals
   const [landingContent, setLandingContent] = useState<LandingContent>(() => initial?.landingContent ?? defaultLandingContent);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [draftValues, setDraftValues] = useState<Record<string, string>>({});
 
   const updateLanding = (section: keyof LandingContent, field: string, value: string) => setLandingContent((current) => ({ ...current, [section]: { ...(current[section] as Record<string, unknown>), [field]: value } } as LandingContent));
@@ -100,6 +101,7 @@ export function CourseEditor({ courseId, initial, whatsappChannels, isNew = fals
   async function save(publish = false) {
     setSaving(true);
     setSaved(false);
+    setSaveError("");
     const value = (id: string, fallback = "") => draftValues[id] ?? (document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null)?.value ?? fallback;
     const payload = {
       title: value("course-title", course.title),
@@ -144,8 +146,10 @@ export function CourseEditor({ courseId, initial, whatsappChannels, isNew = fals
         return;
       }
       setSaved(true);
-    } catch {
+      router.refresh();
+    } catch (error) {
       setSaved(false);
+      setSaveError(error instanceof Error && error.message !== "save_failed" ? error.message : "تعذر حفظ التغييرات. تحقق من الحقول وحاول مرة أخرى.");
     } finally {
       setSaving(false);
     }
@@ -162,6 +166,7 @@ export function CourseEditor({ courseId, initial, whatsappChannels, isNew = fals
           <button onClick={() => void save(true)} disabled={saving} className="flex h-10 items-center gap-2 rounded-xl bg-[#C32828] px-4 text-[9px] font-bold text-white disabled:opacity-70"><Send size={14} /> {isNew ? "نشر الدورة" : "نشر التحديثات"}</button>
         </div>
       </div>
+      {saveError && <p role="alert" className="mt-4 rounded-xl border border-[#f0c5c5] bg-[#fff6f6] p-3 text-[10px] font-semibold text-[#a51f1f]">{saveError}</p>}
 
       <div className="mt-5 overflow-x-auto rounded-[18px] border border-[#dfe7ec] bg-white p-1.5">
         <div className="flex min-w-max gap-1">{tabs.map((tab) => <button key={tab} onClick={() => setActiveTab(tab)} className={`rounded-xl px-5 py-3 text-[9px] font-bold transition ${activeTab === tab ? "bg-[#0c2d46] text-white" : "text-[#718695] hover:bg-[#f3f6f8]"}`}>{tab}</button>)}</div>
@@ -187,7 +192,7 @@ export function CourseEditor({ courseId, initial, whatsappChannels, isNew = fals
                   <input className={inputClass} value={faq.question} onChange={(event) => setFaqItems((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, question: event.target.value } : item))} placeholder="مثال: هل الدورة مناسبة للمبتدئين؟" />
                   <textarea className="min-h-20 w-full resize-y rounded-xl border border-[#dce5eb] bg-[#fafbfc] p-3 text-[10px] leading-6 focus:border-[#8eb8d2] focus:bg-white focus:outline-none" value={faq.answer} onChange={(event) => setFaqItems((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, answer: event.target.value } : item))} placeholder="اكتب الإجابة هنا..." />
                 </div>)}
-              </div>{assetError && <p className="rounded-xl border border-[#f0c5c5] bg-[#fff6f6] p-3 text-[9px] text-[#a51f1f]">{assetError}</p>}              <div className="grid gap-4 sm:grid-cols-2"><Field label="عنوان زر التسجيل"><input className={inputClass} defaultValue="احجز مقعدك المجاني" /></Field><Field label="الرابط المختصر" hint="يتم تعيينه تلقائياً ولا يمكن تغييره"><div className="flex" dir="ltr"><span className="flex h-11 items-center rounded-l-xl border border-r-0 border-[#dce5eb] bg-[#f0f4f6] px-3 text-[8px] text-[#7f929f]">/courses/</span><input className={`${inputClass} rounded-l-none`} id="course-slug" defaultValue={draftValues["course-slug"] ?? (isNew ? "idXX" : course.slug)} readOnly aria-readonly="true" /></div></Field></div>
+              </div>{assetError && <p className="rounded-xl border border-[#f0c5c5] bg-[#fff6f6] p-3 text-[9px] text-[#a51f1f]">{assetError}</p>}              <div className="grid gap-4 sm:grid-cols-2"><Field label="عنوان زر التسجيل"><input className={inputClass} defaultValue="احجز مقعدك المجاني" /></Field><Field label="الرابط المختصر" hint="أدخل معرفًا فريدًا مثل id06"><div className="flex" dir="ltr"><span className="flex h-11 items-center rounded-l-xl border border-r-0 border-[#dce5eb] bg-[#f0f4f6] px-3 text-[8px] text-[#7f929f]">/courses/</span><input className={`${inputClass} rounded-l-none`} id="course-slug" defaultValue={draftValues["course-slug"] ?? (isNew ? "" : course.slug)} placeholder="id06" required pattern="id[0-9]+" /></div></Field></div>
               <div><span className="mb-2 block text-[10px] font-bold text-[#425d70]">صورة الغلاف</span><label htmlFor="course-cover-file" className="relative flex min-h-32 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-[#b9cbd6] bg-[#f8fafb] text-[#7890a0] transition hover:border-[#6fa6c8] hover:bg-[#f3f8fb]">{coverImage && <span className="absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: `url("${coverImage}")` }} />}{uploading === "cover" ? <Loader2 size={22} className="relative animate-spin" /> : <ImagePlus size={22} className="relative" />}<span className="relative mt-3 text-[9px] font-bold">{uploading === "cover" ? "جارٍ رفع الصورة" : coverImage ? "تغيير صورة الغلاف" : "اسحب الصورة هنا أو اختر ملفاً"}</span><small className="relative mt-1 text-[8px]">PNG, JPG أو WebP · حتى 5MB</small></label><input id="course-cover-file" type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadAsset(file, "cover"); event.currentTarget.value = ""; }} /></div>
             </div>
           )}

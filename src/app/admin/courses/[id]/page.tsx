@@ -8,5 +8,5 @@ export default async function CourseEditorPage({ params }: PageProps<"/admin/cou
     id === "new" ? Promise.resolve(null) : getCourseEditorData(id),
     listActiveWhatsAppChannelOptions(),
   ]);
-  return <CourseEditor courseId={id} initial={initial} isNew={id === "new"} whatsappChannels={whatsappChannels} />;
+  return <CourseEditor key={id} courseId={id} initial={initial} isNew={id === "new"} whatsappChannels={whatsappChannels} />;
 }

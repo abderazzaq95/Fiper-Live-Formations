@@ -37,7 +37,7 @@ const updateSchema = z.object({
   agenda: z.array(z.object({ time: z.string().trim().min(1).max(80), title: z.string().trim().min(1).max(240), text: z.string().trim().min(1).max(1000) })).max(30).default([]),
   landingContent: landingContentSchema,
   publish: z.boolean().default(false),
-  slug: z.string().trim().min(1).max(120),
+  slug: z.string().trim().toLowerCase().regex(/^id\d+$/, "استخدم معرفًا مثل id06").max(120),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
   endTime: z.string().regex(/^\d{2}:\d{2}$/),
@@ -76,8 +76,18 @@ async function nextCourseSlug(supabase: Awaited<ReturnType<typeof createClient>>
   return `id${String(max + 1).padStart(2, "0")}`;
 }
 
+async function slugIsAvailable(supabase: Awaited<ReturnType<typeof createClient>>, slug: string, courseId = "") {
+  const [{ data: course }, { data: alias }] = await Promise.all([
+    supabase.from("courses").select("id").eq("slug", slug).maybeSingle(),
+    supabase.from("course_slug_aliases").select("course_id").eq("slug", slug).maybeSingle(),
+  ]);
+  const courseOwner = typeof course?.id === "string" ? course.id : "";
+  const aliasOwner = typeof alias?.course_id === "string" ? alias.course_id : "";
+  return (!courseOwner || courseOwner === courseId) && (!aliasOwner || aliasOwner === courseId);
+}
+
 async function saveSlugAlias(oldSlug: string, courseId: string) {
-  if (!oldSlug || oldSlug === canonicalSlug(oldSlug)) return;
+  if (!oldSlug) return;
   try {
     await createAdminClient().from("course_slug_aliases").upsert({ slug: oldSlug, course_id: courseId }, { onConflict: "slug" });
   } catch {
@@ -134,7 +144,8 @@ function toIso(date: string, time: string, timezone: string) {
 
 async function createCourse(supabase: Awaited<ReturnType<typeof createClient>>, identity: { id: string }, value: z.infer<typeof updateSchema>) {
   const newId = `crs_${crypto.randomUUID().replaceAll("-", "").slice(0, 20)}`;
-  const newSlug = await nextCourseSlug(supabase);
+  const newSlug = canonicalSlug(value.slug) || await nextCourseSlug(supabase);
+  if (!await slugIsAvailable(supabase, newSlug)) throw new Error("slug_already_exists");
   let instructorResult = await supabase.from("instructors").insert({
     name: value.instructorName,
     title: value.instructorTitle,
@@ -238,7 +249,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   let body: unknown;
   try { body = await request.json(); } catch { return Response.json({ message: "Invalid request data." }, { status: 400 }); }
   const parsed = updateSchema.safeParse(body);
-  if (!parsed.success) return Response.json({ message: "Please check the course fields." }, { status: 422 });
+  if (!parsed.success) return Response.json({ message: "تحقق من الحقول المطلوبة، وتأكد أن الرابط المختصر بصيغة مثل id06." }, { status: 422 });
 
   const value = parsed.data;
   const channelLookup = await createAdminClient().from("whatsapp_channels").select("id").eq("id", value.whatsappChannelId).eq("active", true).maybeSingle();
@@ -264,8 +275,8 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
 
   const locale = existing.default_locale ?? "ar";
   const oldSlug = typeof existing.slug === "string" ? existing.slug : "";
-  const stableSlug = canonicalSlug(oldSlug) || await nextCourseSlug(supabase);
-  if (stableSlug !== oldSlug) await saveSlugAlias(oldSlug, id);
+  const stableSlug = canonicalSlug(value.slug) || canonicalSlug(oldSlug) || await nextCourseSlug(supabase);
+  if (!await slugIsAvailable(supabase, stableSlug, id)) return Response.json({ message: "هذا الرابط المختصر مستخدم لدورة أخرى." }, { status: 409 });
   const now = new Date().toISOString();
   const courseUpdate = { slug: stableSlug, updated_at: now, state: value.publish ? "published" : "draft", published_at: value.publish ? now : null, level: value.level || null, topic: value.topic || null };
   let { error: courseError } = await supabase.from("courses").update(courseUpdate).eq("id", id);
@@ -274,6 +285,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
     ({ error: courseError } = await supabase.from("courses").update(legacyCourseUpdate).eq("id", id));
   }
   if (courseError) return Response.json({ message: "Unable to update the course." }, { status: 500 });
+  if (stableSlug !== oldSlug) await saveSlugAlias(oldSlug, id);
 
   const { error: translationError } = await supabase.from("course_translations").upsert({
     course_id: id,
@@ -339,6 +351,8 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   revalidatePath("/");
   revalidatePath("/admin/courses");
   revalidatePath(`/admin/courses/${id}`);
+  revalidatePath(`/courses/${stableSlug}`);
+  if (oldSlug && oldSlug !== stableSlug) revalidatePath(`/courses/${oldSlug}`);
   return Response.json({ ok: true });
 }
 
