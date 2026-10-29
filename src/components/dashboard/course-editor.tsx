@@ -47,14 +47,14 @@ type WhatsAppChannelOption = { id: string; label: string; countryName: string; c
 
 export function CourseEditor({ courseId, initial, whatsappChannels, isNew = false }: { courseId: string; initial: CourseEditorData | null; whatsappChannels: WhatsAppChannelOption[]; isNew?: boolean }) {
   const router = useRouter();
-  const course = initial ? { ...featuredCourse, title: initial.title, eyebrow: initial.eyebrow, description: initial.description, slug: initial.slug, coverImage: initial.coverPath || featuredCourse.coverImage, instructor: { ...featuredCourse.instructor, name: initial.instructor.name, role: initial.instructor.title, bio: initial.instructor.bio, image: initial.instructor.image || featuredCourse.instructor.image } } : featuredCourse;
+  const course = initial ? { ...featuredCourse, title: initial.title, eyebrow: initial.eyebrow, description: initial.description, slug: initial.slug, coverImage: initial.coverPath, instructor: { ...featuredCourse.instructor, name: initial.instructor.name, role: initial.instructor.title, bio: initial.instructor.bio, image: initial.instructor.image } } : { ...featuredCourse, slug: "", coverImage: "", instructor: { ...featuredCourse.instructor, image: "" } };
   const session = initial?.session;
   const registrationCount = initial?.registrationCount ?? 0;
   const capacity = session?.capacity ?? 200;
   const timezoneValue = ["Europe/Berlin", "Europe/Istanbul", "Asia/Qatar", "Asia/Muscat", "Asia/Beirut", "Africa/Casablanca", "Asia/Riyadh", "Asia/Dubai", "Asia/Amman", "Asia/Baghdad"].includes(session?.timezone ?? "") ? session?.timezone ?? "Europe/Berlin" : "Europe/Berlin";
-  const dateValue = inputDateTime(session?.startsAt, timezoneValue, "date", "2026-09-06");
-  const startTimeValue = inputDateTime(session?.startsAt, timezoneValue, "time", "20:00");
-  const endTimeValue = inputDateTime(session?.endsAt, timezoneValue, "time", "21:30");
+  const dateValue = inputDateTime(session?.startsAt, timezoneValue, "date", "");
+  const startTimeValue = inputDateTime(session?.startsAt, timezoneValue, "time", "");
+  const endTimeValue = inputDateTime(session?.endsAt, timezoneValue, "time", "");
   const defaultWhatsAppChannelId = session?.whatsappChannelId ?? whatsappChannels.find((channel) => channel.isDefault)?.id ?? whatsappChannels[0]?.id ?? "uae";
   const [activeTab, setActiveTab] = useState(tabs[0]);
   const [deliveryType, setDeliveryType] = useState<"online" | "onsite">(() => initial?.session.deliveryType === "onsite" ? "onsite" : "online");
@@ -111,6 +111,7 @@ export function CourseEditor({ courseId, initial, whatsappChannels, isNew = fals
       level: value("course-level", initial?.level ?? ""),
       topic: value("course-topic", initial?.topic ?? ""),
       slug: value("course-slug", course.slug),
+      sessionId: session?.id ?? "",
       date: value("course-date", dateValue),
       startTime: value("course-start-time", startTimeValue),
       endTime: value("course-end-time", endTimeValue),
@@ -131,12 +132,19 @@ export function CourseEditor({ courseId, initial, whatsappChannels, isNew = fals
       instructorYearsActive: value("instructor-years-active", initial?.instructor.yearsActive === null || initial?.instructor.yearsActive === undefined ? "" : String(initial.instructor.yearsActive)) === "" ? null : Number(value("instructor-years-active")),
       instructorFocusMarkets: value("instructor-focus-markets", initial?.instructor.focusMarkets ?? ""),
       instructorCredentials: value("instructor-credentials", initial?.instructor.credentials ?? ""),
+      coverImage,
+      instructorImage,
       faqs: faqItems.filter((item) => item.question.trim() && item.answer.trim()),
       outcomes: outcomeItems.filter((item) => item.title.trim() && item.text.trim()),
       audience: audienceItems.map((item) => item.trim()).filter(Boolean),
       agenda: agendaItems.filter((item) => item.time.trim() && item.title.trim() && item.text.trim()),
       landingContent,
     };
+    if (!payload.slug || !payload.date || !payload.startTime || !payload.endTime) {
+      setSaveError("أدخل الرابط المختصر والتاريخ ووقت البداية ووقت النهاية قبل الحفظ.");
+      setSaving(false);
+      return;
+    }
     try {
       const response = await fetch("/api/admin/courses/" + encodeURIComponent(courseId), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, publish }) });
       const result = await response.json().catch(() => ({}));

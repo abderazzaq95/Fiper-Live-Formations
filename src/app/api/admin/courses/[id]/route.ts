@@ -38,6 +38,7 @@ const updateSchema = z.object({
   landingContent: landingContentSchema,
   publish: z.boolean().default(false),
   slug: z.string().trim().toLowerCase().regex(/^id\d+$/, "استخدم معرفًا مثل id06").max(120),
+  sessionId: z.string().trim().max(120).default(""),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
   endTime: z.string().regex(/^\d{2}:\d{2}$/),
@@ -58,6 +59,8 @@ const updateSchema = z.object({
   instructorYearsActive: z.number().int().min(0).max(80).nullable().default(null),
   instructorFocusMarkets: z.string().trim().max(500).default(""),
   instructorCredentials: z.string().trim().max(500).default(""),
+  coverImage: z.string().trim().max(2000).default(""),
+  instructorImage: z.string().trim().max(2000).default(""),
 });
 
 function canonicalSlug(value: unknown) {
@@ -94,14 +97,6 @@ async function saveSlugAlias(oldSlug: string, courseId: string) {
     // The alias migration may not be installed yet; the canonical URL still works.
   }
 }
-function offsetForTimezone(timezone: string) {
-  if (["Europe/Istanbul", "Asia/Qatar", "Asia/Beirut", "Asia/Riyadh", "Asia/Amman", "Asia/Baghdad"].includes(timezone)) return "+03:00";
-  if (["Asia/Muscat", "Asia/Dubai"].includes(timezone)) return "+04:00";
-  if (timezone === "Africa/Casablanca") return "+01:00";
-  if (timezone === "Europe/Berlin" || timezone === "Europe/Paris") return "+02:00";
-  return "+01:00";
-}
-
 function localMorningTimestamp(startAtMs: number, timezone: string) {
   const format = new Intl.DateTimeFormat("en-US", { timeZone: timezone || "UTC", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
   const parts = Object.fromEntries(format.formatToParts(new Date(startAtMs)).filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
@@ -138,8 +133,31 @@ async function reschedulePendingReminders(sessionId: string, startsAt: string, t
     console.error("reminders_reschedule_failed", error);
   }
 }
+function timezoneParts(timestamp: number, timezone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(timestamp));
+  return Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, Number(part.value)]));
+}
+
 function toIso(date: string, time: string, timezone: string) {
-  return new Date(date + "T" + time + ":00" + offsetForTimezone(timezone)).toISOString();
+  const [year, month, day] = date.split("-").map(Number);
+  const [hour, minute] = time.split(":").map(Number);
+  const desiredAsUtc = Date.UTC(year, month - 1, day, hour, minute, 0);
+  let result = desiredAsUtc;
+  for (let pass = 0; pass < 2; pass += 1) {
+    const local = timezoneParts(result, timezone);
+    const localAsUtc = Date.UTC(local.year, local.month - 1, local.day, local.hour, local.minute, local.second);
+    result -= localAsUtc - desiredAsUtc;
+  }
+  return new Date(result).toISOString();
 }
 
 async function createCourse(supabase: Awaited<ReturnType<typeof createClient>>, identity: { id: string }, value: z.infer<typeof updateSchema>) {
@@ -153,12 +171,14 @@ async function createCourse(supabase: Awaited<ReturnType<typeof createClient>>, 
     years_active: value.instructorYearsActive,
     focus_markets: value.instructorFocusMarkets || null,
     credentials: value.instructorCredentials || null,
+    photo_path: value.instructorImage || null,
   }).select("id").single();
   if (instructorResult.error) {
     instructorResult = await supabase.from("instructors").insert({
       name: value.instructorName,
       title: value.instructorTitle,
       bio: value.instructorBio,
+      photo_path: value.instructorImage || null,
     }).select("id").single();
   }
   if (instructorResult.error || !instructorResult.data) throw new Error("instructor_create_failed");
@@ -175,6 +195,7 @@ async function createCourse(supabase: Awaited<ReturnType<typeof createClient>>, 
     state: value.publish ? "published" : "draft",
     default_locale: "ar",
     instructor_id: instructorResult.data.id,
+    cover_path: value.coverImage || null,
     created_by: identity.id === "preview" ? null : identity.id,
     published_at: value.publish ? new Date().toISOString() : null,
     is_featured: false,
@@ -188,6 +209,7 @@ async function createCourse(supabase: Awaited<ReturnType<typeof createClient>>, 
       state: value.publish ? "published" : "draft",
       default_locale: "ar",
       instructor_id: instructorResult.data.id,
+      cover_path: value.coverImage || null,
       created_by: identity.id === "preview" ? null : identity.id,
       published_at: value.publish ? new Date().toISOString() : null,
       is_featured: false,
@@ -278,10 +300,10 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   const stableSlug = canonicalSlug(value.slug) || canonicalSlug(oldSlug) || await nextCourseSlug(supabase);
   if (!await slugIsAvailable(supabase, stableSlug, id)) return Response.json({ message: "هذا الرابط المختصر مستخدم لدورة أخرى." }, { status: 409 });
   const now = new Date().toISOString();
-  const courseUpdate = { slug: stableSlug, updated_at: now, state: value.publish ? "published" : "draft", published_at: value.publish ? now : null, level: value.level || null, topic: value.topic || null };
+  const courseUpdate = { slug: stableSlug, cover_path: value.coverImage || null, updated_at: now, state: value.publish ? "published" : "draft", published_at: value.publish ? now : null, level: value.level || null, topic: value.topic || null };
   let { error: courseError } = await supabase.from("courses").update(courseUpdate).eq("id", id);
   if (courseError) {
-    const legacyCourseUpdate = { slug: stableSlug, updated_at: now, state: value.publish ? "published" : "draft", published_at: value.publish ? now : null };
+    const legacyCourseUpdate = { slug: stableSlug, cover_path: value.coverImage || null, updated_at: now, state: value.publish ? "published" : "draft", published_at: value.publish ? now : null };
     ({ error: courseError } = await supabase.from("courses").update(legacyCourseUpdate).eq("id", id));
   }
   if (courseError) return Response.json({ message: "Unable to update the course." }, { status: 500 });
@@ -303,7 +325,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   if (translationError) return Response.json({ message: "Unable to update course content." }, { status: 500 });
 
   const sessions = Array.isArray(existing.course_sessions) ? existing.course_sessions : [];
-  const sessionId = sessions[0]?.id;
+  const sessionId = sessions.some((session) => session.id === value.sessionId) ? value.sessionId : sessions[0]?.id;
   const sessionPayload = {
     course_id: id,
     starts_at: toIso(value.date, value.startTime, value.timezone),
@@ -335,6 +357,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
       years_active: value.instructorYearsActive,
       focus_markets: value.instructorFocusMarkets || null,
       credentials: value.instructorCredentials || null,
+      photo_path: value.instructorImage || null,
       updated_at: new Date().toISOString(),
     }).eq("id", existing.instructor_id);
     if (instructorError) {
@@ -342,6 +365,7 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
         name: value.instructorName,
         title: value.instructorTitle,
         bio: value.instructorBio,
+        photo_path: value.instructorImage || null,
         updated_at: new Date().toISOString(),
       }).eq("id", existing.instructor_id));
     }

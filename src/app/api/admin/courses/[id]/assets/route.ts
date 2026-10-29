@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getDashboardIdentity } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
 
 const bucket = "course-assets";
 const maxSize = 5 * 1024 * 1024;
@@ -11,7 +12,7 @@ export async function POST(request: Request, context: RouteContext<"/api/admin/c
   if (!identity) return Response.json({ message: "Unauthorized" }, { status: 401 });
 
   const { id } = await context.params;
-  if (!id || id === "new") return Response.json({ message: "Course not found." }, { status: 400 });
+  if (!id) return Response.json({ message: "Course not found." }, { status: 400 });
 
   const formData = await request.formData();
   const file = formData.get("file");
@@ -23,7 +24,14 @@ export async function POST(request: Request, context: RouteContext<"/api/admin/c
   if (file.size > maxSize) return Response.json({ message: "حجم الصورة يجب ألا يتجاوز 5MB." }, { status: 422 });
 
   const supabase = await createClient();
-  const { data: course, error: courseError } = await supabase.from("courses").select("id,instructor_id").eq("id", id).maybeSingle();
+  if (id === "new") {
+    const path = `pending/${identity.id}/${kind}-${crypto.randomUUID()}.${extensions[file.type]}`;
+    const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file, { contentType: file.type, cacheControl: "3600", upsert: false });
+    if (uploadError) return Response.json({ message: "تعذر رفع الصورة. تأكد من إعداد مساحة التخزين course-assets." }, { status: 500 });
+    const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(path);
+    return Response.json({ ok: true, url: publicData.publicUrl });
+  }
+  const { data: course, error: courseError } = await supabase.from("courses").select("id,slug,instructor_id").eq("id", id).maybeSingle();
   if (courseError || !course) return Response.json({ message: "Course not found." }, { status: 404 });
   if (kind === "instructor" && !course.instructor_id) return Response.json({ message: "لا يوجد محاضر مرتبط بهذه الدورة." }, { status: 422 });
 
@@ -40,6 +48,10 @@ export async function POST(request: Request, context: RouteContext<"/api/admin/c
     await supabase.storage.from(bucket).remove([path]);
     return Response.json({ message: "تعذر حفظ رابط الصورة." }, { status: 500 });
   }
+
+  revalidatePath("/");
+  revalidatePath("/courses");
+  if (course.slug) revalidatePath(`/courses/${course.slug}`);
 
   return Response.json({ ok: true, url: publicUrl });
 }

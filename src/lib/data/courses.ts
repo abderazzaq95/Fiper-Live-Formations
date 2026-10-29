@@ -52,6 +52,15 @@ function firstRecord(value: unknown): JsonRecord | undefined {
   return value && typeof value === "object" ? value as JsonRecord : undefined;
 }
 
+function preferredCourseSession(value: unknown): JsonRecord | undefined {
+  const sessions = asArray(value).filter((session) => Number.isFinite(Date.parse(asText(session.starts_at))));
+  const now = Date.now();
+  return sessions
+    .filter((session) => Date.parse(asText(session.ends_at, asText(session.starts_at))) > now)
+    .sort((a, b) => Date.parse(asText(a.starts_at)) - Date.parse(asText(b.starts_at)))[0]
+    ?? sessions.sort((a, b) => Date.parse(asText(b.starts_at)) - Date.parse(asText(a.starts_at)))[0];
+}
+
 function asText(value: unknown, fallback = "") {
   return typeof value === "string" && value.trim() ? value : fallback;
 }
@@ -66,7 +75,7 @@ function courseCoverPath(row: JsonRecord) {
 
   // A duplicated course used to inherit the source course's storage URL.
   // Only accept a managed course asset when it belongs to this course.
-  if (coverPath.includes("/course-assets/") && courseId && !coverPath.includes(`/course-assets/${courseId}/`)) return "";
+  if (coverPath.includes("/course-assets/") && !coverPath.includes("/course-assets/pending/") && courseId && !coverPath.includes(`/course-assets/${courseId}/`)) return "";
   return coverPath;
 }
 
@@ -160,7 +169,7 @@ export async function getPublicCourse(): Promise<PublicCourseData> {
     const rows = data as unknown as JsonRecord[];
     const now = Date.now();
     const candidates = rows.map((row) => {
-      const session = firstRecord(asArray(row.course_sessions));
+      const session = preferredCourseSession(row.course_sessions);
       const start = new Date(asText(session?.starts_at, featuredCourse.isoStart)).getTime();
       const endValue = asText(session?.ends_at);
       const end = endValue ? new Date(endValue).getTime() : start + 90 * 60 * 1000;
@@ -213,8 +222,9 @@ export async function getPublicCourseById(id: string): Promise<PublicCourseData>
     const locale = asText(row.default_locale, "ar");
     const translation = translations.find((item) => item.locale === locale) ?? translations[0];
     const sessions = asArray(row.course_sessions);
+    const session = preferredCourseSession(sessions);
     const instructor = firstRecord(row.instructors);
-    const sessionId = asText(sessions[0]?.id);
+    const sessionId = asText(session?.id);
     let registrationCount = 0;
     const serviceUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -223,7 +233,7 @@ export async function getPublicCourseById(id: string): Promise<PublicCourseData>
       const result = await admin.from("registrations").select("id", { count: "exact", head: true }).eq("session_id", sessionId).in("status", ["confirmed", "attended"]);
       registrationCount = result.count ?? 0;
     }
-    return mapPublicData(row, translation, sessions[0], instructor, registrationCount);
+    return mapPublicData(row, translation, session, instructor, registrationCount);
   } catch {
     return getPublicCourse();
   }
@@ -412,7 +422,7 @@ export async function getCourseEditorData(id: string): Promise<CourseEditorData 
     const row = data as unknown as JsonRecord;
     const translations = asArray(row.course_translations);
     const translation = translations.find((item) => item.locale === row.default_locale) ?? translations[0] ?? {};
-    const session = asArray(row.course_sessions)[0] ?? {};
+    const session = preferredCourseSession(row.course_sessions) ?? {};
     const instructor = firstRecord(row.instructors) ?? {};
     const editorSessionId = asText(session.id);
     const { count: registrationCount } = editorSessionId ? await supabase.from("registrations").select("id", { count: "exact", head: true }).eq("session_id", editorSessionId).in("status", ["confirmed", "attended"]) : { count: 0 };
