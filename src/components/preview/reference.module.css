@@ -151,26 +151,36 @@
 /* Final section spacing overrides for the production course layout. */
 .heroSection{padding:16px 32px 8px}
 .instructorSection{padding:24px 32px 8px}
-.instructorStrip,.instructorPhoto{min-height:256px}
+.sectionLabel span{font-size:20px}
+.instructorStrip{grid-template-columns:256px 1fr;min-height:256px}
+.instructorPhoto{height:256px;min-height:0}
+.instructorPhoto img{object-fit:contain;object-position:center}
 .instructorCopy{padding:24px 32px}
+.instructorCopy h2{font-size:20px;line-height:28px}
+.instructorCopy h3{font-size:16px;line-height:24px}
 .sessionStrip{margin-top:12px;padding:12px 24px}
 .sessionStrip dl{display:grid;flex:0 1 auto;grid-template-columns:repeat(3,minmax(112px,128px));gap:16px}
 .sessionStrip dl>div{min-width:0;text-align:center}
-.sessionStrip dt{font-size:14px;line-height:20px}
+.sessionStrip dt{font-size:12px;line-height:16px}
 .sessionStrip dd{margin-top:4px;font-size:14px;line-height:20px;white-space:nowrap}
 .programSection{padding:8px 32px 16px}
 .programBox{min-height:416px;padding:48px}
+.programContent h2{font-size:24px;line-height:32px}
 .faqSection{padding:16px 32px 24px}
 
 @media(max-width:760px){
   .heroSection{padding:8px}
   .instructorSection{padding:24px 16px 8px}
-  .instructorStrip,.instructorPhoto{min-height:256px}
+  .sectionLabel span{font-size:18px}
+  .instructorStrip{grid-template-columns:1fr;min-height:0}
+  .instructorPhoto{width:100%;height:auto;min-height:0;aspect-ratio:1/1}
   .instructorCopy{padding:24px}
+  .instructorCopy h2{font-size:18px;line-height:28px}
   .sessionStrip{padding:16px}
   .sessionStrip dl{width:100%;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
   .sessionStrip dt,.sessionStrip dd{font-size:12px;line-height:16px}
   .programSection{padding:8px 16px 16px}
   .programBox{min-height:0;padding:24px}
+  .programContent h2{font-size:20px;line-height:28px}
   .faqSection{padding:16px 16px 24px}
 }
