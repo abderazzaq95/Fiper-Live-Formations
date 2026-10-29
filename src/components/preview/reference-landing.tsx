@@ -10,6 +10,7 @@ import {
   CurrencyDollar,
   Globe,
   List,
+  MapPin,
   MagnifyingGlass,
   VideoCamera,
   X,
@@ -36,6 +37,9 @@ export function ReferenceLanding({ course, agenda, outcomes, faqs, landing }: Pu
   }, []);
 
   const curriculum = agenda.length ? agenda : outcomes.map((item) => ({ title: item.title, text: item.text, time: "" }));
+  const isOnsite = course.type === "onsite";
+  const mapUrl = typeof course.mapsUrl === "string" && /^https?:\/\//i.test(course.mapsUrl) ? course.mapsUrl : "";
+  const attendanceBenefit = isOnsite && landing.hero.benefitTwo === "حضور مباشر وتفاعلي" ? "حضور حضوري وتفاعلي" : landing.hero.benefitTwo;
   return (
     <main ref={root} className={styles.page} dir="rtl">
       <a href="#main-content" className={styles.skipLink}>انتقل إلى المحتوى</a>
@@ -78,13 +82,13 @@ export function ReferenceLanding({ course, agenda, outcomes, faqs, landing }: Pu
               <div><CurrencyDollar size={30} weight="duotone" /><dt>السعر</dt><dd>مجانًا</dd></div>
               <div><CalendarBlank size={30} weight="duotone" /><dt>التاريخ</dt><dd>{course.dateLabel}</dd></div>
               <div><Clock size={30} weight="duotone" /><dt>الوقت</dt><dd>{course.timeLabel}</dd></div>
-              <div><VideoCamera size={30} weight="duotone" /><dt>الحضور</dt><dd>{course.type === "online" ? course.platform : course.venueName || "حضوري"}</dd></div>
+              {isOnsite ? <div className={styles.venueFact}><MapPin size={30} weight="duotone" /><dt>المكان</dt><dd><strong>{course.venueName || "حضوري"}</strong>{course.venueAddress ? <small>{course.venueAddress}</small> : null}{mapUrl ? <a href={mapUrl} target="_blank" rel="noreferrer">عرض الموقع على الخريطة</a> : null}</dd></div> : <div><VideoCamera size={30} weight="duotone" /><dt>الحضور</dt><dd>{course.platform}</dd></div>}
             </dl>
             <p className={styles.description}>{course.description}</p>
             <div className={styles.assurances}>
               <span><CheckCircle size={18} weight="fill" />{landing.hero.benefitOne}</span>
               <span><CheckCircle size={18} weight="fill" />{landing.hero.benefitThree}</span>
-              <span><CheckCircle size={18} weight="fill" />{landing.hero.benefitTwo}</span>
+              <span><CheckCircle size={18} weight="fill" />{attendanceBenefit}</span>
             </div>
           </article>
 
