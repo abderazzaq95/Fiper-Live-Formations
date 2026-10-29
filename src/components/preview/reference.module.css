@@ -165,8 +165,18 @@
 .sessionStrip dd{margin-top:4px;font-size:14px;line-height:20px;white-space:nowrap}
 .programSection{padding:8px 32px 16px}
 .programBox{min-height:416px;padding:48px}
-.programContent h2{font-size:24px;line-height:32px}
+.sectionLabel span,.programContent h2,.faqSection h2{font-size:20px;line-height:28px}
 .faqSection{padding:16px 32px 24px}
+.footer{padding:32px max(32px,calc((100vw - 1408px)/2)) 16px}
+.footerTop{gap:32px}
+.footerBrand img{height:40px}
+.footerBrand p,.footerAction p{margin-top:12px;line-height:24px}
+.footer h2{font-size:16px;line-height:24px}
+.footer nav{gap:8px}
+.footer nav h2{margin-bottom:4px}
+.footerAction>a{margin-top:12px;padding:8px 12px}
+.disclaimer{margin-top:32px;padding:16px 0}
+.copyright{padding-top:16px}
 
 @media(max-width:760px){
   .heroSection{padding:8px}
@@ -181,6 +191,10 @@
   .sessionStrip dt,.sessionStrip dd{font-size:12px;line-height:16px}
   .programSection{padding:8px 16px 16px}
   .programBox{min-height:0;padding:24px}
-  .programContent h2{font-size:20px;line-height:28px}
+  .sectionLabel span,.programContent h2,.faqSection h2{font-size:18px;line-height:28px}
   .faqSection{padding:16px 16px 24px}
+  .footer{padding:32px 16px 16px}
+  .footerTop{gap:24px}
+  .footerBrand img{height:40px}
+  .disclaimer{margin-top:24px;padding:16px 0}
 }
