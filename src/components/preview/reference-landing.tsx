@@ -82,7 +82,7 @@ export function ReferenceLanding({ course, agenda, outcomes, faqs, landing }: Pu
               <div><CurrencyDollar size={30} weight="duotone" /><dt>السعر</dt><dd>مجانًا</dd></div>
               <div><CalendarBlank size={30} weight="duotone" /><dt>التاريخ</dt><dd>{course.dateLabel}</dd></div>
               <div><Clock size={30} weight="duotone" /><dt>الوقت</dt><dd>{course.timeLabel}</dd></div>
-              {isOnsite ? <div className={styles.venueFact}><MapPin size={30} weight="duotone" /><dt>المكان</dt><dd><strong>{course.venueName || "حضوري"}</strong>{course.venueAddress ? <small>{course.venueAddress}</small> : null}{mapUrl ? <a href={mapUrl} target="_blank" rel="noreferrer">عرض الموقع على الخريطة</a> : null}</dd></div> : <div><VideoCamera size={30} weight="duotone" /><dt>الحضور</dt><dd>{course.platform}</dd></div>}
+              {isOnsite ? <div className={styles.venueFact}><MapPin size={30} weight="duotone" /><dt>المكان</dt><dd><strong>{course.venueName || "حضوري"}</strong>{course.venueAddress ? <small title={course.venueAddress}>{course.venueAddress}</small> : null}{mapUrl ? <a href={mapUrl} target="_blank" rel="noreferrer">عرض الخريطة</a> : null}</dd></div> : <div><VideoCamera size={30} weight="duotone" /><dt>الحضور</dt><dd>{course.platform}</dd></div>}
             </dl>
             <p className={styles.description}>{course.description}</p>
             <div className={styles.assurances}>

@@ -90,11 +90,13 @@
 .courseFacts{gap:24px;margin-top:16px}
 .courseFacts svg{color:var(--red)!important}
 .courseFacts dd{font-size:14px}
-.courseFacts .venueFact{align-items:start}
-.venueFact dd{display:flex;max-width:220px;flex-direction:column;gap:2px}
+.courseFacts>div{min-height:48px}
+.courseFacts .venueFact{align-items:center}
+.venueFact dd{display:flex;max-width:360px;align-items:center;gap:8px;white-space:nowrap}
 .venueFact dd strong{font-size:14px}
-.venueFact dd small{font-size:12px;font-weight:500;line-height:16px;color:var(--muted)}
-.venueFact dd a{width:max-content;margin-top:4px;font-size:12px;font-weight:700;color:var(--red);text-decoration:underline;text-underline-offset:3px}
+.venueFact dd small{max-width:144px;overflow:hidden;text-overflow:ellipsis;font-size:12px;font-weight:500;line-height:16px;color:var(--muted)}
+.venueFact dd small:before{content:"·";margin-left:8px}
+.venueFact dd a{width:max-content;font-size:12px;font-weight:700;color:var(--red);text-decoration:underline;text-underline-offset:3px}
 .venueFact dd a:hover{color:var(--red-hover)}
 .description{margin-top:24px;font-size:18px;line-height:28px}
 .assurances{margin-top:24px;font-size:12px}
@@ -137,7 +139,9 @@
   .lead{font-size:14px;line-height:20px}
   .description{font-size:16px;line-height:24px}
   .courseFacts dd{font-size:12px}
-  .venueFact dd{max-width:none}
+  .venueFact dd{max-width:none;align-items:flex-start;flex-direction:column;gap:2px;white-space:normal}
+  .venueFact dd small{max-width:100%}
+  .venueFact dd small:before{content:none}
   .venueFact dd strong,.venueFact dd small,.venueFact dd a{font-size:12px}
   .formCard{max-width:none;padding:16px;border-radius:8px}
   .formTitle h2{font-size:20px;line-height:28px}
