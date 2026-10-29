@@ -194,7 +194,13 @@
   .sectionLabel span,.programContent h2,.faqSection h2{font-size:18px;line-height:28px}
   .faqSection{padding:16px 16px 24px}
   .footer{padding:32px 16px 16px}
-  .footerTop{gap:24px}
+  .footerTop{grid-template-columns:1fr 1fr;gap:24px 16px}
+  .footerBrand{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr;align-items:center;gap:12px}
   .footerBrand img{height:40px}
+  .footerBrand p{max-width:none;margin-top:0}
+  .footerAction{grid-column:1/-1;display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 12px}
+  .footerAction p{max-width:none;margin-top:0}
+  .footerAction>a{grid-column:2;grid-row:1/3;margin-top:0}
   .disclaimer{margin-top:24px;padding:16px 0}
+  .copyright{flex-direction:row;align-items:center}
 }
