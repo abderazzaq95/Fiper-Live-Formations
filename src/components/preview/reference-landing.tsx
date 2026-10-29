@@ -110,7 +110,6 @@ export function ReferenceLanding({ course, agenda, outcomes, faqs, landing }: Pu
             {course.instructor.image ? <Image src={course.instructor.image} alt={`المحاضر ${course.instructor.name}`} fill unoptimized sizes="(max-width: 760px) 100vw, 280px" /> : <span>{course.instructor.initials}</span>}
           </div>
           <div className={styles.instructorCopy}>
-            <p>{landing.instructor.eyebrow}</p>
             <h2>{course.instructor.name}</h2>
             <i aria-hidden="true" />
             <h3>{course.instructor.role}</h3>
@@ -147,8 +146,7 @@ export function ReferenceLanding({ course, agenda, outcomes, faqs, landing }: Pu
       {landing.visibility.footer ? <footer id="footer" className={styles.footer}>
         <div className={styles.footerTop}>
           <div className={styles.footerBrand}><Image src="/brand/fiper-wordmark-drive.png" alt="Fiper Academy" width={210} height={73} /><p>{landing.footer.brandDescription}</p></div>
-          <nav aria-label="روابط الدورة"><h2>{landing.footer.courseLinksTitle}</h2><a href="#main-content">{landing.footer.courseDetailsLabel}</a><a href="#instructor">{landing.footer.instructorLabel}</a><a href="#program">{landing.footer.programLabel}</a></nav>
-          <nav aria-label="روابط مهمة"><h2>{landing.footer.importantLinksTitle}</h2><a href="/privacy">{landing.footer.privacyLabel}</a><a href="/terms">{landing.footer.termsLabel}</a><a href={`mailto:${landing.footer.contactEmail}`}>{landing.footer.contactLabel}</a></nav>
+          <nav className={styles.footerLegal} aria-label="روابط قانونية"><a href="/privacy">{landing.footer.privacyLabel}</a><a href="/terms">{landing.footer.termsLabel}</a></nav>
           <div className={styles.footerAction}><h2>{landing.registration.title}</h2><p>{landing.registration.description}</p><a href="#register">{landing.hero.primaryCta}<ArrowLeft size={18} /></a></div>
         </div>
         <div className={styles.disclaimer}><p>{landing.footer.disclaimer}</p></div>
