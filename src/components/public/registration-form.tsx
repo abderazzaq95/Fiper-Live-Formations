@@ -13,6 +13,7 @@ type Country = { name: string; dial: string; flag: string };
 
 const featuredCountries: Country[] = [
   { name: "العراق", dial: "+964", flag: "🇮🇶" },
+  { name: "لبنان", dial: "+961", flag: "🇱🇧" },
   { name: "السعودية", dial: "+966", flag: "🇸🇦" },
   { name: "الإمارات العربية المتحدة", dial: "+971", flag: "🇦🇪" },
   { name: "قطر", dial: "+974", flag: "🇶🇦" },
@@ -25,7 +26,6 @@ const featuredCountries: Country[] = [
 
 const moreCountries: Country[] = [
   { name: "الأردن", dial: "+962", flag: "🇯🇴" },
-  { name: "لبنان", dial: "+961", flag: "🇱🇧" },
   { name: "مصر", dial: "+20", flag: "🇪🇬" },
   { name: "فلسطين", dial: "+970", flag: "🇵🇸" },
   { name: "سوريا", dial: "+963", flag: "🇸🇾" },
@@ -174,7 +174,7 @@ export function RegistrationForm({ courseId, compact = false }: RegistrationForm
         <input id={`name-${compact}`} name="name" required minLength={3} autoComplete="name" placeholder="مثال: أحمد التميمي" className={inputClass} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="space-y-4">
         <div>
           <label htmlFor={`email-${compact}`} className={labelClass}>البريد الإلكتروني</label>
           <input id={`email-${compact}`} name="email" type="email" required autoComplete="email" dir="ltr" placeholder="name@email.com" className={`${inputClass} latin text-right`} />
