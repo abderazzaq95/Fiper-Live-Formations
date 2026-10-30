@@ -40,6 +40,8 @@ export function ReferenceLanding({ course, agenda, outcomes, faqs, landing }: Pu
   const curriculum = agenda.length ? agenda : outcomes.map((item) => ({ title: item.title, text: item.text, time: "" }));
   const isOnsite = course.type === "onsite";
   const mapUrl = typeof course.mapsUrl === "string" && /^https?:\/\//i.test(course.mapsUrl) ? course.mapsUrl : "";
+  const rawVenueAddress = course.venueAddress?.trim() ?? "";
+  const venueAddress = /[\p{L}\p{N}]/u.test(rawVenueAddress) && rawVenueAddress !== course.venueName?.trim() ? rawVenueAddress : "";
   const attendanceBenefit = isOnsite && landing.hero.benefitTwo === "حضور مباشر وتفاعلي" ? "حضور حضوري وتفاعلي" : landing.hero.benefitTwo;
   return (
     <main ref={root} className={styles.page} dir="rtl">
@@ -83,7 +85,7 @@ export function ReferenceLanding({ course, agenda, outcomes, faqs, landing }: Pu
               <div><CurrencyDollar size={30} weight="duotone" /><dt>السعر</dt><dd>مجانًا</dd></div>
               <div><CalendarBlank size={30} weight="duotone" /><dt>التاريخ</dt><dd>{course.dateLabel}</dd></div>
               <div><Clock size={30} weight="duotone" /><dt>الوقت</dt><dd>{course.timeLabel}</dd></div>
-              {isOnsite ? <div className={styles.venueFact}><MapPin size={30} weight="duotone" /><dt>المكان</dt><dd><strong>{course.venueName || "حضوري"}</strong>{course.venueAddress ? <small title={course.venueAddress}>{course.venueAddress}</small> : null}{mapUrl ? <a href={mapUrl} target="_blank" rel="noreferrer">عرض الخريطة</a> : null}</dd></div> : <div><VideoCamera size={30} weight="duotone" /><dt>الحضور</dt><dd>{course.platform}</dd></div>}
+              {isOnsite ? <div className={styles.venueFact}><MapPin size={30} weight="duotone" /><dt>المكان</dt><dd><strong>{course.venueName || "حضوري"}</strong>{venueAddress ? <small title={venueAddress}>{venueAddress}</small> : null}{mapUrl ? <a href={mapUrl} target="_blank" rel="noreferrer">عرض الخريطة</a> : null}</dd></div> : <div><VideoCamera size={30} weight="duotone" /><dt>الحضور</dt><dd>{course.platform}</dd></div>}
             </dl>
             <p className={styles.description}>{course.description}</p>
             <div className={styles.assurances}>
