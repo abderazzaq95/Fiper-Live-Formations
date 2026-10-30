@@ -17,17 +17,12 @@ import {
 import type { Course } from "@/lib/demo-data";
 import { CourseCover } from "@/components/courses/course-cover";
 
-const levelLabels = {
-  beginner: "مبتدئ",
-  intermediate: "متوسط",
-  advanced: "متقدم",
-} as const;
-
 function courseHref(course: Course) {
   return `/courses/${course.slug || course.id}`;
 }
 
 function CourseCard({ course, priority = false }: { course: Course; priority?: boolean }) {
+  const isOnline = course.type === "online";
   const location = course.type === "online" ? course.platform || "عبر الإنترنت" : course.venueName || "حضوري";
 
   return (
@@ -37,8 +32,9 @@ function CourseCard({ course, priority = false }: { course: Course; priority?: b
         <span className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-[9px] bg-[#cf262c] shadow-md">
           <Image src="/brand/fiper-mark.png" alt="" width={31} height={31} className="h-8 w-8 object-contain" />
         </span>
-        <span className="absolute bottom-3 left-3 rounded-full bg-white px-4 py-1.5 text-xs font-bold text-[#10283a] shadow-sm">
-          {course.level ? levelLabels[course.level] : "دورة مباشرة"}
+        <span className="absolute bottom-3 left-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-xs font-bold text-[#10283a] shadow-sm">
+          {isOnline ? <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-[#16a05d]" /> : null}
+          {isOnline ? "دورة أونلاين" : "دورة حضورية"}
         </span>
       </Link>
 
@@ -179,7 +175,16 @@ export function SimpleCoursesDirectory({ courses }: { courses: Course[] }) {
       <Header />
       <main className="min-h-[580px] px-5 py-12 sm:px-8 sm:py-16">
         <div className="mx-auto max-w-[1120px]">
-          <div className="relative mx-auto max-w-[560px]">
+          <section aria-labelledby="courses-heading" className="mx-auto max-w-[760px] text-center">
+            <h1 id="courses-heading" className="text-3xl font-bold leading-[1.35] text-[#071f31] sm:text-4xl">
+              دورات وندوات فايبر التعليمية
+            </h1>
+            <p className="mx-auto mt-4 max-w-[720px] text-base leading-8 text-[#607481] sm:text-lg">
+              استعرض جدول الدورات والمحاضرات المباشرة في تعلّم التداول عبر الأسواق المالية المختلفة بإشراف مدربينا، حضوريًّا وأونلاين.
+            </p>
+          </section>
+
+          <div className="relative mx-auto mt-8 max-w-[560px]">
             <MagnifyingGlass size={23} className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-[#92a0aa]" />
             <input
               type="search"
