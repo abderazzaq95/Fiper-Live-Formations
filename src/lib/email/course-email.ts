@@ -16,8 +16,23 @@ function escapeHtml(value: string) {
 }
 
 function safeActionUrl(value?: string) {
-  const candidate = value?.trim() ?? "";
-  return /^https:\/\//i.test(candidate) ? candidate : "";
+  const rawValue = value?.trim() ?? "";
+  if (!rawValue) return "";
+
+  const candidate = rawValue.startsWith("//")
+    ? `https:${rawValue}`
+    : /^https?:\/\//i.test(rawValue)
+      ? rawValue
+      : `https://${rawValue}`;
+
+  try {
+    const url = new URL(candidate);
+    if (!url.hostname.includes(".")) return "";
+    url.protocol = "https:";
+    return url.toString();
+  } catch {
+    return "";
+  }
 }
 
 function messageFor(templateKey: string) {
