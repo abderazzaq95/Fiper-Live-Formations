@@ -1,5 +1,6 @@
 import { CheckCircle2, Clock3, Mail, MessageCircleMore, MoreHorizontal, Send, TriangleAlert } from "lucide-react";
 import { getDashboardDeliveries } from "@/lib/data/dashboard";
+import { EmailTestButton } from "@/components/dashboard/email-test-button";
 
 const automation = [
   ["تأكيد التسجيل", "البريد + واتساب", "فور التسجيل", "نشطة", CheckCircle2, "text-[#168a65] bg-[#eaf8f3]"],
@@ -16,7 +17,7 @@ export default async function CommunicationsPage() {
   const deliveryRate = total ? Math.round((data.delivered / total) * 100) : 0;
   return (
     <div className="mx-auto max-w-[1450px]">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-[10px] font-bold text-[#C32828]">الأتمتة</p><h1 className="mt-2 text-2xl font-bold tracking-[-0.035em] sm:text-3xl">رحلة التواصل</h1><p className="mt-2 text-xs text-[#788d9c]">راقب رسائل البريد وواتساب وجدولها من مكان واحد.</p></div><button type="button" className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[#102f47] px-5 text-[9px] font-bold text-white"><Send size={15} /> رسالة تجريبية</button></div>
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-[10px] font-bold text-[#C32828]">الأتمتة</p><h1 className="mt-2 text-2xl font-bold tracking-[-0.035em] sm:text-3xl">رحلة التواصل</h1><p className="mt-2 text-xs text-[#788d9c]">راقب رسائل البريد وواتساب وجدولها من مكان واحد.</p></div><EmailTestButton /></div>
       <div className="mt-7 grid gap-4 sm:grid-cols-3">
         <div className="rounded-[18px] border border-[#dfe7ec] bg-white p-5"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eaf5fc] text-[#1574ad]"><Mail size={18} /></span><p className="mt-5 text-[9px] text-[#7f929f]">رسائل البريد المسجلة</p><strong className="latin mt-2 block text-2xl">{data.emailTotal}</strong><small className="mt-1 text-[8px] text-[#168a65]">{deliveryRate}% تم التسليم</small></div>
         <div className="rounded-[18px] border border-[#dfe7ec] bg-white p-5"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eaf8f3] text-[#168a65]"><MessageCircleMore size={18} /></span><p className="mt-5 text-[9px] text-[#7f929f]">رسائل واتساب المسجلة</p><strong className="latin mt-2 block text-2xl">{data.whatsappTotal}</strong><small className="mt-1 text-[8px] text-[#168a65]">من سجل الإرسال الحقيقي</small></div>
