@@ -4,6 +4,7 @@ export type CourseEmailInput = {
   name: string;
   title: string;
   startsAt: string;
+  time: string;
   timezone: string;
   templateKey: CourseEmailTemplateKey | string;
   attendanceDetails: string;
@@ -36,6 +37,23 @@ export function formatCourseTimezone(timezone: string) {
     "Europe/London": "المملكة المتحدة، توقيت لندن",
   };
   return labels[timezone] ?? "التوقيت المحلي للدورة";
+}
+
+export function formatCourseSchedule(value: string, timezone: string) {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return { date: value || "—", time: "—" };
+  const date = new Date(timestamp);
+  try {
+    return {
+      date: new Intl.DateTimeFormat("ar", { dateStyle: "full", timeZone: timezone || "UTC" }).format(date),
+      time: new Intl.DateTimeFormat("ar", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: timezone || "UTC" }).format(date),
+    };
+  } catch {
+    return {
+      date: new Intl.DateTimeFormat("ar", { dateStyle: "full", timeZone: "UTC" }).format(date),
+      time: new Intl.DateTimeFormat("ar", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "UTC" }).format(date),
+    };
+  }
 }
 
 function safeActionUrl(value?: string) {
@@ -93,19 +111,19 @@ export function buildCourseEmail(input: CourseEmailInput) {
     <meta name="color-scheme" content="light only">
     <title>${escapeHtml(subject)}</title>
   </head>
-  <body style="margin:0;padding:0;background:#f1f3f4;color:#071f31;font-family:Tahoma,Arial,sans-serif;">
+  <body dir="rtl" style="margin:0;padding:0;background:#f1f3f4;color:#071f31;font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;">
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(copy.heading)} — ${escapeHtml(input.title)}</div>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f1f3f4;">
+    <table dir="rtl" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f1f3f4;direction:rtl;">
       <tr>
         <td align="center" style="padding:24px 12px;">
-          <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;background:#ffffff;border-collapse:separate;border-spacing:0;border-radius:10px;overflow:hidden;box-shadow:0 8px 24px rgba(7,31,49,.08);">
+          <table dir="rtl" role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;background:#ffffff;border-collapse:separate;border-spacing:0;border-radius:10px;overflow:hidden;box-shadow:0 8px 24px rgba(7,31,49,.08);direction:rtl;">
             <tr>
               <td align="center" style="padding:24px 24px 20px;border-bottom:3px solid #cf262c;background:#ffffff;">
                 <img src="https://fiperacademy.com/brand/fiper-wordmark.png" width="210" alt="Fiper" style="display:block;width:210px;max-width:70%;height:auto;border:0;">
               </td>
             </tr>
             <tr>
-              <td align="center" style="padding:34px 32px 12px;">
+              <td dir="rtl" align="right" style="padding:34px 32px 12px;text-align:right;direction:rtl;">
                 <p style="margin:0 0 10px;color:#cf262c;font-size:14px;font-weight:700;line-height:22px;">${escapeHtml(copy.eyebrow)}</p>
                 <h1 style="margin:0;color:#071f31;font-size:28px;font-weight:700;line-height:40px;">${escapeHtml(copy.heading)}</h1>
                 <p style="margin:14px 0 0;color:#667783;font-size:15px;line-height:26px;">مرحبًا <bdi dir="auto" style="color:#344b5a;font-weight:700;unicode-bidi:isolate;">${escapeHtml(input.name)}</bdi>،</p>
@@ -113,13 +131,13 @@ export function buildCourseEmail(input: CourseEmailInput) {
               </td>
             </tr>
             <tr>
-              <td style="padding:18px 32px 26px;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f7f8f8;border:1px solid #e3e6e8;border-radius:8px;">
-                  <tr><td style="padding:22px 24px 8px;color:#071f31;font-size:18px;font-weight:700;line-height:28px;">${escapeHtml(input.title)}</td></tr>
-                  <tr><td style="padding:6px 24px;color:#667783;font-size:14px;line-height:24px;"><strong style="color:#344b5a;">الموعد:</strong> ${escapeHtml(input.startsAt)}</td></tr>
-                  <tr><td style="padding:6px 24px;color:#667783;font-size:14px;line-height:24px;"><strong style="color:#344b5a;">التوقيت:</strong> ${escapeHtml(input.timezone)}</td></tr>
-                  <tr><td style="padding:6px 24px;color:#667783;font-size:14px;line-height:24px;"><strong style="color:#344b5a;">نوع الحضور:</strong> ${attendanceLabel}</td></tr>
-                  <tr><td style="padding:6px 24px 22px;color:#667783;font-size:14px;line-height:24px;"><strong style="color:#344b5a;">تفاصيل الحضور:</strong> ${escapeHtml(attendanceDetails)}</td></tr>
+              <td dir="rtl" style="padding:18px 32px 26px;text-align:right;direction:rtl;">
+                <table dir="rtl" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f7f8f8;border:1px solid #e3e6e8;border-radius:8px;direction:rtl;text-align:right;">
+                  <tr><td dir="rtl" align="right" style="padding:22px 24px 8px;color:#071f31;font-size:18px;font-weight:700;line-height:28px;text-align:right;direction:rtl;">${escapeHtml(input.title)}</td></tr>
+                  <tr><td dir="rtl" align="right" style="padding:6px 24px;color:#667783;font-size:14px;line-height:24px;text-align:right;direction:rtl;"><strong style="color:#344b5a;">الموعد:</strong> ${escapeHtml(input.startsAt)}</td></tr>
+                  <tr><td dir="rtl" align="right" style="padding:6px 24px;color:#667783;font-size:14px;line-height:24px;text-align:right;direction:rtl;"><strong style="color:#344b5a;">التوقيت:</strong> ${escapeHtml(input.time)}، ${escapeHtml(input.timezone)}</td></tr>
+                  <tr><td dir="rtl" align="right" style="padding:6px 24px;color:#667783;font-size:14px;line-height:24px;text-align:right;direction:rtl;"><strong style="color:#344b5a;">نوع الحضور:</strong> ${attendanceLabel}</td></tr>
+                  <tr><td dir="rtl" align="right" style="padding:6px 24px 22px;color:#667783;font-size:14px;line-height:24px;text-align:right;direction:rtl;"><strong style="color:#344b5a;">تفاصيل الحضور:</strong> ${escapeHtml(attendanceDetails)}</td></tr>
                 </table>
               </td>
             </tr>
@@ -142,7 +160,7 @@ export function buildCourseEmail(input: CourseEmailInput) {
     `مرحبًا ${input.name}، ${copy.intro}`,
     input.title,
     `الموعد: ${input.startsAt}`,
-    `التوقيت: ${input.timezone}`,
+    `التوقيت: ${input.time}، ${input.timezone}`,
     `نوع الحضور: ${attendanceLabel}`,
     `تفاصيل الحضور: ${attendanceDetails}`,
     actionUrl ? `${actionLabel}: ${actionUrl}` : "",

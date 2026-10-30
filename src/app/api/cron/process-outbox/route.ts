@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isCallbellConfigured, sendCallbellTemplate } from "@/lib/integrations/callbell";
-import { buildCourseEmail, formatCourseTimezone, formatFiperEmailSender } from "@/lib/email/course-email";
+import { buildCourseEmail, formatCourseSchedule, formatCourseTimezone, formatFiperEmailSender } from "@/lib/email/course-email";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -21,11 +21,12 @@ function attendanceDetailsFor(session: JsonRecord | undefined) {
   return meetUrl || "\u0639\u0646 \u0628\u0639\u062f - \u0633\u064a\u062a\u0645 \u0625\u0631\u0633\u0627\u0644 \u0631\u0627\u0628\u0637 \u0627\u0644\u062f\u062e\u0648\u0644 \u0642\u0628\u0644 \u0627\u0644\u0645\u0648\u0639\u062f";
 }
 
-async function sendResend(to: string, name: string, title: string, startsAt: string, sourceTimezone: string, templateKey: string, attendanceDetails: string, deliveryType: "online" | "onsite", actionUrl: string) {
+async function sendResend(to: string, name: string, title: string, startsAtIso: string, sourceTimezone: string, templateKey: string, attendanceDetails: string, deliveryType: "online" | "onsite", actionUrl: string) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
   if (!apiKey || !from) return { configured: false as const, provider: "resend" as const, reason: "Resend is not configured (RESEND_API_KEY and RESEND_FROM_EMAIL are required)." };
-  const email = buildCourseEmail({ name, title, startsAt, timezone: formatCourseTimezone(sourceTimezone), templateKey, attendanceDetails, deliveryType, actionUrl });
+  const schedule = formatCourseSchedule(startsAtIso, sourceTimezone);
+  const email = buildCourseEmail({ name, title, startsAt: schedule.date, time: schedule.time, timezone: formatCourseTimezone(sourceTimezone), templateKey, attendanceDetails, deliveryType, actionUrl });
   const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" }, body: JSON.stringify({ from: formatFiperEmailSender(from), to: [to], subject: email.subject, html: email.html, text: email.text }) });
   const body = await response.json().catch(() => ({})) as JsonRecord;
   if (!response.ok) throw new Error(text(body.message, "Resend returned " + response.status));
@@ -129,7 +130,7 @@ async function processDelivery(supabase: ReturnType<typeof createAdminClient>, d
     callbellTemplateUuid = (sender.callbell_verified_at ? senderTemplates[templateKey] : undefined) || (sender.is_default ? callbellTemplateFor(templateKey) : undefined);
     if (!callbellTemplateUuid) throw new Error(`Selected WhatsApp sender has no template configured for ${templateKey}`);
   }
-  const result = channel === "email" ? await sendResend(text(registration.email), name, title, startsAt, sourceTimezone, templateKey, attendanceDetails, deliveryType, actionUrl) : await sendWhatsApp(text(registration.phone_e164), name, title, scheduleLabel, templateKey, attendanceDetails, text(registration.id), id, callbellChannelUuid, callbellTemplateUuid);
+  const result = channel === "email" ? await sendResend(text(registration.email), name, title, startsAtIso, sourceTimezone, templateKey, attendanceDetails, deliveryType, actionUrl) : await sendWhatsApp(text(registration.phone_e164), name, title, scheduleLabel, templateKey, attendanceDetails, text(registration.id), id, callbellChannelUuid, callbellTemplateUuid);
   if (!result.configured) return { id, state: "queued", reason: result.reason };
   await supabase.from("message_deliveries").update({ state: "sent", sent_at: new Date().toISOString(), provider_message_id: result.id || null, provider_payload: { provider: result.provider }, failure_reason: null, attempt_count: Number(delivery.attempt_count) + 1, updated_at: new Date().toISOString() }).eq("id", id);
   return { id, state: "sent" };

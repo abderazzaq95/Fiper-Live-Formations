@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { getDashboardIdentity } from "@/lib/auth";
-import { buildCourseEmail, formatCourseTimezone, formatFiperEmailSender } from "@/lib/email/course-email";
+import { buildCourseEmail, formatCourseSchedule, formatCourseTimezone, formatFiperEmailSender } from "@/lib/email/course-email";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type Row = Record<string, unknown>;
@@ -46,11 +46,12 @@ export async function POST(request: Request) {
   const deliveryType = string(session?.delivery_type) === "onsite" ? "onsite" as const : "online" as const;
   const actionUrl = deliveryType === "onsite" ? string(session?.maps_url) : string(session?.meet_url);
   const venue = [string(session?.venue_name), string(session?.venue_address)].filter(Boolean).join("، ");
-  const startsAt = new Intl.DateTimeFormat("ar", { dateStyle: "full", timeStyle: "short", timeZone: timezone }).format(new Date(startsAtValue));
+  const schedule = formatCourseSchedule(startsAtValue, timezone);
   const email = buildCourseEmail({
     name: identity.name,
     title: string(translation?.title, "دورة Fiper التعليمية"),
-    startsAt,
+    startsAt: schedule.date,
+    time: schedule.time,
     timezone: formatCourseTimezone(timezone),
     templateKey: "registration_confirmation",
     attendanceDetails: deliveryType === "onsite" ? venue || "سيتم إرسال عنوان المكان قبل الموعد" : "عبر Google Meet",
