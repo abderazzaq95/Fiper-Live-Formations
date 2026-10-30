@@ -220,18 +220,18 @@ export function RegistrationForm({ courseId, compact = false }: RegistrationForm
 
       <div className="flex items-center justify-center gap-2 text-[10px] text-[#6f8ba0]"><ShieldCheck size={14} /><span>بياناتك محمية ولن تستخدم خارج تواصل هذه الدورة</span><LockKeyhole size={11} /></div>
     </form>
-    {countryDialogOpen && <div className="fixed inset-0 z-[100] flex items-end justify-center bg-[#020f1a]/80 p-0 backdrop-blur-sm sm:items-center sm:p-6" role="presentation" onMouseDown={() => setCountryDialogOpen(false)}>
-      <section role="dialog" aria-modal="true" aria-labelledby={`country-dialog-title-${compact}`} className="max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-t-3xl border border-white/10 bg-[#06233a] shadow-[0_30px_100px_rgba(0,0,0,.45)] sm:rounded-3xl" onMouseDown={(event) => event.stopPropagation()}>
-        <div className="flex items-start justify-between gap-5 border-b border-white/10 p-5 sm:p-6">
-          <div><h2 id={`country-dialog-title-${compact}`} className="text-base font-bold text-white">اختر دولتك</h2><p className="mt-2 text-xs leading-6 text-[#8daac1]">ابحث بالاسم أو برمز الاتصال الدولي.</p></div>
-          <button type="button" onClick={() => setCountryDialogOpen(false)} aria-label="إغلاق قائمة الدول" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 text-[#9bb4c7] transition hover:bg-white/5 hover:text-white"><X size={18} /></button>
+    {countryDialogOpen && <div className="fixed inset-0 z-[100] flex items-end justify-center bg-[#071d2f]/40 p-0 backdrop-blur-sm sm:items-center sm:p-6" role="presentation" onMouseDown={() => setCountryDialogOpen(false)}>
+      <section role="dialog" aria-modal="true" aria-labelledby={`country-dialog-title-${compact}`} className="max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-t-3xl border border-[#dce5eb] bg-white shadow-[0_24px_70px_rgba(7,29,47,.18)] sm:rounded-3xl" onMouseDown={(event) => event.stopPropagation()}>
+        <div className="flex items-start justify-between gap-5 border-b border-[#dce5eb] p-5 sm:p-6">
+          <div><h2 id={`country-dialog-title-${compact}`} className="text-base font-bold text-[#071d2f]">اختر دولتك</h2><p className="mt-2 text-xs leading-6 text-[#607686]">ابحث بالاسم أو برمز الاتصال الدولي.</p></div>
+          <button type="button" onClick={() => setCountryDialogOpen(false)} aria-label="إغلاق قائمة الدول" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#dce5eb] bg-[#f8fafb] text-[#607686] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[#eef2f4] hover:text-[#071d2f] active:scale-[.98]"><X size={18} /></button>
         </div>
         <div className="p-5 sm:p-6">
-          <div className="relative"><Search size={17} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#7896ab]" /><input autoFocus value={countryQuery} onChange={(event) => setCountryQuery(event.target.value)} placeholder="ابحث عن دولة..." className="h-12 w-full rounded-xl border border-white/10 bg-[#031a2d] pr-11 pl-4 text-sm text-white placeholder:text-[#5f7e95] focus:border-[#3e8ec7] focus:outline-none" /></div>
-          <div className="mt-4 max-h-[52vh] overflow-y-auto rounded-xl border border-white/10 scrollbar-thin">
-            {filteredCountries.length ? filteredCountries.map((country) => <button key={country.name} type="button" onClick={() => selectAdditionalCountry(country)} className="flex w-full items-center gap-3 border-b border-white/8 px-4 py-3 text-right text-sm text-white transition last:border-0 hover:bg-white/5 focus:bg-white/5">
-              <span className="text-xl" aria-hidden="true">{country.flag}</span><span className="font-semibold">{country.name}</span><span className="latin mr-auto text-xs text-[#8daac1]">{country.dial}</span>
-            </button>) : <p className="px-5 py-10 text-center text-sm text-[#8daac1]">لم نعثر على دولة مطابقة.</p>}
+          <div className="relative"><Search size={17} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#718696]" /><input autoFocus value={countryQuery} onChange={(event) => setCountryQuery(event.target.value)} placeholder="ابحث عن دولة..." className="h-12 w-full rounded-xl border border-[#cbd7de] bg-[#f8fafb] pr-11 pl-4 text-sm text-[#071d2f] placeholder:text-[#8ca0ad] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] focus:border-[#C32828] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#C32828]/10" /></div>
+          <div className="mt-4 max-h-[52vh] overflow-y-auto rounded-xl border border-[#dce5eb] bg-white scrollbar-thin">
+            {filteredCountries.length ? filteredCountries.map((country) => <button key={country.name} type="button" onClick={() => selectAdditionalCountry(country)} className="flex w-full items-center gap-3 border-b border-[#e7edf1] px-4 py-3 text-right text-sm text-[#071d2f] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] last:border-0 hover:bg-[#f5f7f8] focus:bg-[#fff4f4] active:bg-[#f0f3f5]">
+              <span className="text-xl" aria-hidden="true">{country.flag}</span><span className="font-semibold">{country.name}</span><span className="latin mr-auto text-xs text-[#607686]">{country.dial}</span>
+            </button>) : <p className="px-5 py-10 text-center text-sm text-[#607686]">لم نعثر على دولة مطابقة.</p>}
           </div>
         </div>
       </section>
