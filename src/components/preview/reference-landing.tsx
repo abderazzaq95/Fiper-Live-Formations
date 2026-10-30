@@ -79,7 +79,7 @@ export function ReferenceLanding({ course, agenda, outcomes, faqs, landing }: Pu
             <h1>{course.title}</h1>
             <p className={styles.lead}>{course.heroHeading}</p>
             <div className={styles.shortRule} />
-            <dl className={styles.courseFacts}>
+            <dl className={`${styles.courseFacts} ${isOnsite ? styles.courseFactsOnsite : ""}`}>
               <div><CurrencyDollar size={30} weight="duotone" /><dt>السعر</dt><dd>مجانًا</dd></div>
               <div><CalendarBlank size={30} weight="duotone" /><dt>التاريخ</dt><dd>{course.dateLabel}</dd></div>
               <div><Clock size={30} weight="duotone" /><dt>الوقت</dt><dd>{course.timeLabel}</dd></div>
