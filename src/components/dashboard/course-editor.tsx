@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { agenda as defaultAgenda, audience as defaultAudience, featuredCourse, learningOutcomes } from "@/lib/demo-data";
 import { defaultLandingContent, type LandingContent, type LandingSectionVisibility } from "@/lib/landing-content";
 import type { CourseEditorData } from "@/lib/data/courses";
+import { publicationMissingFields } from "@/lib/course-publication";
 
 const pageSections = [
   { id: "editor-header", label: "الهيدر" },
@@ -64,9 +65,10 @@ export function CourseEditor({ courseId, initial, whatsappChannels, isNew = fals
   const registrationCount = initial?.registrationCount ?? 0;
   const capacity = session?.capacity ?? 200;
   const timezoneValue = ["Europe/Berlin", "Europe/Istanbul", "Asia/Qatar", "Asia/Muscat", "Asia/Beirut", "Africa/Casablanca", "Asia/Riyadh", "Asia/Dubai", "Asia/Amman", "Asia/Baghdad"].includes(session?.timezone ?? "") ? session?.timezone ?? "Europe/Berlin" : "Europe/Berlin";
-  const dateValue = inputDateTime(session?.startsAt, timezoneValue, "date", "");
-  const startTimeValue = inputDateTime(session?.startsAt, timezoneValue, "time", "");
-  const endTimeValue = inputDateTime(session?.endsAt, timezoneValue, "time", "");
+  const savedDraftSchedule = initial?.state === "draft" ? initial.landingContent.editorSchedule : undefined;
+  const dateValue = savedDraftSchedule?.date ?? inputDateTime(session?.startsAt, timezoneValue, "date", "");
+  const startTimeValue = savedDraftSchedule?.startTime ?? inputDateTime(session?.startsAt, timezoneValue, "time", "");
+  const endTimeValue = savedDraftSchedule?.endTime ?? inputDateTime(session?.endsAt, timezoneValue, "time", "");
   const defaultWhatsAppChannelId = session?.whatsappChannelId ?? whatsappChannels.find((channel) => channel.isDefault)?.id ?? whatsappChannels[0]?.id ?? "uae";
   const [deliveryType, setDeliveryType] = useState<"online" | "onsite">(() => initial?.session.deliveryType === "onsite" ? "onsite" : "online");
   const [waitlistEnabled, setWaitlistEnabled] = useState(() => initial?.session.waitlistEnabled ?? true);
@@ -115,6 +117,11 @@ export function CourseEditor({ courseId, initial, whatsappChannels, isNew = fals
     setSaved(false);
     setSaveError("");
     const value = (id: string, fallback = "") => draftValues[id] ?? (document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null)?.value ?? fallback;
+    const scheduleDraft = {
+      date: value("course-date", dateValue),
+      startTime: value("course-start-time", startTimeValue),
+      endTime: value("course-end-time", endTimeValue),
+    };
     const payload = {
       title: value("course-title", course.title),
       heroHeading: value("course-hero-heading", initial?.heroHeading ?? featuredCourse.heroHeading),
@@ -124,9 +131,9 @@ export function CourseEditor({ courseId, initial, whatsappChannels, isNew = fals
       topic: value("course-topic", initial?.topic ?? ""),
       slug: value("course-slug", course.slug),
       sessionId: session?.id ?? "",
-      date: value("course-date", dateValue),
-      startTime: value("course-start-time", startTimeValue),
-      endTime: value("course-end-time", endTimeValue),
+      date: scheduleDraft.date,
+      startTime: scheduleDraft.startTime,
+      endTime: scheduleDraft.endTime,
       timezone: value("course-timezone", timezoneValue ?? "Europe/Berlin"),
       deliveryType,
       platform: deliveryType === "online" ? "Google Meet" : "حضوري",
@@ -150,15 +157,11 @@ export function CourseEditor({ courseId, initial, whatsappChannels, isNew = fals
       outcomes: outcomeItems.filter((item) => item.title.trim() && item.text.trim()),
       audience: audienceItems.map((item) => item.trim()).filter(Boolean),
       agenda: agendaItems.filter((item) => item.title.trim()),
-      landingContent,
+      landingContent: { ...landingContent, editorSchedule: scheduleDraft },
     };
-    if (!payload.slug || !payload.date || !payload.startTime || !payload.endTime) {
-      setSaveError("أدخل الرابط المختصر والتاريخ ووقت البداية ووقت النهاية قبل الحفظ.");
-      setSaving(false);
-      return;
-    }
-    if (deliveryType === "onsite" && (!payload.venueName || !payload.venueAddress)) {
-      setSaveError("أدخل اسم المكان والعنوان الكامل قبل حفظ الدورة الحضورية.");
+    const missing = publish || isPublished ? publicationMissingFields(payload) : [];
+    if (missing.length) {
+      setSaveError(`لا يمكن نشر الدورة بعد. أكمل: ${missing.join("، ")}.`);
       setSaving(false);
       return;
     }

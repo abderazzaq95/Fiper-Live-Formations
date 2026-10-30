@@ -2,8 +2,10 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getDashboardIdentity } from "@/lib/auth";
 import { z } from "zod";
+import { hasCompleteSchedule, publicationMissingFields } from "@/lib/course-publication";
 
 const landingContentSchema = z.object({
+  editorSchedule: z.object({ date: z.string().max(10), startTime: z.string().max(5), endTime: z.string().max(5) }).partial().optional(),
   visibility: z.object({
     hero: z.boolean(),
     about: z.boolean(),
@@ -24,8 +26,8 @@ const landingContentSchema = z.object({
   footer: z.object({ brandDescription: z.string().trim().max(500), courseLinksTitle: z.string().trim().max(120), courseDetailsLabel: z.string().trim().max(120), instructorLabel: z.string().trim().max(120), programLabel: z.string().trim().max(120), importantLinksTitle: z.string().trim().max(120), contactLabel: z.string().trim().max(120), contactEmail: z.string().trim().email().max(240), backToTopLabel: z.string().trim().max(120), disclaimer: z.string().trim().max(1000), privacyLabel: z.string().trim().max(120), termsLabel: z.string().trim().max(120) }).partial().optional(),
 }).default({});
 const updateSchema = z.object({
-  title: z.string().trim().min(1).max(180),
-  heroHeading: z.string().trim().min(1).max(300).default("افهم السوق. تداول بوضوح."),
+  title: z.string().trim().max(180),
+  heroHeading: z.string().trim().max(300).default(""),
   eyebrow: z.string().trim().max(180).default(""),
   description: z.string().trim().max(2000).default(""),
   level: z.union([z.enum(["beginner", "intermediate", "advanced"]), z.literal("")]).default(""),
@@ -36,11 +38,11 @@ const updateSchema = z.object({
   agenda: z.array(z.object({ time: z.string().trim().max(80).default(""), title: z.string().trim().min(1).max(240), text: z.string().trim().max(1000).default("") })).max(30).default([]),
   landingContent: landingContentSchema,
   publish: z.boolean().default(false),
-  slug: z.string().trim().toLowerCase().regex(/^id\d+$/, "استخدم معرفًا مثل id06").max(120),
+  slug: z.union([z.string().trim().toLowerCase().regex(/^id\d+$/, "استخدم معرفًا مثل id06").max(120), z.literal("")]),
   sessionId: z.string().trim().max(120).default(""),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  startTime: z.string().regex(/^\d{2}:\d{2}$/),
-  endTime: z.string().regex(/^\d{2}:\d{2}$/),
+  date: z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal("")]),
+  startTime: z.union([z.string().regex(/^\d{2}:\d{2}$/), z.literal("")]),
+  endTime: z.union([z.string().regex(/^\d{2}:\d{2}$/), z.literal("")]),
   timezone: z.enum(["Europe/Berlin", "Europe/Istanbul", "Asia/Qatar", "Asia/Muscat", "Asia/Beirut", "Africa/Casablanca", "Asia/Riyadh", "Asia/Dubai", "Asia/Amman", "Asia/Baghdad"]),
   deliveryType: z.enum(["online", "onsite"]).default("online"),
   platform: z.string().trim().max(120).default(""),
@@ -52,7 +54,7 @@ const updateSchema = z.object({
   capacity: z.number().int().positive().max(100000),
   registrationOpen: z.boolean(),
   waitlistEnabled: z.boolean().default(true),
-  instructorName: z.string().trim().min(1).max(120),
+  instructorName: z.string().trim().max(120),
   instructorTitle: z.string().trim().max(180).default(""),
   instructorBio: z.string().trim().max(3000).default(""),
   instructorYearsActive: z.number().int().min(0).max(80).nullable().default(null),
@@ -239,25 +241,27 @@ async function createCourse(supabase: CourseDatabase, identity: { id: string }, 
     throw new Error("content_create_failed");
   }
 
-  const sessionResult = await supabase.from("course_sessions").insert({
-    course_id: newId,
-    starts_at: toIso(value.date, value.startTime, value.timezone),
-    ends_at: toIso(value.date, value.endTime, value.timezone),
-    timezone: value.timezone,
-    delivery_type: value.deliveryType,
-    platform: value.platform || null,
-    meet_url: value.meetUrl || null,
-    venue_name: value.deliveryType === "onsite" ? value.venueName || null : null,
-    venue_address: value.deliveryType === "onsite" ? value.venueAddress || null : null,
-    maps_url: value.deliveryType === "onsite" ? value.mapsUrl || null : null,
-    whatsapp_channel_id: value.whatsappChannelId,
-    capacity: value.capacity,
-    registration_open: value.registrationOpen,
-    waitlist_enabled: value.waitlistEnabled,
-  });
-  if (sessionResult.error) {
-    await cleanup();
-    throw new Error("schedule_create_failed");
+  if (hasCompleteSchedule(value)) {
+    const sessionResult = await supabase.from("course_sessions").insert({
+      course_id: newId,
+      starts_at: toIso(value.date, value.startTime, value.timezone),
+      ends_at: toIso(value.date, value.endTime, value.timezone),
+      timezone: value.timezone,
+      delivery_type: value.deliveryType,
+      platform: value.platform || null,
+      meet_url: value.meetUrl || null,
+      venue_name: value.deliveryType === "onsite" ? value.venueName || null : null,
+      venue_address: value.deliveryType === "onsite" ? value.venueAddress || null : null,
+      maps_url: value.deliveryType === "onsite" ? value.mapsUrl || null : null,
+      whatsapp_channel_id: value.whatsappChannelId,
+      capacity: value.capacity,
+      registration_open: value.registrationOpen,
+      waitlist_enabled: value.waitlistEnabled,
+    });
+    if (sessionResult.error) {
+      await cleanup();
+      throw new Error("schedule_create_failed");
+    }
   }
 
   return { id: newId, slug: newSlug };
@@ -275,8 +279,14 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   if (!parsed.success) return Response.json({ message: "تحقق من الحقول المطلوبة، وتأكد أن الرابط المختصر بصيغة مثل id06." }, { status: 422 });
 
   const value = parsed.data;
-  const channelLookup = await createAdminClient().from("whatsapp_channels").select("id").eq("id", value.whatsappChannelId).eq("active", true).maybeSingle();
-  if (channelLookup.error || !channelLookup.data) return Response.json({ message: "اختر رقم واتساب نشطاً لهذه الدورة." }, { status: 422 });
+  if (value.publish) {
+    const missing = publicationMissingFields(value);
+    if (missing.length) return Response.json({ message: `لا يمكن نشر الدورة بعد. أكمل: ${missing.join("، ")}.` }, { status: 422 });
+  }
+  if (value.publish || hasCompleteSchedule(value)) {
+    const channelLookup = await createAdminClient().from("whatsapp_channels").select("id").eq("id", value.whatsappChannelId).eq("active", true).maybeSingle();
+    if (channelLookup.error || !channelLookup.data) return Response.json({ message: "اختر رقم واتساب نشطاً لهذه الدورة." }, { status: 422 });
+  }
   const supabase = createAdminClient();
   if (id === "new") {
     try {
@@ -295,6 +305,11 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
     .eq("id", id)
     .maybeSingle();
   if (existingError || !existing) return Response.json({ message: "Course not found." }, { status: 404 });
+
+  if (existing.state === "published") {
+    const missing = publicationMissingFields(value);
+    if (missing.length) return Response.json({ message: `لا يمكن حفظ بيانات ناقصة لدورة منشورة. أكمل: ${missing.join("، ")}.` }, { status: 422 });
+  }
 
   const locale = existing.default_locale ?? "ar";
   const oldSlug = typeof existing.slug === "string" ? existing.slug : "";
@@ -328,28 +343,30 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
 
   const sessions = Array.isArray(existing.course_sessions) ? existing.course_sessions : [];
   const sessionId = sessions.some((session) => session.id === value.sessionId) ? value.sessionId : sessions[0]?.id;
-  const sessionPayload = {
-    course_id: id,
-    starts_at: toIso(value.date, value.startTime, value.timezone),
-    ends_at: toIso(value.date, value.endTime, value.timezone),
-    timezone: value.timezone,
-    delivery_type: value.deliveryType,
-    platform: value.platform || null,
-    meet_url: value.meetUrl || null,
-    venue_name: value.deliveryType === "onsite" ? value.venueName || null : null,
-    venue_address: value.deliveryType === "onsite" ? value.venueAddress || null : null,
-    maps_url: value.deliveryType === "onsite" ? value.mapsUrl || null : null,
-    whatsapp_channel_id: value.whatsappChannelId,
-    capacity: value.capacity,
-    registration_open: value.registrationOpen,
-    waitlist_enabled: value.waitlistEnabled,
-    updated_at: new Date().toISOString(),
-  };
-  const sessionResult = sessionId
-    ? await supabase.from("course_sessions").update(sessionPayload).eq("id", sessionId).select("id").maybeSingle()
-    : await supabase.from("course_sessions").insert(sessionPayload).select("id").maybeSingle();
-  if (sessionResult.error || !sessionResult.data) return Response.json({ message: "تعذر حفظ موعد الدورة." }, { status: 500 });
-  if (sessionId) await reschedulePendingReminders(sessionId, sessionPayload.starts_at, sessionPayload.timezone, sessionPayload.meet_url ?? "", sessionPayload.delivery_type, sessionPayload.whatsapp_channel_id);
+  if (hasCompleteSchedule(value)) {
+    const sessionPayload = {
+      course_id: id,
+      starts_at: toIso(value.date, value.startTime, value.timezone),
+      ends_at: toIso(value.date, value.endTime, value.timezone),
+      timezone: value.timezone,
+      delivery_type: value.deliveryType,
+      platform: value.platform || null,
+      meet_url: value.meetUrl || null,
+      venue_name: value.deliveryType === "onsite" ? value.venueName || null : null,
+      venue_address: value.deliveryType === "onsite" ? value.venueAddress || null : null,
+      maps_url: value.deliveryType === "onsite" ? value.mapsUrl || null : null,
+      whatsapp_channel_id: value.whatsappChannelId,
+      capacity: value.capacity,
+      registration_open: value.registrationOpen,
+      waitlist_enabled: value.waitlistEnabled,
+      updated_at: new Date().toISOString(),
+    };
+    const sessionResult = sessionId
+      ? await supabase.from("course_sessions").update(sessionPayload).eq("id", sessionId).select("id").maybeSingle()
+      : await supabase.from("course_sessions").insert(sessionPayload).select("id").maybeSingle();
+    if (sessionResult.error || !sessionResult.data) return Response.json({ message: "تعذر حفظ موعد الدورة." }, { status: 500 });
+    if (sessionId) await reschedulePendingReminders(sessionId, sessionPayload.starts_at, sessionPayload.timezone, sessionPayload.meet_url ?? "", sessionPayload.delivery_type, sessionPayload.whatsapp_channel_id);
+  }
 
   const instructorPayload = {
     name: value.instructorName,

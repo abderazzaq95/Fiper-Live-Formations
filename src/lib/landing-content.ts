@@ -13,6 +13,7 @@ export type LandingSectionVisibility = {
 };
 
 export type LandingContent = {
+  editorSchedule?: { date: string; startTime: string; endTime: string };
   visibility: LandingSectionVisibility;
   hero: {
     navCourse: string;
@@ -133,6 +134,7 @@ function text(value: unknown, fallback: string) { return typeof value === "strin
 
 export function mergeLandingContent(value: unknown): LandingContent {
   const input = object(value);
+  const editorSchedule = object(input.editorSchedule);
   const visibility = object(input.visibility);
   const hero = object(input.hero);
   const about = object(input.about);
@@ -148,6 +150,11 @@ export function mergeLandingContent(value: unknown): LandingContent {
     return { value: text(row.value, fallback.value), label: text(row.label, fallback.label) };
   }).filter((item) => item.value || item.label) : defaultLandingContent.audience.stats;
   return {
+    editorSchedule: {
+      date: typeof editorSchedule.date === "string" ? editorSchedule.date : "",
+      startTime: typeof editorSchedule.startTime === "string" ? editorSchedule.startTime : "",
+      endTime: typeof editorSchedule.endTime === "string" ? editorSchedule.endTime : "",
+    },
     visibility: {
       hero: typeof visibility.hero === "boolean" ? visibility.hero : defaultLandingContent.visibility.hero,
       about: typeof visibility.about === "boolean" ? visibility.about : defaultLandingContent.visibility.about,
