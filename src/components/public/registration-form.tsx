@@ -163,7 +163,7 @@ export function RegistrationForm({ courseId, compact = false }: RegistrationForm
 
   return (
     <>
-    <form onSubmit={handleSubmit} className={compact ? "space-y-4" : "space-y-5"}>
+    <form onSubmit={handleSubmit} className={compact ? "" : "space-y-5"}>
       <div className="sr-only" aria-hidden="true">
         <label htmlFor={`company-${compact}`}>الشركة</label>
         <input id={`company-${compact}`} name="company" tabIndex={-1} autoComplete="off" />
@@ -174,7 +174,7 @@ export function RegistrationForm({ courseId, compact = false }: RegistrationForm
         <input id={`name-${compact}`} name="name" required minLength={3} autoComplete="name" placeholder="مثال: أحمد التميمي" className={inputClass} />
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div>
           <label htmlFor={`email-${compact}`} className={labelClass}>البريد الإلكتروني</label>
           <input id={`email-${compact}`} name="email" type="email" required autoComplete="email" dir="ltr" placeholder="name@email.com" className={`${inputClass} latin text-right`} />
