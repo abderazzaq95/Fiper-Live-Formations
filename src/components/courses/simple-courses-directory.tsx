@@ -8,11 +8,9 @@ import {
   CalendarBlank,
   Clock,
   Globe,
-  List,
   MagnifyingGlass,
   MapPin,
   MonitorPlay,
-  X,
 } from "@phosphor-icons/react";
 import type { Course } from "@/lib/demo-data";
 import { CourseCover } from "@/components/courses/course-cover";
@@ -86,8 +84,6 @@ function CourseCard({ course, priority = false }: { course: Course; priority?: b
 }
 
 function Header() {
-  const [menuOpen, setMenuOpen] = useState(false);
-
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-black text-white">
       <div className="mx-auto flex h-[72px] max-w-[1320px] items-center justify-between px-5 sm:px-8">
@@ -95,8 +91,7 @@ function Header() {
           <Image src="/brand/fiper-wordmark-drive.png" alt="Fiper" width={151} height={58} priority className="h-[50px] w-auto object-contain" />
         </Link>
 
-        <nav className="hidden items-center gap-12 text-[15px] font-bold md:flex" aria-label="التنقل الرئيسي">
-          <Link href="/" className="transition-colors hover:text-[#cf262c]">الرئيسية</Link>
+        <nav className="flex items-center text-sm font-bold sm:text-base" aria-label="التنقل الرئيسي">
           <Link href="/courses" className="text-[#cf262c]">الدورات</Link>
         </nav>
 
@@ -105,16 +100,7 @@ function Header() {
           <MagnifyingGlass size={25} />
         </div>
 
-        <button type="button" onClick={() => setMenuOpen((value) => !value)} className="flex h-10 w-10 items-center justify-center md:hidden" aria-label="فتح القائمة" aria-expanded={menuOpen}>
-          {menuOpen ? <X size={26} /> : <List size={27} />}
-        </button>
       </div>
-      {menuOpen ? (
-        <nav className="border-t border-white/10 px-5 py-4 text-right font-bold md:hidden">
-          <Link href="/" className="block py-2">الرئيسية</Link>
-          <Link href="/courses" className="block py-2 text-[#cf262c]">الدورات</Link>
-        </nav>
-      ) : null}
     </header>
   );
 }
