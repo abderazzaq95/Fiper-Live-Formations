@@ -31,7 +31,7 @@ function CourseCard({ course, priority = false }: { course: Course; priority?: b
           <Image src="/brand/fiper-mark.png" alt="" width={31} height={31} className="h-8 w-8 object-contain" />
         </span>
         <span className="absolute bottom-3 left-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-xs font-bold text-[#10283a] shadow-sm">
-          {isOnline ? <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-[#16a05d]" /> : null}
+          {isOnline ? <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-[#16a05d]" /> : <MapPin aria-hidden="true" size={14} weight="fill" className="shrink-0 text-[#cf262c]" />}
           {isOnline ? "دورة أونلاين" : "دورة حضورية"}
         </span>
       </Link>
@@ -86,20 +86,15 @@ function CourseCard({ course, priority = false }: { course: Course; priority?: b
 function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-black text-white">
-      <div className="mx-auto flex h-[72px] max-w-[1320px] items-center justify-between px-5 sm:px-8">
+      <div className="mx-auto flex h-14 max-w-[1120px] items-center justify-between px-5 sm:px-8">
         <Link href="/" aria-label="Fiper Academy" className="shrink-0">
-          <Image src="/brand/fiper-wordmark-drive.png" alt="Fiper" width={151} height={58} priority className="h-[50px] w-auto object-contain" />
+          <Image src="/brand/fiper-wordmark-drive.png" alt="Fiper" width={125} height={48} priority className="h-10 w-auto object-contain" />
         </Link>
 
-        <nav className="flex items-center text-sm font-bold sm:text-base" aria-label="التنقل الرئيسي">
-          <Link href="/courses" className="text-[#cf262c]">الدورات</Link>
-        </nav>
-
-        <div className="hidden items-center gap-5 md:flex" aria-hidden="true">
-          <Globe size={25} />
-          <MagnifyingGlass size={25} />
+        <div className="flex items-center gap-4" aria-hidden="true">
+          <Globe size={22} />
+          <MagnifyingGlass size={22} />
         </div>
-
       </div>
     </header>
   );
@@ -108,38 +103,20 @@ function Header() {
 function Footer() {
   return (
     <footer className="bg-black text-white">
-      <div className="mx-auto max-w-[1240px] px-6 py-12 sm:px-8 lg:py-14">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.35fr_0.8fr_0.8fr_1.15fr]">
-          <div>
-            <Image src="/brand/fiper-wordmark-drive.png" alt="Fiper" width={170} height={66} className="h-[58px] w-auto object-contain" />
-            <p className="mt-4 max-w-xs text-sm leading-7 text-[#b8c0c7]">تعليم مباشر يساعد المتداول العربي على فهم السوق وبناء قرارات أكثر وضوحًا.</p>
+      <div className="mx-auto max-w-[1120px] px-5 py-8 sm:px-8">
+        <div className="flex flex-col items-center justify-between gap-6 text-center sm:flex-row sm:text-right">
+          <div className="flex items-center gap-4">
+            <Image src="/brand/fiper-wordmark-drive.png" alt="Fiper" width={125} height={48} className="h-10 w-auto object-contain" />
+            <p className="max-w-sm text-xs leading-6 text-[#9aa5ad]">تعليم يساعدك على فهم الأسواق المالية وبناء قرارات أكثر وضوحًا.</p>
           </div>
-          <div>
-            <h3 className="text-base font-bold">الأكاديمية</h3>
-            <div className="mt-4 space-y-3 text-sm text-[#b8c0c7]">
-              <Link href="/" className="block hover:text-white">الرئيسية</Link>
-              <Link href="/courses" className="block hover:text-white">الدورات المتاحة</Link>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-base font-bold">معلومات مهمة</h3>
-            <div className="mt-4 space-y-3 text-sm text-[#b8c0c7]">
-              <Link href="/privacy" className="block hover:text-white">سياسة الخصوصية</Link>
-              <Link href="/terms" className="block hover:text-white">الشروط والأحكام</Link>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-base font-bold">اختر دورتك</h3>
-            <p className="mt-4 text-sm leading-7 text-[#b8c0c7]">راجع الدورات المتاحة وافتح صفحة الدورة التي تناسب وقتك وهدفك.</p>
-            <Link href="#courses-list" className="mt-5 inline-flex items-center gap-2 rounded-[8px] bg-[#cf262c] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#b71f25]">
-              تصفح الدورات
-              <ArrowLeft size={16} weight="bold" />
-            </Link>
-          </div>
+          <nav aria-label="الروابط القانونية" className="flex items-center gap-6 text-xs text-[#b8c0c7]">
+            <Link href="/privacy" className="transition-colors hover:text-white">سياسة الخصوصية</Link>
+            <Link href="/terms" className="transition-colors hover:text-white">الشروط والأحكام</Link>
+          </nav>
         </div>
-        <div className="mt-11 border-t border-white/15 pt-6 text-xs leading-6 text-[#8f9aa2]">
-          <p>التداول في الأسواق المالية ينطوي على مخاطر. المحتوى التعليمي لا يُعد توصية استثمارية أو دعوة للشراء أو البيع.</p>
-          <p className="mt-3">© 2026 Fiper Academy. جميع الحقوق محفوظة.</p>
+        <div className="mt-6 flex flex-col gap-2 border-t border-white/15 pt-4 text-center text-xs leading-6 text-[#7f8a92] sm:flex-row sm:items-center sm:justify-between sm:text-right">
+          <p>المحتوى تعليمي عام ولا يُعد توصية استثمارية.</p>
+          <p>© 2026 Fiper Academy</p>
         </div>
       </div>
     </footer>
