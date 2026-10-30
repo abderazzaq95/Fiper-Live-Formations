@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isCallbellConfigured, sendCallbellTemplate } from "@/lib/integrations/callbell";
-import { buildCourseEmail } from "@/lib/email/course-email";
+import { buildCourseEmail, formatCourseTimezone, formatFiperEmailSender } from "@/lib/email/course-email";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -8,25 +8,6 @@ function record(value: unknown): JsonRecord { return value && typeof value === "
 function first(value: unknown): JsonRecord | undefined { return Array.isArray(value) ? value.find((item): item is JsonRecord => Boolean(item && typeof item === "object")) : value && typeof value === "object" ? value as JsonRecord : undefined; }
 function text(value: unknown, fallback = "") { return typeof value === "string" && value.trim() ? value : fallback; }
 function formatStartsAt(value: string, timezone: string) { const timestamp = Date.parse(value); if (!Number.isFinite(timestamp)) return value || "—"; try { return new Intl.DateTimeFormat("ar", { dateStyle: "full", timeStyle: "short", timeZone: timezone || "UTC" }).format(new Date(timestamp)); } catch { return new Intl.DateTimeFormat("ar", { dateStyle: "full", timeStyle: "short", timeZone: "UTC" }).format(new Date(timestamp)); } }
-
-function timezoneLabel(timezone: string) {
-  const labels: Record<string, string> = {
-    "Europe/Berlin": "ألمانيا (برلين)",
-    "Europe/Istanbul": "تركيا (إسطنبول)",
-    "Asia/Qatar": "قطر (الدوحة)",
-    "Africa/Casablanca": "المغرب (الدار البيضاء)",
-    "Asia/Amman": "الأردن (عمّان)",
-    "Asia/Riyadh": "السعودية (الرياض)",
-    "Asia/Beirut": "لبنان (بيروت)",
-    "Asia/Muscat": "عمان (مسقط)",
-    "Asia/Dubai": "الإمارات (دبي)",
-    "Asia/Baghdad": "العراق (بغداد)",
-    "Europe/Paris": "فرنسا (باريس)",
-    "Europe/London": "المملكة المتحدة (لندن)",
-  };
-  return labels[timezone] ?? `التوقيت المحلي للدورة (${timezone || "UTC"})`;
-}
-
 
 function attendanceDetailsFor(session: JsonRecord | undefined) {
   const deliveryType = text(session?.delivery_type);
@@ -44,8 +25,8 @@ async function sendResend(to: string, name: string, title: string, startsAt: str
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
   if (!apiKey || !from) return { configured: false as const, provider: "resend" as const, reason: "Resend is not configured (RESEND_API_KEY and RESEND_FROM_EMAIL are required)." };
-  const email = buildCourseEmail({ name, title, startsAt, timezone: timezoneLabel(sourceTimezone), templateKey, attendanceDetails, deliveryType, actionUrl });
-  const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" }, body: JSON.stringify({ from, to: [to], subject: email.subject, html: email.html, text: email.text }) });
+  const email = buildCourseEmail({ name, title, startsAt, timezone: formatCourseTimezone(sourceTimezone), templateKey, attendanceDetails, deliveryType, actionUrl });
+  const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" }, body: JSON.stringify({ from: formatFiperEmailSender(from), to: [to], subject: email.subject, html: email.html, text: email.text }) });
   const body = await response.json().catch(() => ({})) as JsonRecord;
   if (!response.ok) throw new Error(text(body.message, "Resend returned " + response.status));
   return { configured: true as const, provider: "resend" as const, id: text(body.id) };
@@ -121,7 +102,7 @@ async function processDelivery(supabase: ReturnType<typeof createAdminClient>, d
   const sourceTimezone = text(session?.timezone, "UTC");
   const startsAtIso = text(session?.starts_at, "");
   const startsAt = formatStartsAt(startsAtIso, sourceTimezone);
-  const scheduleLabel = startsAt + " (" + timezoneLabel(sourceTimezone) + ")";
+  const scheduleLabel = startsAt + " (" + formatCourseTimezone(sourceTimezone) + ")";
   const attendanceDetails = attendanceDetailsFor(session);
   const deliveryType = text(session?.delivery_type) === "onsite" ? "onsite" as const : "online" as const;
   const actionUrl = deliveryType === "onsite" ? text(session?.maps_url) : text(session?.meet_url);

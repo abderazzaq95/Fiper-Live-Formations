@@ -15,6 +15,29 @@ function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char] ?? char));
 }
 
+export function formatFiperEmailSender(value: string) {
+  const address = value.match(/<([^>]+)>/)?.[1]?.trim() ?? value.trim();
+  return address.includes("@") ? `Fiper Academy <${address}>` : value;
+}
+
+export function formatCourseTimezone(timezone: string) {
+  const labels: Record<string, string> = {
+    "Europe/Berlin": "ألمانيا، توقيت برلين",
+    "Europe/Istanbul": "تركيا، توقيت إسطنبول",
+    "Asia/Qatar": "قطر، توقيت الدوحة",
+    "Africa/Casablanca": "المغرب، توقيت الدار البيضاء",
+    "Asia/Amman": "الأردن، توقيت عمّان",
+    "Asia/Riyadh": "السعودية، توقيت الرياض",
+    "Asia/Beirut": "لبنان، توقيت بيروت",
+    "Asia/Muscat": "عُمان، توقيت مسقط",
+    "Asia/Dubai": "الإمارات، توقيت دبي",
+    "Asia/Baghdad": "العراق، توقيت بغداد",
+    "Europe/Paris": "فرنسا، توقيت باريس",
+    "Europe/London": "المملكة المتحدة، توقيت لندن",
+  };
+  return labels[timezone] ?? "التوقيت المحلي للدورة";
+}
+
 function safeActionUrl(value?: string) {
   const rawValue = value?.trim() ?? "";
   if (!rawValue) return "";
@@ -46,6 +69,7 @@ export function buildCourseEmail(input: CourseEmailInput) {
   const copy = messageFor(input.templateKey);
   const actionUrl = safeActionUrl(input.actionUrl);
   const attendanceLabel = input.deliveryType === "onsite" ? "دورة حضورية" : "دورة أونلاين";
+  const attendanceDetails = input.deliveryType === "online" && actionUrl ? "عبر Google Meet" : input.attendanceDetails;
   const actionLabel = input.deliveryType === "onsite"
     ? "عرض موقع الدورة"
     : input.templateKey === "meeting_reminder"
@@ -84,7 +108,8 @@ export function buildCourseEmail(input: CourseEmailInput) {
               <td align="center" style="padding:34px 32px 12px;">
                 <p style="margin:0 0 10px;color:#cf262c;font-size:14px;font-weight:700;line-height:22px;">${escapeHtml(copy.eyebrow)}</p>
                 <h1 style="margin:0;color:#071f31;font-size:28px;font-weight:700;line-height:40px;">${escapeHtml(copy.heading)}</h1>
-                <p style="margin:14px 0 0;color:#667783;font-size:15px;line-height:26px;">مرحبًا ${escapeHtml(input.name)}، ${escapeHtml(copy.intro)}</p>
+                <p style="margin:14px 0 0;color:#667783;font-size:15px;line-height:26px;">مرحبًا <bdi dir="auto" style="color:#344b5a;font-weight:700;unicode-bidi:isolate;">${escapeHtml(input.name)}</bdi>،</p>
+                <p style="margin:4px 0 0;color:#667783;font-size:15px;line-height:26px;">${escapeHtml(copy.intro)}</p>
               </td>
             </tr>
             <tr>
@@ -94,7 +119,7 @@ export function buildCourseEmail(input: CourseEmailInput) {
                   <tr><td style="padding:6px 24px;color:#667783;font-size:14px;line-height:24px;"><strong style="color:#344b5a;">الموعد:</strong> ${escapeHtml(input.startsAt)}</td></tr>
                   <tr><td style="padding:6px 24px;color:#667783;font-size:14px;line-height:24px;"><strong style="color:#344b5a;">التوقيت:</strong> ${escapeHtml(input.timezone)}</td></tr>
                   <tr><td style="padding:6px 24px;color:#667783;font-size:14px;line-height:24px;"><strong style="color:#344b5a;">نوع الحضور:</strong> ${attendanceLabel}</td></tr>
-                  <tr><td style="padding:6px 24px 22px;color:#667783;font-size:14px;line-height:24px;"><strong style="color:#344b5a;">تفاصيل الحضور:</strong> ${escapeHtml(input.attendanceDetails)}</td></tr>
+                  <tr><td style="padding:6px 24px 22px;color:#667783;font-size:14px;line-height:24px;"><strong style="color:#344b5a;">تفاصيل الحضور:</strong> ${escapeHtml(attendanceDetails)}</td></tr>
                 </table>
               </td>
             </tr>
@@ -119,7 +144,7 @@ export function buildCourseEmail(input: CourseEmailInput) {
     `الموعد: ${input.startsAt}`,
     `التوقيت: ${input.timezone}`,
     `نوع الحضور: ${attendanceLabel}`,
-    `تفاصيل الحضور: ${input.attendanceDetails}`,
+    `تفاصيل الحضور: ${attendanceDetails}`,
     actionUrl ? `${actionLabel}: ${actionUrl}` : "",
     "Fiper Academy",
   ].filter(Boolean).join("\n\n");

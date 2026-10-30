@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { getDashboardIdentity } from "@/lib/auth";
-import { buildCourseEmail } from "@/lib/email/course-email";
+import { buildCourseEmail, formatCourseTimezone, formatFiperEmailSender } from "@/lib/email/course-email";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type Row = Record<string, unknown>;
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     name: identity.name,
     title: string(translation?.title, "دورة Fiper التعليمية"),
     startsAt,
-    timezone,
+    timezone: formatCourseTimezone(timezone),
     templateKey: "registration_confirmation",
     attendanceDetails: deliveryType === "onsite" ? venue || "سيتم إرسال عنوان المكان قبل الموعد" : "عبر Google Meet",
     deliveryType,
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: [parsed.data.email], subject: `[اختبار] ${email.subject}`, html: email.html, text: email.text }),
+    body: JSON.stringify({ from: formatFiperEmailSender(from), to: [parsed.data.email], subject: `[اختبار] ${email.subject}`, html: email.html, text: email.text }),
   });
   const result = await response.json().catch(() => ({})) as Row;
   if (!response.ok) return Response.json({ message: string(result.message, "تعذر إرسال رسالة الاختبار.") }, { status: 502 });
