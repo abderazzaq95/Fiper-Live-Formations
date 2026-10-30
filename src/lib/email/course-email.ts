@@ -46,12 +46,17 @@ export function buildCourseEmail(input: CourseEmailInput) {
   const copy = messageFor(input.templateKey);
   const actionUrl = safeActionUrl(input.actionUrl);
   const attendanceLabel = input.deliveryType === "onsite" ? "دورة حضورية" : "دورة أونلاين";
-  const actionHint = input.deliveryType === "onsite" ? "يفتح زر الحضور موقع الدورة على Google Maps." : "يفتح زر الحضور رابط المشاركة في الدورة.";
+  const actionLabel = input.deliveryType === "onsite"
+    ? "عرض موقع الدورة"
+    : input.templateKey === "meeting_reminder"
+      ? "ادخل إلى الدورة الآن"
+      : "الانضمام إلى الدورة";
+  const actionHint = input.deliveryType === "onsite" ? "يفتح الزر موقع الدورة على Google Maps." : "يفتح الزر رابط المشاركة في الدورة.";
   const subject = input.templateKey === "registration_confirmation" ? `تأكيد التسجيل - ${input.title}` : `تذكير بالدورة - ${input.title}`;
   const button = actionUrl ? `
     <tr>
       <td align="center" style="padding:0 32px 28px;">
-        <a href="${escapeHtml(actionUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#cf262c;color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;line-height:20px;padding:14px 34px;border-radius:6px;">تأكيد حضوري</a>
+        <a href="${escapeHtml(actionUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#cf262c;color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;line-height:20px;padding:14px 34px;border-radius:6px;">${actionLabel}</a>
         <p style="margin:12px 0 0;color:#8a949c;font-size:12px;line-height:20px;">${actionHint}</p>
       </td>
     </tr>` : "";
@@ -115,7 +120,7 @@ export function buildCourseEmail(input: CourseEmailInput) {
     `التوقيت: ${input.timezone}`,
     `نوع الحضور: ${attendanceLabel}`,
     `تفاصيل الحضور: ${input.attendanceDetails}`,
-    actionUrl ? `تأكيد حضوري: ${actionUrl}` : "",
+    actionUrl ? `${actionLabel}: ${actionUrl}` : "",
     "Fiper Academy",
   ].filter(Boolean).join("\n\n");
 
