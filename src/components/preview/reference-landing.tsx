@@ -17,6 +17,7 @@ import {
 } from "@phosphor-icons/react";
 
 import { RegistrationForm } from "@/components/public/registration-form";
+import { CompactPublicFooter } from "@/components/public/compact-public-footer";
 import type { PublicCourseData } from "@/lib/data/courses";
 import styles from "./reference.module.css";
 
@@ -143,15 +144,12 @@ export function ReferenceLanding({ course, agenda, outcomes, faqs, landing }: Pu
         <div className={styles.faqList}>{faqs.map((faq, index) => <details key={`${faq.question}-${index}`} data-reveal><summary>{faq.question}<span>+</span></summary><p>{faq.answer}</p></details>)}</div>
       </section> : null}
 
-      {landing.visibility.footer ? <footer id="footer" className={styles.footer}>
-        <div className={styles.footerTop}>
-          <div className={styles.footerBrand}><Image src="/brand/fiper-wordmark-drive.png" alt="Fiper Academy" width={210} height={73} /><p>{landing.footer.brandDescription}</p></div>
-          <nav className={styles.footerLegal} aria-label="روابط قانونية"><a href="/privacy">{landing.footer.privacyLabel}</a><a href="/terms">{landing.footer.termsLabel}</a></nav>
-          <div className={styles.footerAction}><h2>{landing.registration.title}</h2><p>{landing.registration.description}</p><a href="#register">{landing.hero.primaryCta}<ArrowLeft size={18} /></a></div>
-        </div>
-        <div className={styles.disclaimer}><p>{landing.footer.disclaimer}</p></div>
-        <div className={styles.copyright}><span>© {new Date().getFullYear()} Fiper Academy</span><a href="#main-content">{landing.footer.backToTopLabel}</a></div>
-      </footer> : null}
+      {landing.visibility.footer ? <CompactPublicFooter
+        brandDescription={landing.footer.brandDescription}
+        disclaimer={landing.footer.disclaimer}
+        privacyLabel={landing.footer.privacyLabel}
+        termsLabel={landing.footer.termsLabel}
+      /> : null}
     </main>
   );
 }
