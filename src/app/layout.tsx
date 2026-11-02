@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import { GoogleTagManager } from "@next/third-parties/google";
 import { Alexandria, Geist } from "next/font/google";
 import "./globals.css";
+
+const GOOGLE_TAG_MANAGER_ID = "GTM-5MPWSTCW";
 
 const alexandria = Alexandria({
   variable: "--font-arabic",
@@ -54,6 +57,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ar" dir="rtl" className={`${alexandria.variable} ${geist.variable}`}>
+      <GoogleTagManager gtmId={GOOGLE_TAG_MANAGER_ID} />
       <body>{children}</body>
     </html>
   );
