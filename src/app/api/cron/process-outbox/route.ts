@@ -14,12 +14,22 @@ function attendanceDetailsFor(session: JsonRecord | undefined) {
   if (deliveryType === "onsite") {
     const venue = [text(session?.venue_name), text(session?.venue_address)].filter(Boolean).join(" - ");
     const mapsUrl = text(session?.maps_url);
-    const details = venue ? "\u062d\u0636\u0648\u0631\u064a - " + venue : "\u062d\u0636\u0648\u0631\u064a - \u0633\u064a\u062a\u0645 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0639\u0646\u0648\u0627\u0646 \u0642\u0628\u0644 \u0627\u0644\u0645\u0648\u0639\u062f";
+    const details = venue || "\u0633\u064a\u062a\u0645 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0639\u0646\u0648\u0627\u0646 \u0642\u0628\u0644 \u0627\u0644\u0645\u0648\u0639\u062f";
     return mapsUrl ? details + " - Google Maps: " + mapsUrl : details;
   }
   const meetUrl = text(session?.meet_url);
-  return meetUrl || "\u0639\u0646 \u0628\u0639\u062f - \u0633\u064a\u062a\u0645 \u0625\u0631\u0633\u0627\u0644 \u0631\u0627\u0628\u0637 \u0627\u0644\u062f\u062e\u0648\u0644 \u0642\u0628\u0644 \u0627\u0644\u0645\u0648\u0639\u062f";
+  return meetUrl ? "\u0639\u0628\u0631 Google Meet: " + meetUrl : "\u0633\u064a\u062a\u0645 \u0625\u0631\u0633\u0627\u0644 \u0631\u0627\u0628\u0637 \u0627\u0644\u062f\u062e\u0648\u0644 \u0642\u0628\u0644 \u0627\u0644\u0645\u0648\u0639\u062f";
 }
+
+type WhatsAppCourseTemplateData = {
+  name: string;
+  title: string;
+  date: string;
+  timeAndTimezone: string;
+  attendanceType: string;
+  attendanceDetails: string;
+  scheduleLabel: string;
+};
 
 async function sendResend(to: string, name: string, title: string, startsAtIso: string, sourceTimezone: string, templateKey: string, attendanceDetails: string, deliveryType: "online" | "onsite", actionUrl: string) {
   const apiKey = process.env.RESEND_API_KEY;
@@ -65,15 +75,15 @@ function callbellTemplateFor(templateKey: string) {
   return templates[templateKey];
 }
 
-async function sendWhatsApp(to: string, name: string, title: string, scheduleLabel: string, templateKey: string, attendanceDetails: string, registrationId: string, deliveryId: string, channelUuid?: string, selectedTemplateUuid?: string) {
+async function sendWhatsApp(to: string, data: WhatsAppCourseTemplateData, templateKey: string, registrationId: string, deliveryId: string, channelUuid?: string, selectedTemplateUuid?: string) {
   if (isCallbellConfigured()) {
     const templateUuid = selectedTemplateUuid || (!channelUuid ? callbellTemplateFor(templateKey) : undefined);
     if (!templateUuid) return { configured: false as const, provider: "callbell" as const, reason: "Callbell template is not configured for " + templateKey + "." };
-    const values = [name, title, scheduleLabel, attendanceDetails];
+    const values = [data.name, data.title, data.date, data.timeAndTimezone, data.attendanceType, data.attendanceDetails];
     const result = await sendCallbellTemplate({ to, templateUuid, values, registrationId, deliveryId, channelUuid });
     return { configured: true as const, provider: "callbell" as const, id: text(result.uuid) };
   }
-  return sendTwilio(to, name, title, scheduleLabel, templateKey, attendanceDetails);
+  return sendTwilio(to, data.name, data.title, data.scheduleLabel, templateKey, data.attendanceDetails);
 }
 async function ensureDelivery(supabase: ReturnType<typeof createAdminClient>, registration: JsonRecord, channel: "email" | "whatsapp", templateKey = "registration_confirmation", scheduledFor = new Date().toISOString()) {
   const registrationId = text(registration.id);
@@ -102,10 +112,20 @@ async function processDelivery(supabase: ReturnType<typeof createAdminClient>, d
   const title = text(translation.title, "Fiper course");
   const sourceTimezone = text(session?.timezone, "UTC");
   const startsAtIso = text(session?.starts_at, "");
-  const startsAt = formatStartsAt(startsAtIso, sourceTimezone);
-  const scheduleLabel = startsAt + " (" + formatCourseTimezone(sourceTimezone) + ")";
+  const schedule = formatCourseSchedule(startsAtIso, sourceTimezone);
+  const timezoneLabel = formatCourseTimezone(sourceTimezone);
+  const scheduleLabel = formatStartsAt(startsAtIso, sourceTimezone) + " (" + timezoneLabel + ")";
   const attendanceDetails = attendanceDetailsFor(session);
   const deliveryType = text(session?.delivery_type) === "onsite" ? "onsite" as const : "online" as const;
+  const whatsappData: WhatsAppCourseTemplateData = {
+    name,
+    title,
+    date: schedule.date,
+    timeAndTimezone: schedule.time + "، " + timezoneLabel,
+    attendanceType: deliveryType === "onsite" ? "دورة حضورية" : "دورة أونلاين",
+    attendanceDetails,
+    scheduleLabel,
+  };
   const actionUrl = deliveryType === "onsite" ? text(session?.maps_url) : text(session?.meet_url);
   const templateKey = text(delivery.template_key, "registration_confirmation");
   if (templateKey !== "registration_confirmation" && (text(course?.state) !== "published" || course?.is_featured !== true)) {
@@ -130,7 +150,7 @@ async function processDelivery(supabase: ReturnType<typeof createAdminClient>, d
     callbellTemplateUuid = (sender.callbell_verified_at ? senderTemplates[templateKey] : undefined) || (sender.is_default ? callbellTemplateFor(templateKey) : undefined);
     if (!callbellTemplateUuid) throw new Error(`Selected WhatsApp sender has no template configured for ${templateKey}`);
   }
-  const result = channel === "email" ? await sendResend(text(registration.email), name, title, startsAtIso, sourceTimezone, templateKey, attendanceDetails, deliveryType, actionUrl) : await sendWhatsApp(text(registration.phone_e164), name, title, scheduleLabel, templateKey, attendanceDetails, text(registration.id), id, callbellChannelUuid, callbellTemplateUuid);
+  const result = channel === "email" ? await sendResend(text(registration.email), name, title, startsAtIso, sourceTimezone, templateKey, attendanceDetails, deliveryType, actionUrl) : await sendWhatsApp(text(registration.phone_e164), whatsappData, templateKey, text(registration.id), id, callbellChannelUuid, callbellTemplateUuid);
   if (!result.configured) return { id, state: "queued", reason: result.reason };
   await supabase.from("message_deliveries").update({ state: "sent", sent_at: new Date().toISOString(), provider_message_id: result.id || null, provider_payload: { provider: result.provider }, failure_reason: null, attempt_count: Number(delivery.attempt_count) + 1, updated_at: new Date().toISOString() }).eq("id", id);
   return { id, state: "sent" };

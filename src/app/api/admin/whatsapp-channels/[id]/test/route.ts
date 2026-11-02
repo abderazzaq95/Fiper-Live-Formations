@@ -27,7 +27,14 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       to: parsed.data.phoneE164,
       channelUuid: channel.callbell_channel_uuid,
       templateUuid: channel.template_registration_uuid as string,
-      values: ["مشارك تجريبي", "اختبار إعدادات Fiper", "موعد تجريبي", "هذه رسالة اختبار من لوحة Fiper"],
+      values: [
+        "مشارك تجريبي",
+        "اختبار إعدادات Fiper",
+        "السبت، 7 نوفمبر 2026",
+        "03:00 م، توقيت الدار البيضاء",
+        "دورة أونلاين",
+        "عبر Google Meet: https://meet.google.com/abc-defg-hij",
+      ],
       registrationId: "dashboard-test",
       deliveryId: crypto.randomUUID(),
     });
