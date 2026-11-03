@@ -40,13 +40,37 @@ async function callbellGet(path: string) {
   return body;
 }
 
+function pageCount(value: unknown) {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 1) return 1;
+  if (parsed > 1_000) throw new Error("Callbell returned an unexpected template page count.");
+  return parsed;
+}
+
+async function listAllCallbellTemplates() {
+  const firstPage = await callbellGet("/templates?page=1");
+  const meta = firstPage.meta && typeof firstPage.meta === "object" ? firstPage.meta as JsonRecord : {};
+  const pages = pageCount(meta.pages);
+  const bodies = [firstPage];
+
+  // Fetch a few pages at a time so large accounts load fully without flooding Callbell.
+  for (let start = 2; start <= pages; start += 5) {
+    const end = Math.min(start + 4, pages);
+    const batch = await Promise.all(
+      Array.from({ length: end - start + 1 }, (_, index) => callbellGet(`/templates?page=${start + index}`)),
+    );
+    bodies.push(...batch);
+  }
+
+  return bodies.flatMap((body) => Array.isArray(body.templates) ? body.templates : []);
+}
+
 export async function listCallbellResources() {
-  const [channelBody, templateBody] = await Promise.all([
+  const [channelBody, rawTemplates] = await Promise.all([
     callbellGet("/channels"),
-    callbellGet("/templates"),
+    listAllCallbellTemplates(),
   ]);
   const rawChannels = Array.isArray(channelBody.channels) ? channelBody.channels : [];
-  const rawTemplates = Array.isArray(templateBody.templates) ? templateBody.templates : [];
   const channels = rawChannels.map((item) => item as JsonRecord).map((item): CallbellChannelResource => ({
     uuid: text(item.uuid).replaceAll("-", "").toLowerCase(),
     title: text(item.title) || "WhatsApp",
@@ -60,7 +84,9 @@ export async function listCallbellResources() {
     text: text(item.text),
     category: text(item.category),
   })).filter((item) => /^[a-f0-9]{32}$/.test(item.uuid));
-  return { channels, templates };
+  const uniqueTemplates = [...new Map(templates.map((template) => [template.uuid, template])).values()]
+    .sort((first, second) => first.title.localeCompare(second.title, "en", { numeric: true, sensitivity: "base" }));
+  return { channels, templates: uniqueTemplates };
 }
 
 export async function verifyCallbellChannel(channelUuid: string, templateUuids: string[]) {
