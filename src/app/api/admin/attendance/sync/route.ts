@@ -41,8 +41,9 @@ function participantResourceId(participant: JsonRecord) {
   return resourceName.split("/").filter(Boolean).pop() ?? "";
 }
 
-async function participantEmail(participant: JsonRecord, token: string) {
+async function participantEmail(participant: JsonRecord, token: string, diag: Set<string>) {
   const signedInUser = record(participant.signedinUser);
+  if (!text(signedInUser.user)) diag.add("guest_or_anonymous_participant");
   const directEmail = [
     text(participant.email),
     text(participant.emailAddress),
@@ -62,7 +63,7 @@ async function participantEmail(participant: JsonRecord, token: string) {
   for (const personId of references) {
     const response = await fetch(`https://people.googleapis.com/v1/people/${encodeURIComponent(personId)}?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) continue;
+    if (!response.ok) { diag.add(`people_api_${response.status}`); continue; }
     const emails = Array.isArray(data.emailAddresses) ? data.emailAddresses : [];
     const value = emails.map((item: unknown) => text(record(item).value)).find(Boolean) ?? "";
     if (value) return normalizeEmail(value);
@@ -83,6 +84,7 @@ async function participantEmail(participant: JsonRecord, token: string) {
     const data = await response.json().catch(() => ({}));
     const value = text(record(data).primaryEmail);
     if (response.ok && value) return normalizeEmail(value);
+    if (!response.ok) diag.add(`directory_api_${response.status}`);
   }
 
   return "";
@@ -97,6 +99,13 @@ function findRegistrationByEmail(email: string, registrations: JsonRecord[], use
   });
 }
 
+
+function findRegistrationByName(name: string, registrations: JsonRecord[], used: Set<string>) {
+  const normalized = normalizedName(name);
+  if (!normalized) return undefined;
+  const candidates = registrations.filter((registration) => !used.has(text(registration.id)) && normalizedName(text(registration.full_name)) === normalized);
+  return candidates.length === 1 ? candidates[0] : undefined;
+}
 
 async function accessToken(supabase: Awaited<ReturnType<typeof createClient>>) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -123,7 +132,7 @@ async function accessToken(supabase: Awaited<ReturnType<typeof createClient>>) {
     const body = new URLSearchParams({ client_id: clientId, client_secret: clientSecret, refresh_token: refreshToken, grant_type: "refresh_token" });
     const response = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body, cache: "no-store" });
     const data = record(await response.json().catch(() => ({})));
-    if (response.ok && typeof data.access_token === "string") return data.access_token;
+    if (response.ok && typeof data.access_token === "string") return { token: data.access_token, scope: text(data.scope) };
     failures.push(`${response.status}:${text(data.error) || "unknown"}:${text(data.error_description) || "no_description"}`);
   }
   console.error("google_oauth_refresh_failed", failures.join(","));
@@ -182,7 +191,7 @@ function reportParameter(event: JsonRecord, name: string) {
   return text(parameter.value) || text(parameter.intValue) || text(parameter.boolValue);
 }
 
-async function listMeetAuditEvents(code: string, startsAt: string, endsAt: string | null, token: string) {
+async function listMeetAuditEvents(code: string, startsAt: string, endsAt: string | null, token: string, diag: Set<string>) {
   // The Meet API accepts the human-readable abc-defg-hij code, while the
   // Admin Reports API stores and filters meeting_code as abcdefghij.
   const reportMeetingCode = code.replace(/[^a-z0-9]/gi, "");
@@ -204,7 +213,7 @@ async function listMeetAuditEvents(code: string, startsAt: string, endsAt: strin
       `https://admin.googleapis.com/admin/reports/v1/activity/users/all/applications/meet?${params.toString()}`,
       { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
     );
-    if (!response.ok) return [];
+    if (!response.ok) { diag.add(`reports_api_${response.status}`); return []; }
     const data = record(await response.json().catch(() => ({})));
     const rows = Array.isArray(data.items) ? data.items : [];
     events.push(...rows.map(record));
@@ -266,7 +275,7 @@ async function saveAttendance(
   registrationId: string | null,
   sessionId: string,
   participant: JsonRecord,
-  matchMethod: "email" | "unregistered",
+  matchMethod: "email" | "name" | "unregistered",
   participantName: string,
   participantEmail: string,
 ) {
@@ -337,7 +346,11 @@ export async function POST() {
     }
     if (!groups.size) return Response.json({ message: "No saved Google Meet link was found for the registered courses.", synced: 0, conferences: 0 });
 
-    const token = await accessToken(supabase);
+    const { token, scope: grantedScope } = await accessToken(supabase);
+    const requiredScopes = ["meetings.space.readonly", "contacts.readonly", "profile.emails.read", "admin.directory.user.readonly", "admin.reports.audit.readonly"];
+    const missingScopes = requiredScopes.filter((item) => !grantedScope.includes(`/auth/${item}`));
+    const diag = new Set<string>();
+    if (missingScopes.length) diag.add(`missing_scopes:${missingScopes.join(",")}`);
     let synced = 0;
     let conferences = 0;
     for (const [code, group] of groups) {
@@ -352,7 +365,7 @@ export async function POST() {
       const session = record(group[0]?.session);
       let auditReports: JsonRecord[] = [];
       try {
-        auditReports = await listMeetAuditEvents(code, text(session.starts_at), text(session.ends_at) || null, token);
+        auditReports = await listMeetAuditEvents(code, text(session.starts_at), text(session.ends_at) || null, token, diag);
       } catch {
         auditReports = [];
       }
@@ -364,7 +377,7 @@ export async function POST() {
         const reportIndex = reports.findIndex((report, index) => !usedReports.has(index) && Boolean(report.email) && reportMatchesParticipant(report, participant));
         if (reportIndex >= 0) usedReports.add(reportIndex);
         const report = reportIndex >= 0 ? reports[reportIndex] : undefined;
-        const email = report?.email || await participantEmail(participant, token);
+        const email = report?.email || await participantEmail(participant, token, diag);
         const name = participantDisplayName(participant) || report?.displayName || "";
         return { participant, email, name };
       }));
@@ -380,10 +393,12 @@ export async function POST() {
       for (const { participant, email, name } of uniqueParticipants.values()) {
         activeParticipantIds.add(text(participant.name));
         const matched = findRegistrationByEmail(email, group, used);
-        if (matched) {
-          const id = text(matched.id);
+        const nameMatched = matched || email ? undefined : findRegistrationByName(name, group, used);
+        const target = matched ?? nameMatched;
+        if (target) {
+          const id = text(target.id);
           used.add(id);
-          if (await saveAttendance(supabase, id, text(session.id), participant, "email", name, email)) synced += 1;
+          if (await saveAttendance(supabase, id, text(session.id), participant, matched ? "email" : "name", name, email)) synced += 1;
         } else if (await saveAttendance(supabase, null, text(session.id), participant, "unregistered", name, email)) {
           synced += 1;
         }
@@ -402,7 +417,8 @@ export async function POST() {
       }
       await archiveObsoleteAttendance(supabase, text(session.id), activeParticipantIds);
     }
-    return Response.json({ message: conferences ? `Meet synchronization completed: ${synced} participant record(s) updated.` : "No conference record was found yet. Start the Meet and try again after someone joins.", synced, conferences });
+    if (diag.size) console.warn("attendance_sync_email_lookup_issues", [...diag]);
+    return Response.json({ diagnostics: [...diag], message: conferences ? `Meet synchronization completed: ${synced} participant record(s) updated.${diag.size ? ` Email lookup issues: ${[...diag].join("; ")}` : ""}` : "No conference record was found yet. Start the Meet and try again after someone joins.", synced, conferences });
   } catch (error) {
     console.error("attendance_sync_failed", error);
     const details = record(error);
