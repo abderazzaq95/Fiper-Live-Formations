@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { dedupeDialCode } from "@/lib/phone";
 import { getDashboardIdentity } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -10,8 +11,8 @@ const updateSchema = z.object({
 
 function normalizePhone(phone: string) {
   const digits = phone.replace(/\D/g, "");
-  if (phone.trim().startsWith("+")) return `+${digits}`;
-  if (digits.startsWith("212")) return `+${digits}`;
+  if (phone.trim().startsWith("+")) return dedupeDialCode(`+${digits}`);
+  if (digits.startsWith("212")) return dedupeDialCode(`+${digits}`);
   return `+212${digits.replace(/^0/, "")}`;
 }
 

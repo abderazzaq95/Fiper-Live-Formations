@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { dedupeDialCode } from "@/lib/phone";
 
 const registrationSchema = z.object({
   courseId: z.string().min(3).max(80),
@@ -13,8 +14,8 @@ const registrationSchema = z.object({
 
 function normalizePhone(phone: string) {
   const digits = phone.replace(/\D/g, "");
-  if (phone.trim().startsWith("+")) return `+${digits}`;
-  if (digits.startsWith("212")) return `+${digits}`;
+  if (phone.trim().startsWith("+")) return dedupeDialCode(`+${digits}`);
+  if (digits.startsWith("212")) return dedupeDialCode(`+${digits}`);
   return `+212${digits.replace(/^0/, "")}`;
 }
 

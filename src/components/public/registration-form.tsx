@@ -3,6 +3,7 @@
 import { ArrowLeft, Check, ChevronDown, Loader2, LockKeyhole, Search, ShieldCheck, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { localPhoneDigits } from "@/lib/phone";
 
 type RegistrationFormProps = {
   courseId: string;
@@ -136,7 +137,7 @@ export function RegistrationForm({ courseId, compact = false }: RegistrationForm
       courseId,
       name: form.get("name"),
       email: form.get("email"),
-      phone: `${phoneCode}${localPhone.replace(/^0+/, "")}`,
+      phone: `${phoneCode}${localPhoneDigits(phoneCode, localPhone)}`,
       country: form.get("country"),
       whatsappConsent: form.get("whatsappConsent") === "on",
       company: form.get("company"),
