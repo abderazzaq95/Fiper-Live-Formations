@@ -9,11 +9,18 @@ function cleanDigits(value: string) {
   return value.replace(/\D/g, "").replace(/^00/, "");
 }
 
+// A national number that merely starts with the same digits as the country code (India 91xxxxxxxx, Iran 98xxxxxxxx,
+// Kazakhstan 7xxxxxxxxx) is valid when it has 10 digits, so only treat it as a repeated code when it is longer.
+// Brazil (+55) has a real area code 55 with 11-digit mobiles, so it needs one more digit.
+function repeatsCode(code: string, national: string) {
+  return national.startsWith(code) && national.length >= (code === "55" ? 12 : 11) && national.length - code.length >= 6;
+}
+
 /** Local number typed next to a selected dial code: drops a repeated dial code and leading zeros. */
 export function localPhoneDigits(dial: string, input: string) {
   const dialDigits = dial.replace(/\D/g, "");
   let digits = cleanDigits(input);
-  if (dialDigits && digits.startsWith(dialDigits) && digits.length - dialDigits.length >= 6) digits = digits.slice(dialDigits.length);
+  if (dialDigits && repeatsCode(dialDigits, digits)) digits = digits.slice(dialDigits.length);
   return digits.replace(/^0+/, "");
 }
 
@@ -23,7 +30,7 @@ export function dedupeDialCode(e164: string) {
   for (const code of DIAL_CODES) {
     if (!digits.startsWith(code)) continue;
     let rest = digits.slice(code.length).replace(/^0+/, "");
-    if (rest.startsWith(code) && rest.length - code.length >= 6) rest = rest.slice(code.length).replace(/^0+/, "");
+    if (repeatsCode(code, rest)) rest = rest.slice(code.length).replace(/^0+/, "");
     return `+${code}${rest}`;
   }
   return `+${digits}`;
