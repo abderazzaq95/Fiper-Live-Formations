@@ -213,7 +213,11 @@ async function listMeetAuditEvents(code: string, startsAt: string, endsAt: strin
       `https://admin.googleapis.com/admin/reports/v1/activity/users/all/applications/meet?${params.toString()}`,
       { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
     );
-    if (!response.ok) { diag.add(`reports_api_${response.status}`); return []; }
+    if (!response.ok) {
+      const failure = record(record(await response.json().catch(() => ({}))).error);
+      diag.add(`reports_api_${response.status}:${text(failure.message, "no_message").slice(0, 160)}`);
+      return [];
+    }
     const data = record(await response.json().catch(() => ({})));
     const rows = Array.isArray(data.items) ? data.items : [];
     events.push(...rows.map(record));
