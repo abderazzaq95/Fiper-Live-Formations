@@ -195,9 +195,12 @@ async function listMeetAuditEvents(code: string, startsAt: string, endsAt: strin
   // The Meet API accepts the human-readable abc-defg-hij code, while the
   // Admin Reports API stores and filters meeting_code as abcdefghij.
   const reportMeetingCode = code.replace(/[^a-z0-9]/gi, "");
-  const start = new Date(Date.parse(startsAt) - 6 * 60 * 60 * 1000);
-  const endMs = endsAt ? Date.parse(endsAt) + 24 * 60 * 60 * 1000 : Date.now();
-  if (!Number.isFinite(start.getTime()) || !Number.isFinite(endMs)) return [];
+  // The Reports API only accepts a window inside the last 180 days and requires start < end.
+  const now = Date.now();
+  const oldestAllowed = now - 179 * 24 * 60 * 60 * 1000;
+  const start = new Date(Math.max(Date.parse(startsAt) - 6 * 60 * 60 * 1000, oldestAllowed));
+  const endMs = Math.min(endsAt ? Date.parse(endsAt) + 24 * 60 * 60 * 1000 : now, now);
+  if (!Number.isFinite(start.getTime()) || !Number.isFinite(endMs) || start.getTime() >= endMs) return [];
   const events: JsonRecord[] = [];
   let pageToken = "";
   do {
