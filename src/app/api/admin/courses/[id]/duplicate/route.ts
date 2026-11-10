@@ -73,8 +73,9 @@ export async function POST(_request: Request, context: RouteContext<"/api/admin/
     created_by: identity.id === "preview" ? null : identity.id,
     published_at: null,
     is_featured: false,
-    level: source.level ?? null,
-    topic: source.topic ?? null,
+    // Optional catalog columns come from a later migration; only copy them when the database has them.
+    ...("level" in source ? { level: source.level ?? null } : {}),
+    ...("topic" in source ? { topic: source.topic ?? null } : {}),
   };
 
   const { error: courseError } = await supabase.from("courses").insert(coursePayload);
