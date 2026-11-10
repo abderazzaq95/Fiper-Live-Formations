@@ -16,6 +16,8 @@ const t = {
   file: "الملف",
   run: "استيراد",
   cancel: "إغلاق",
+  pick: "اختيار ملف",
+  noFile: "لم يتم اختيار ملف",
   read: "تمت قراءة",
   rows: "صفًا",
   people: "مشاركًا مختلفًا",
@@ -110,7 +112,8 @@ export function AttendanceImport({ sessions }: { sessions: SessionOption[] }) {
           {sessions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
         </select>
         <label className="mt-4 block text-[10px] font-bold text-[#617585]" htmlFor="attendance-import-file">{t.file}</label>
-        <input id="attendance-import-file" type="file" accept=".xlsx,.xls,.csv" onChange={(event) => void pickFile(event.target.files?.[0])} className="mt-2 block w-full rounded-xl border border-[#dfe7ec] bg-[#f8fafb] p-2 text-[11px]" />
+        <input id="attendance-import-file" type="file" accept=".xlsx,.xls,.csv" onChange={(event) => void pickFile(event.target.files?.[0])} className="sr-only" />
+        <label htmlFor="attendance-import-file" className="mt-2 flex h-11 cursor-pointer items-center gap-3 rounded-xl border border-[#dfe7ec] bg-[#f8fafb] px-3 text-[11px] text-[#29485d]"><span className="rounded-lg bg-[#102f47] px-3 py-1.5 font-bold text-white">{t.pick}</span><span className="latin truncate">{fileName || t.noFile}</span></label>
         {rows.length > 0 && <p className="mt-3 text-[11px] leading-6 text-[#168a65]">{t.read} {rows.length} {t.rows} ({people} {t.people}) — {fileName}</p>}
         {rows.length > 0 && <p className="mt-1 text-[10px] leading-5 text-[#8a6d1d]">{t.replace}</p>}
         {error && <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] leading-5 text-[#C32828]">{error}</p>}

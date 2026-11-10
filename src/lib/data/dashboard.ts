@@ -79,7 +79,7 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("registrations")
-      .select("id,full_name,email,phone_e164,status,course_sessions(starts_at,ends_at,courses(default_locale,course_translations(locale,title))),attendance_sessions(id,joined_at,left_at,duration_seconds,match_method,created_at)")
+      .select("id,full_name,email,phone_e164,status,course_sessions(starts_at,ends_at,courses(default_locale,course_translations(locale,title))),attendance_sessions(id,joined_at,left_at,duration_seconds,match_method,created_at,meet_participant_id)")
       .order("registered_at", { ascending: false });
     if (error || !data) return { rows: [], attended: 0, absent: 0, pending: 0, averageMinutes: 0, lastSync: "—" };
 
@@ -93,6 +93,8 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
       const courseAttendance = attendanceRecords
         .filter((item) => {
           if (text(item.match_method) === "obsolete") return false;
+          // Uploaded lists are the admin's own data for this session, so they are always shown.
+          if (text(item.meet_participant_id).startsWith("import:")) return true;
           return withinSessionWindow(text(item.joined_at), startsAt, endsAt);
         })
         .sort((a, b) => text(b.joined_at).localeCompare(text(a.joined_at)))[0];
@@ -113,7 +115,7 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
 
     const { data: unmatched } = await supabase
       .from("attendance_sessions")
-      .select("id,participant_name,participant_email,joined_at,left_at,duration_seconds,match_method,course_sessions(starts_at,ends_at,courses(default_locale,course_translations(locale,title)))")
+      .select("id,participant_name,participant_email,meet_participant_id,joined_at,left_at,duration_seconds,match_method,course_sessions(starts_at,ends_at,courses(default_locale,course_translations(locale,title)))")
       .is("registration_id", null)
       .neq("match_method", "obsolete")
       .order("created_at", { ascending: false });
@@ -125,7 +127,7 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
       const courseTranslation = translations.find((translation) => text(translation.locale) === text(courseRecord?.default_locale, "ar")) ?? translations[0];
       const joinedAt = text(row.joined_at);
       const startsAt = text(session?.starts_at);
-      if (!withinSessionWindow(joinedAt, startsAt, text(session?.ends_at))) continue;
+      if (!text(row.meet_participant_id).startsWith("import:") && !withinSessionWindow(joinedAt, startsAt, text(session?.ends_at))) continue;
       const durationMinutes = Math.max(0, Math.round((Number(row.duration_seconds) || 0) / 60));
       rows.push({
         id: text(row.id), name: text(row.participant_name, "غير مسجل"), email: text(row.participant_email, "غير معروف"), phone: "",
