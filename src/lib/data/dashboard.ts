@@ -145,6 +145,30 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
     return { rows: [], attended: 0, absent: 0, pending: 0, averageMinutes: 0, lastSync: "—" };
   }
 }
+export type AttendanceSessionOption = { id: string; label: string; course: string };
+
+// Sessions an attendance list can be imported into (newest first).
+export async function listAttendanceSessions(): Promise<AttendanceSessionOption[]> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("course_sessions")
+      .select("id,starts_at,courses(default_locale,course_translations(locale,title))")
+      .order("starts_at", { ascending: false });
+    if (error || !data) return [];
+    return data.map((item) => {
+      const row = asRecord(item);
+      const course = firstRecord(row.courses);
+      const translations = Array.isArray(course?.course_translations) ? course.course_translations.map(asRecord) : [];
+      const translation = translations.find((entry) => text(entry.locale) === text(course?.default_locale, "ar")) ?? translations[0];
+      const courseTitle = text(translation?.title, "—");
+      return { id: text(row.id), course: courseTitle, label: `${courseTitle} — ${formatCourseDate(text(row.starts_at))}` };
+    }).filter((option) => option.id);
+  } catch {
+    return [];
+  }
+}
+
 export type DeliveryRow = {
   id: string;
   channel: "email" | "whatsapp";

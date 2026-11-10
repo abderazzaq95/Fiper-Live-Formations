@@ -2,14 +2,14 @@
 
 import * as XLSX from "xlsx";
 import { CalendarCheck2, ChevronDown, Download, Filter, Search } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { AttendanceRow } from "@/lib/data/dashboard";
 
 const t = { email: "البريد", excel: "تصدير Excel", records: "سجلات الحضور", filter: "تصفية مباشرة حسب الدورة والحالة", search: "ابحث عن مشارك...", allCourses: "كل الدورات", allStatuses: "كل الحالات", participant: "المشارك", course: "الدورة", courseDate: "تاريخ الدورة", status: "الحالة", joined: "وقت الدخول", left: "وقت الخروج", duration: "مدة الحضور", match: "المطابقة", attended: "حضر", absent: "لم يحضر", pending: "لم تبدأ", sync: "بانتظار المزامنة", empty: "لا توجد نتائج مطابقة." } as const;
 const labels: Record<AttendanceRow["status"], string> = { attended: t.attended, absent: t.absent, pending: t.pending };
 const matchLabels: Record<string, string> = { name: "الاسم", email: "البريد", unregistered: "غير مسجل", pending: t.sync };
 
-export function AttendanceTable({ rows, disableCourseFilter = false }: { rows: AttendanceRow[]; disableCourseFilter?: boolean }) {
+export function AttendanceTable({ rows, disableCourseFilter = false, actions }: { rows: AttendanceRow[]; disableCourseFilter?: boolean; actions?: ReactNode }) {
   const [query, setQuery] = useState("");
   const [course, setCourse] = useState("all");
   const [status, setStatus] = useState("all");
@@ -48,7 +48,7 @@ export function AttendanceTable({ rows, disableCourseFilter = false }: { rows: A
 
   return <section className="mt-5 overflow-hidden rounded-[22px] border border-[#dfe7ec] bg-white">
     <div className="flex flex-col gap-3 border-b border-[#e8eef2] p-5 sm:flex-row sm:items-center">
-      <div><h2 className="text-sm font-bold">{t.records}</h2><p className="mt-1 text-[11px] text-[#91a2ae]">{t.filter}</p><button type="button" onClick={exportExcel} className="mt-3 flex h-10 shrink-0 items-center gap-2 rounded-xl bg-[#102f47] px-4 text-[11px] font-bold text-white"><Download size={14} />{t.excel}</button></div>
+      <div><h2 className="text-sm font-bold">{t.records}</h2><p className="mt-1 text-[11px] text-[#91a2ae]">{t.filter}</p><div className="mt-3 flex flex-wrap items-center gap-2"><button type="button" onClick={exportExcel} className="flex h-10 shrink-0 items-center gap-2 rounded-xl bg-[#102f47] px-4 text-[11px] font-bold text-white"><Download size={14} />{t.excel}</button>{actions}</div></div>
       <div className="relative mr-auto w-full sm:w-64"><Search size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8ba0ae]" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.search} className="h-10 w-full rounded-xl border border-[#dfe7ec] bg-[#f8fafb] pr-10 text-[11px] focus:outline-none" /></div>
       <label className="relative hidden"><span className="sr-only">{t.course}</span><select value={course} onChange={(event) => setCourse(event.target.value)} className="h-10 appearance-none rounded-xl border border-[#dfe7ec] bg-white px-3 pl-8 text-[11px] font-bold text-[#617585]"><option value="all">{t.allCourses}</option>{courses.map((item) => <option key={item} value={item}>{item}</option>)}</select><ChevronDown size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" /></label>
       <label className="relative"><span className="sr-only">{t.status}</span><select value={status} onChange={(event) => setStatus(event.target.value)} className="h-10 appearance-none rounded-xl border border-[#dfe7ec] bg-white px-3 pl-8 text-[11px] font-bold text-[#617585]"><option value="all">{t.allStatuses}</option><option value="attended">{t.attended}</option><option value="absent">{t.absent}</option><option value="pending">{t.pending}</option></select><Filter size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" /></label>

@@ -373,7 +373,7 @@ async function archiveObsoleteAttendance(
   if (error) throw error;
   const staleIds = (data ?? [])
     .map(record)
-    .filter((row) => !row.manually_overridden && !activeParticipantIds.has(text(row.meet_participant_id)))
+    .filter((row) => !row.manually_overridden && !text(row.meet_participant_id).startsWith("import:") && !activeParticipantIds.has(text(row.meet_participant_id)))
     .map((row) => text(row.id))
     .filter(Boolean);
   if (!staleIds.length) return 0;

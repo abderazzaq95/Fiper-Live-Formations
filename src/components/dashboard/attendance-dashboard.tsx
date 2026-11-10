@@ -2,9 +2,10 @@
 
 import { Clock3, ChevronDown, UserRoundCheck, UserRoundX } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AttendanceImport } from "@/components/dashboard/attendance-import";
 import { AttendanceTable } from "@/components/dashboard/attendance-table";
 import { CustomMessageComposer } from "@/components/dashboard/custom-message-composer";
-import type { AttendanceRow } from "@/lib/data/dashboard";
+import type { AttendanceRow, AttendanceSessionOption } from "@/lib/data/dashboard";
 
 const t = {
   courseFilter: "الدورة",
@@ -16,7 +17,7 @@ const t = {
   pending: "بانتظار بدء الدورة",
 } as const;
 
-export function AttendanceDashboard({ rows, courseOptions = [] }: { rows: AttendanceRow[]; courseOptions?: string[] }) {
+export function AttendanceDashboard({ rows, courseOptions = [], sessions = [] }: { rows: AttendanceRow[]; courseOptions?: string[]; sessions?: AttendanceSessionOption[] }) {
   const courses = useMemo(() => [...new Set([...courseOptions, ...rows.map((row) => row.course)].filter(Boolean))].sort(), [rows, courseOptions]);
   const [course, setCourse] = useState("all");
   const hydrated = useRef(false);
@@ -34,6 +35,7 @@ export function AttendanceDashboard({ rows, courseOptions = [] }: { rows: Attend
   }, [course, courses]);
 
   const filteredRows = useMemo(() => course === "all" ? rows : rows.filter((row) => row.course === course), [rows, course]);
+  const importSessions = useMemo(() => course === "all" ? sessions : sessions.filter((session) => session.course === course), [sessions, course]);
   const attended = filteredRows.filter((row) => row.status === "attended").length;
   const absent = filteredRows.filter((row) => row.status === "absent").length;
   const pending = filteredRows.filter((row) => row.status === "pending").length;
@@ -61,6 +63,6 @@ export function AttendanceDashboard({ rows, courseOptions = [] }: { rows: Attend
     <div className="grid gap-4 sm:grid-cols-3">
       {stats.map(([label, value, note, Icon, tone]) => <div key={label} className="flex items-center gap-4 rounded-[18px] border border-[#dfe7ec] bg-white p-5"><span className={"flex h-11 w-11 items-center justify-center rounded-[14px] " + tone}><Icon size={19} /></span><span><small className="text-[9px] text-[#7f929f]">{label}</small><strong className="mt-1 block text-xl">{value}</strong><small className="text-[8px] text-[#91a2ae]">{note}</small></span></div>)}
     </div>
-    <AttendanceTable key={course} rows={filteredRows} disableCourseFilter />
+    <AttendanceTable key={course} rows={filteredRows} disableCourseFilter actions={<AttendanceImport sessions={importSessions} />} />
   </>;
 }
