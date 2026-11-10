@@ -32,6 +32,18 @@ function localDateKey(value: string | null | undefined, timeZone: string) {
   return new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone }).format(new Date(value));
 }
 
+// A visit belongs to a session when it starts shortly before the session and no later than a few hours after it ends.
+// Comparing instants (not calendar days in one time zone) keeps sessions for Morocco, Iraq, Lebanon... from being hidden near midnight.
+function withinSessionWindow(joinedAt: string, startsAt: string, endsAt: string) {
+  const joined = Date.parse(joinedAt);
+  const start = Date.parse(startsAt);
+  if (!joinedAt || !startsAt || !Number.isFinite(joined) || !Number.isFinite(start)) return true;
+  const hour = 60 * 60 * 1000;
+  const parsedEnd = Date.parse(endsAt);
+  const end = Number.isFinite(parsedEnd) ? parsedEnd : start + 6 * hour;
+  return joined >= start - 6 * hour && joined <= end + 12 * hour;
+}
+
 function formatCourseDate(value: string | null | undefined) {
   if (!value) return "—";
   return new Intl.DateTimeFormat("ar", { dateStyle: "medium", timeZone: "Europe/Berlin" }).format(new Date(value));
@@ -67,7 +79,7 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("registrations")
-      .select("id,full_name,email,phone_e164,status,course_sessions(starts_at,courses(default_locale,course_translations(locale,title))),attendance_sessions(id,joined_at,left_at,duration_seconds,match_method,created_at)")
+      .select("id,full_name,email,phone_e164,status,course_sessions(starts_at,ends_at,courses(default_locale,course_translations(locale,title))),attendance_sessions(id,joined_at,left_at,duration_seconds,match_method,created_at)")
       .order("registered_at", { ascending: false });
     if (error || !data) return { rows: [], attended: 0, absent: 0, pending: 0, averageMinutes: 0, lastSync: "—" };
 
@@ -77,11 +89,11 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
       const session = firstRecord(row.course_sessions);
       const courseRecord = firstRecord(session?.courses);
       const startsAt = text(session?.starts_at);
+      const endsAt = text(session?.ends_at);
       const courseAttendance = attendanceRecords
         .filter((item) => {
           if (text(item.match_method) === "obsolete") return false;
-          const joinedAt = text(item.joined_at);
-          return !joinedAt || !startsAt || localDateKey(joinedAt, "Europe/Berlin") === localDateKey(startsAt, "Europe/Berlin");
+          return withinSessionWindow(text(item.joined_at), startsAt, endsAt);
         })
         .sort((a, b) => text(b.joined_at).localeCompare(text(a.joined_at)))[0];
       const durationMinutes = Math.max(0, Math.round((Number(courseAttendance?.duration_seconds) || 0) / 60));
@@ -101,7 +113,7 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
 
     const { data: unmatched } = await supabase
       .from("attendance_sessions")
-      .select("id,participant_name,participant_email,joined_at,left_at,duration_seconds,match_method,course_sessions(starts_at,courses(default_locale,course_translations(locale,title)))")
+      .select("id,participant_name,participant_email,joined_at,left_at,duration_seconds,match_method,course_sessions(starts_at,ends_at,courses(default_locale,course_translations(locale,title)))")
       .is("registration_id", null)
       .neq("match_method", "obsolete")
       .order("created_at", { ascending: false });
@@ -113,7 +125,7 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
       const courseTranslation = translations.find((translation) => text(translation.locale) === text(courseRecord?.default_locale, "ar")) ?? translations[0];
       const joinedAt = text(row.joined_at);
       const startsAt = text(session?.starts_at);
-      if (joinedAt && startsAt && localDateKey(joinedAt, "Europe/Berlin") !== localDateKey(startsAt, "Europe/Berlin")) continue;
+      if (!withinSessionWindow(joinedAt, startsAt, text(session?.ends_at))) continue;
       const durationMinutes = Math.max(0, Math.round((Number(row.duration_seconds) || 0) / 60));
       rows.push({
         id: text(row.id), name: text(row.participant_name, "غير مسجل"), email: text(row.participant_email, "غير معروف"), phone: "",

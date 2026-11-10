@@ -163,7 +163,34 @@ async function listParticipants(conferenceName: string, token: string) {
   return participants;
 }
 
-async function latestParticipantVisit(participant: JsonRecord, token: string) {
+type Interval = [number, number];
+
+function mergeIntervals(intervals: Interval[]) {
+  const sorted = intervals.filter(([start, end]) => Number.isFinite(start) && Number.isFinite(end) && end >= start).sort((a, b) => a[0] - b[0]);
+  const merged: Interval[] = [];
+  for (const [start, end] of sorted) {
+    const last = merged[merged.length - 1];
+    if (last && start <= last[1]) last[1] = Math.max(last[1], end);
+    else merged.push([start, end]);
+  }
+  return merged;
+}
+
+function participantIntervals(participant: JsonRecord): Interval[] {
+  if (Array.isArray(participant.visitIntervals)) return participant.visitIntervals as Interval[];
+  const start = Date.parse(text(participant.earliestStartTime));
+  const endText = text(participant.latestEndTime);
+  const end = endText ? Date.parse(endText) : Date.now();
+  return Number.isFinite(start) && Number.isFinite(end) ? [[start, end]] : [];
+}
+
+function participantStillInCall(participant: JsonRecord) {
+  if (participant.stillInCall === true) return true;
+  return !Array.isArray(participant.visitIntervals) && !text(participant.latestEndTime);
+}
+
+// Collects every visit (join/leave) of a participant so rejoins can be added up instead of keeping only the last one.
+async function participantWithVisits(participant: JsonRecord, token: string) {
   const resourceName = text(participant.name);
   if (!resourceName) return participant;
   const visits: JsonRecord[] = [];
@@ -176,14 +203,37 @@ async function latestParticipantVisit(participant: JsonRecord, token: string) {
     visits.push(...rows.map(record));
     pageToken = text(data.nextPageToken);
   } while (pageToken);
-  const latest = visits.sort((a, b) => Date.parse(text(b.startTime)) - Date.parse(text(a.startTime)))[0];
-  if (!latest) return participant;
+  if (!visits.length) return participant;
   return {
     ...participant,
-    earliestStartTime: text(latest.startTime, text(participant.earliestStartTime)),
-    latestEndTime: text(latest.endTime, text(participant.latestEndTime)),
+    visitIntervals: visits.map((visit): Interval => [Date.parse(text(visit.startTime)), text(visit.endTime) ? Date.parse(text(visit.endTime)) : Date.now()]),
+    stillInCall: visits.some((visit) => !text(visit.endTime)),
   };
 }
+
+type ResolvedParticipant = { participant: JsonRecord; email: string; name: string };
+
+// One person = one record: first join, last leave and the total time actually spent in the call (rejoins added up, overlaps counted once).
+function mergeVisits(entries: ResolvedParticipant[]): ResolvedParticipant {
+  const primary = [...entries].sort((a, b) => joinedTime(a.participant) - joinedTime(b.participant))[0];
+  const email = entries.map((entry) => entry.email).find(Boolean) ?? "";
+  const name = entries.map((entry) => entry.name).find(Boolean) ?? "";
+  const merged = mergeIntervals(entries.flatMap((entry) => participantIntervals(entry.participant)));
+  if (!merged.length) return { participant: primary.participant, email, name };
+  const open = entries.some((entry) => participantStillInCall(entry.participant));
+  const totalSeconds = Math.round(merged.reduce((sum, [start, end]) => sum + (end - start), 0) / 1000);
+  return {
+    participant: {
+      ...primary.participant,
+      earliestStartTime: new Date(merged[0][0]).toISOString(),
+      latestEndTime: open ? "" : new Date(merged[merged.length - 1][1]).toISOString(),
+      durationSeconds: totalSeconds,
+    },
+    email,
+    name,
+  };
+}
+
 function reportParameter(event: JsonRecord, name: string) {
   const parameters = Array.isArray(event.parameters) ? event.parameters : [];
   const parameter = parameters.map(record).find((item) => text(item.name) === name);
@@ -291,7 +341,9 @@ async function saveAttendance(
   const leftAt = text(participant.latestEndTime) || null;
   const joinedMs = Date.parse(joinedAt);
   const leftMs = leftAt ? Date.parse(leftAt) : Date.now();
-  const durationSeconds = Number.isFinite(joinedMs) && Number.isFinite(leftMs) ? Math.max(0, Math.round((leftMs - joinedMs) / 1000)) : 0;
+  const spanSeconds = Number.isFinite(joinedMs) && Number.isFinite(leftMs) ? Math.max(0, Math.round((leftMs - joinedMs) / 1000)) : 0;
+  const reportedSeconds = Number(participant.durationSeconds);
+  const durationSeconds = Number.isFinite(reportedSeconds) && reportedSeconds > 0 ? Math.round(reportedSeconds) : spanSeconds;
   const existingQuery = supabase.from("attendance_sessions").select("id,manually_overridden").eq("session_id", sessionId).eq("meet_participant_id", text(participant.name));
   const { data: existing, error: existingError } = await existingQuery.maybeSingle();
   if (existingError) throw existingError;
@@ -368,7 +420,7 @@ export async function POST() {
       if (!conference?.name) continue;
       conferences += 1;
       const listedParticipants = await listParticipants(text(conference.name), token);
-      const participants = await Promise.all(listedParticipants.map((participant) => latestParticipantVisit(participant, token)));
+      const participants = await Promise.all(listedParticipants.map((participant) => participantWithVisits(participant, token)));
       const session = record(group[0]?.session);
       let auditReports: JsonRecord[] = [];
       try {
@@ -388,16 +440,22 @@ export async function POST() {
         const name = participantDisplayName(participant) || report?.displayName || "";
         return { participant, email, name };
       }));
-      const uniqueParticipants = new Map<string, typeof resolvedParticipants[number]>();
-      for (const resolved of resolvedParticipants) {
-        const key = participantIdentityKey(resolved.participant, resolved.email, resolved.name);
-        const existing = uniqueParticipants.get(key);
-        if (!existing || joinedTime(resolved.participant) >= joinedTime(existing.participant)) uniqueParticipants.set(key, resolved);
+      // Reports that were not paired with a Meet participant (e.g. a rejoin) join the same person by email.
+      const entries: ResolvedParticipant[] = [...resolvedParticipants];
+      for (const [index, report] of reports.entries()) {
+        if (usedReports.has(index) || !report.email) continue;
+        entries.push({ participant: report, email: report.email, name: report.displayName });
       }
+      const grouped = new Map<string, ResolvedParticipant[]>();
+      for (const entry of entries) {
+        const key = participantIdentityKey(entry.participant, entry.email, entry.name);
+        grouped.set(key, [...(grouped.get(key) ?? []), entry]);
+      }
+      const people = [...grouped.values()].map(mergeVisits);
 
       const used = new Set<string>();
       const activeParticipantIds = new Set<string>();
-      for (const { participant, email, name } of uniqueParticipants.values()) {
+      for (const { participant, email, name } of people) {
         activeParticipantIds.add(text(participant.name));
         const matched = findRegistrationByEmail(email, group, used);
         const nameMatched = matched || email ? undefined : findRegistrationByName(name, group, used);
@@ -407,18 +465,6 @@ export async function POST() {
           used.add(id);
           if (await saveAttendance(supabase, id, text(session.id), participant, matched ? "email" : "name", name, email)) synced += 1;
         } else if (await saveAttendance(supabase, null, text(session.id), participant, "unregistered", name, email)) {
-          synced += 1;
-        }
-      }
-      for (const [index, report] of reports.entries()) {
-        if (usedReports.has(index) || !report.email) continue;
-        activeParticipantIds.add(text(report.name));
-        const matched = findRegistrationByEmail(report.email, group, used);
-        if (matched) {
-          const id = text(matched.id);
-          used.add(id);
-          if (await saveAttendance(supabase, id, text(session.id), report, "email", report.displayName, report.email)) synced += 1;
-        } else if (await saveAttendance(supabase, null, text(session.id), report, "unregistered", report.displayName, report.email)) {
           synced += 1;
         }
       }
