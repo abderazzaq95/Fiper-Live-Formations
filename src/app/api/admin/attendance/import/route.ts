@@ -62,12 +62,16 @@ export async function POST(request: Request) {
 
   try {
     const supabase = await createClient();
-    const { data: session, error: sessionError } = await supabase.from("course_sessions").select("id").eq("id", sessionId).maybeSingle();
+    const { data: session, error: sessionError } = await supabase.from("course_sessions").select("id,course_id").eq("id", sessionId).maybeSingle();
     if (sessionError || !session) return Response.json({ message: "الجلسة غير موجودة." }, { status: 404 });
 
-    const { data: registrationData, error: registrationError } = await supabase.from("registrations").select("id,full_name,email").eq("session_id", sessionId).range(0, 4999);
+    // Match against everyone registered for ANY session of the same course (people may have registered for another date/country session).
+    const { data: courseSessions } = await supabase.from("course_sessions").select("id").eq("course_id", text(session.course_id));
+    const sessionIds = [...new Set([sessionId, ...(courseSessions ?? []).map((item) => text(record(item).id)).filter(Boolean)])];
+    const { data: registrationData, error: registrationError } = await supabase.from("registrations").select("id,full_name,email,session_id").in("session_id", sessionIds).range(0, 4999);
     if (registrationError) throw registrationError;
-    const registrations = (registrationData ?? []).map(record);
+    // Registrations of the selected session come first so they win when someone registered more than once.
+    const registrations = (registrationData ?? []).map(record).sort((a, b) => Number(text(b.session_id) === sessionId) - Number(text(a.session_id) === sessionId));
 
     // One person = one record: rows are grouped by email (or by name when there is no email).
     const people = new Map<string, { email: string; name: string; intervals: Interval[] }>();
@@ -100,7 +104,7 @@ export async function POST(request: Request) {
         const found = registrations.find((registration) => !usedRegistrations.has(text(registration.id)) && normalizeEmail(text(registration.email)) === person.email);
         if (found) { registrationId = text(found.id); matchMethod = "email"; }
       }
-      if (!registrationId && !person.email && person.name) {
+      if (!registrationId && person.name) {
         const candidates = registrations.filter((registration) => !usedRegistrations.has(text(registration.id)) && normalizeName(text(registration.full_name)) === normalizeName(person.name));
         if (candidates.length === 1) { registrationId = text(candidates[0].id); matchMethod = "name"; }
       }
