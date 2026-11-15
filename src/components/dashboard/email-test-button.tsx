@@ -26,19 +26,19 @@ export function EmailTestButton() {
 
   return (
     <>
-      <button type="button" onClick={() => { setOpen(true); setFeedback(null); }} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[#102f47] px-5 text-sm font-semibold text-white transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[#174462] active:scale-[.98] focus:outline-none focus:ring-2 focus:ring-[#C32828] focus:ring-offset-2">
+      <button type="button" onClick={() => { setOpen(true); setFeedback(null); }} className="flex h-11 items-center justify-center gap-2 rounded-lg bg-[#0b1533] px-5 text-sm font-semibold text-white transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[#174462] active:scale-[.98] focus:outline-none focus:ring-2 focus:ring-[#c2182b] focus:ring-offset-2">
         <Send size={16} /> رسالة تجريبية
       </button>
       {open ? <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="email-test-title">
-        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+        <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
           <div className="flex items-start justify-between gap-4">
-            <div><h2 id="email-test-title" className="text-lg font-bold text-[#102f47]">إرسال بريد تجريبي</h2><p className="mt-2 text-sm leading-6 text-[#788d9c]">سيُرسل قالب تأكيد التسجيل باستخدام بيانات دورة منشورة.</p></div>
-            <button type="button" onClick={() => setOpen(false)} aria-label="إغلاق" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#788d9c] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[#f0f4f6] focus:outline-none focus:ring-2 focus:ring-[#C32828]"><X size={18} /></button>
+            <div><h2 id="email-test-title" className="text-lg font-bold text-[#0b1533]">إرسال بريد تجريبي</h2><p className="mt-2 text-sm leading-6 text-[#64748b]">سيُرسل قالب تأكيد التسجيل باستخدام بيانات دورة منشورة.</p></div>
+            <button type="button" onClick={() => setOpen(false)} aria-label="إغلاق" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#64748b] transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[#f1f5f9] focus:outline-none focus:ring-2 focus:ring-[#c2182b]"><X size={18} /></button>
           </div>
-          <label htmlFor="test-email" className="mt-6 block text-sm font-semibold text-[#425d70]">البريد الإلكتروني</label>
-          <input id="test-email" type="email" dir="ltr" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@example.com" className="mt-2 h-11 w-full rounded-xl border border-[#dce5eb] px-3 text-sm outline-none transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] focus:border-[#C32828] focus:ring-2 focus:ring-[#C32828]/15" />
-          {feedback ? <p className={`mt-4 rounded-xl px-3 py-2 text-sm ${feedback.tone === "success" ? "bg-[#eaf8f3] text-[#168a65]" : "bg-[#fff0f1] text-[#a51f1f]"}`}>{feedback.message}</p> : null}
-          <button type="button" onClick={() => void sendTest()} disabled={pending || !email.trim()} className="mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#C32828] px-3 text-base font-semibold text-white transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[#a92121] active:scale-[.98] focus:outline-none focus:ring-2 focus:ring-[#C32828] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+          <label htmlFor="test-email" className="mt-6 block text-sm font-semibold text-[#334155]">البريد الإلكتروني</label>
+          <input id="test-email" type="email" dir="ltr" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@example.com" className="mt-2 h-11 w-full rounded-lg border border-[#dfe6f0] px-3 text-sm outline-none transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] focus:border-[#c2182b] focus:ring-2 focus:ring-[#c2182b]/15" />
+          {feedback ? <p className={`mt-4 rounded-lg px-3 py-2 text-sm ${feedback.tone === "success" ? "bg-[#e3f6ec] text-[#047857]" : "bg-[#fbe8ea] text-[#a01324]"}`}>{feedback.message}</p> : null}
+          <button type="button" onClick={() => void sendTest()} disabled={pending || !email.trim()} className="mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#c2182b] px-3 text-base font-semibold text-white transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-[#a01324] active:scale-[.98] focus:outline-none focus:ring-2 focus:ring-[#c2182b] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
             {pending ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />} إرسال الاختبار
           </button>
         </div>

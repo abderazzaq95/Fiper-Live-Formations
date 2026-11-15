@@ -23,5 +23,5 @@ export function AttendanceSyncButton({ label }: { label: string }) {
     }
   }
 
-  return <div className="flex flex-col items-end gap-1"><button type="button" onClick={() => void sync()} disabled={pending} className="flex h-11 items-center gap-2 rounded-xl border border-[#dce5eb] bg-white px-4 text-[9px] font-bold text-[#536b7b] transition hover:border-[#8eb8d2] hover:bg-[#f8fbfd] disabled:cursor-wait disabled:opacity-60">{pending ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}{pending ? "جارٍ المزامنة..." : label}</button>{error && <span role="alert" className="max-w-64 text-right text-[8px] leading-4 text-[#C32828]">{error}</span>}</div>;
+  return <div className="flex flex-col items-end gap-1"><button type="button" onClick={() => void sync()} disabled={pending} className="flex h-11 items-center gap-2 rounded-lg border border-[#dfe6f0] bg-white px-4 text-[11.5px] font-bold text-[#334155] transition hover:border-[#a9b9e3] hover:bg-[#f3f7fd] disabled:cursor-wait disabled:opacity-60">{pending ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}{pending ? "جارٍ المزامنة..." : label}</button>{error && <span role="alert" className="max-w-64 text-right text-[11px] leading-4 text-[#c2182b]">{error}</span>}</div>;
 }

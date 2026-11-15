@@ -6,7 +6,7 @@ const t = { eyebrow: "قاعدة المشاركين", title: "التسجيلات
 export default async function RegistrationsPage() {
   const [registrations, courses] = await Promise.all([listDashboardRegistrations(), listDashboardCourses()]);
   return <div className="mx-auto max-w-[1450px]">
-    <div><p className="text-[10px] font-bold text-[#C32828]">{t.eyebrow}</p><h1 className="mt-2 text-2xl font-bold tracking-[-0.035em] sm:text-3xl">{t.title}</h1><p className="mt-2 text-xs text-[#788d9c]">{t.desc}</p></div>
+    <div><p className="text-[12px] font-bold text-[#c2182b]">{t.eyebrow}</p><h1 className="mt-2 text-2xl font-bold tracking-[-0.035em] sm:text-3xl">{t.title}</h1><p className="mt-2 text-xs text-[#64748b]">{t.desc}</p></div>
     <div className="mt-7"><RegistrationsDashboard registrations={registrations} courseOptions={courses.map((course) => course.title)} /></div>
   </div>;
 }
