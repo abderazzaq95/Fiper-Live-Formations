@@ -101,17 +101,17 @@ export function CourseCardActions({ courseId, courseSlug, registrationOpen, feat
   if (variant === "menu") {
     return (
       <div ref={menuRef} className="relative flex items-center gap-1.5">
-        <button type="button" aria-label={featured ? "إلغاء تمييز الدورة" : "تعيين كدورة مميزة"} title={featured ? "الدورة المميزة" : "تعيين كدورة مميزة"} onClick={() => void toggleFeatured()} disabled={busy !== null} className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${featured ? "bg-[var(--adm-mid)] text-white" : "bg-black/15 text-white/80 hover:bg-black/30"}`}>
+        <button type="button" aria-label={featured ? "إلغاء تمييز الدورة" : "تعيين كدورة مميزة"} title={featured ? "الدورة المميزة" : "تعيين كدورة مميزة"} onClick={() => void toggleFeatured()} disabled={busy !== null} className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${featured ? "bg-[#d97706] text-white" : "bg-black/15 text-white/80 hover:bg-black/30"}`}>
           <Star size={15} className={featured ? "fill-current" : ""} />
         </button>
         <button type="button" aria-label="خيارات الدورة" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-black/15 text-white/80 transition hover:bg-black/30">
           {busy ? <Loader2 size={15} className="animate-spin" /> : <MoreHorizontal size={17} />}
         </button>
-        {menuOpen && <div className="absolute left-0 top-10 z-30 w-44 rounded-lg border border-[var(--adm-line)] bg-[var(--adm-panel)] p-1 text-right shadow-[0_16px_35px_rgba(15,42,61,.2)]">
-          <button type="button" onClick={() => void toggleFeatured()} disabled={busy !== null} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[11.5px] font-bold text-[var(--adm-ink)] hover:bg-[var(--adm-hover)] disabled:opacity-50"><Star size={13} className={featured ? "fill-[var(--adm-mid)] text-[var(--adm-mid)]" : "text-[var(--adm-mid-ink)]"} />{featured ? "إلغاء تمييز الدورة" : "تعيين كدورة مميزة"}</button>
-          <button type="button" onClick={() => void toggleRegistration()} disabled={busy !== null} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[11.5px] font-bold text-[var(--adm-ink)] hover:bg-[var(--adm-hover)] disabled:opacity-50"><Power size={13} className={registrationOpen ? "text-[var(--adm-brand)]" : "text-[var(--adm-good)]"} />{registrationOpen ? "إغلاق التسجيل" : "فتح التسجيل"}</button>
-          <button type="button" onClick={() => void duplicateCourse()} disabled={busy !== null} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[11.5px] font-bold text-[var(--adm-ink)] hover:bg-[var(--adm-hover)] disabled:opacity-50"><Copy size={13} />نسخ الدورة</button>
-          <button type="button" onClick={() => void deleteCourse()} disabled={busy !== null} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[11.5px] font-bold text-[var(--adm-brand)] hover:bg-[var(--adm-brand-soft)] disabled:opacity-50"><Trash2 size={13} />{"\u062d\u0630\u0641 \u0627\u0644\u062f\u0648\u0631\u0629"}</button>
+        {menuOpen && <div className="absolute left-0 top-10 z-30 w-44 rounded-lg border border-[#dfe6f0] bg-white p-1 text-right shadow-[0_16px_35px_rgba(15,42,61,.2)]">
+          <button type="button" onClick={() => void toggleFeatured()} disabled={busy !== null} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[11.5px] font-bold text-[#1e293b] hover:bg-[#f3f7fd] disabled:opacity-50"><Star size={13} className={featured ? "fill-[#d97706] text-[#d97706]" : "text-[#92400e]"} />{featured ? "إلغاء تمييز الدورة" : "تعيين كدورة مميزة"}</button>
+          <button type="button" onClick={() => void toggleRegistration()} disabled={busy !== null} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[11.5px] font-bold text-[#1e293b] hover:bg-[#f3f7fd] disabled:opacity-50"><Power size={13} className={registrationOpen ? "text-[#c2182b]" : "text-[#047857]"} />{registrationOpen ? "إغلاق التسجيل" : "فتح التسجيل"}</button>
+          <button type="button" onClick={() => void duplicateCourse()} disabled={busy !== null} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[11.5px] font-bold text-[#1e293b] hover:bg-[#f3f7fd] disabled:opacity-50"><Copy size={13} />نسخ الدورة</button>
+          <button type="button" onClick={() => void deleteCourse()} disabled={busy !== null} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[11.5px] font-bold text-[#c2182b] hover:bg-[#fff3f3] disabled:opacity-50"><Trash2 size={13} />{"\u062d\u0630\u0641 \u0627\u0644\u062f\u0648\u0631\u0629"}</button>
         </div>}
       </div>
     );
@@ -119,8 +119,8 @@ export function CourseCardActions({ courseId, courseSlug, registrationOpen, feat
 
   return (
     <>
-      <Link href={`/courses/${encodeURIComponent(courseSlug || courseId)}`} target="_blank" aria-label="معاينة الدورة" className="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--adm-line)] text-[var(--adm-ink-3)] transition hover:border-[var(--adm-focus-line)] hover:bg-[var(--adm-panel-2)]"><Eye size={15} /></Link>
-      <button type="button" onClick={() => void duplicateCourse()} disabled={busy !== null} aria-label="نسخ الدورة" className="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--adm-line)] text-[var(--adm-ink-3)] transition hover:border-[var(--adm-focus-line)] hover:bg-[var(--adm-panel-2)] disabled:cursor-wait disabled:opacity-60">{busy === "copy" ? <Loader2 size={15} className="animate-spin" /> : <Copy size={15} />}</button>
+      <Link href={`/courses/${encodeURIComponent(courseSlug || courseId)}`} target="_blank" aria-label="معاينة الدورة" className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#dfe6f0] text-[#56657c] transition hover:border-[#a9b9e3] hover:bg-[#f8fafc]"><Eye size={15} /></Link>
+      <button type="button" onClick={() => void duplicateCourse()} disabled={busy !== null} aria-label="نسخ الدورة" className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#dfe6f0] text-[#56657c] transition hover:border-[#a9b9e3] hover:bg-[#f8fafc] disabled:cursor-wait disabled:opacity-60">{busy === "copy" ? <Loader2 size={15} className="animate-spin" /> : <Copy size={15} />}</button>
     </>
   );
 }

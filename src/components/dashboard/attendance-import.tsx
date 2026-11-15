@@ -99,27 +99,27 @@ export function AttendanceImport({ sessions }: { sessions: SessionOption[] }) {
   }
 
   return <>
-    <button type="button" onClick={() => setOpen(true)} className="flex h-11 items-center gap-2 rounded-lg border border-[var(--adm-line)] bg-[var(--adm-panel)] px-4 text-[11.5px] font-bold text-[var(--adm-ink-2)] transition hover:border-[var(--adm-focus-line)] hover:bg-[var(--adm-hover)]"><FileUp size={14} />{t.open}</button>
+    <button type="button" onClick={() => setOpen(true)} className="flex h-11 items-center gap-2 rounded-lg border border-[#dfe6f0] bg-white px-4 text-[11.5px] font-bold text-[#334155] transition hover:border-[#a9b9e3] hover:bg-[#f3f7fd]"><FileUp size={14} />{t.open}</button>
     {open && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#071d2f]/40 p-4 backdrop-blur-sm" role="presentation" onMouseDown={() => !pending && setOpen(false)}>
-      <section role="dialog" aria-modal="true" aria-label={t.title} className="w-full max-w-lg rounded-2xl border border-[var(--adm-line)] bg-[var(--adm-panel)] p-6 text-right shadow-[0_24px_70px_rgba(7,29,47,.18)]" onMouseDown={(event) => event.stopPropagation()}>
+      <section role="dialog" aria-modal="true" aria-label={t.title} className="w-full max-w-lg rounded-2xl border border-[#dfe6f0] bg-white p-6 text-right shadow-[0_24px_70px_rgba(7,29,47,.18)]" onMouseDown={(event) => event.stopPropagation()}>
         <div className="flex items-start justify-between gap-4">
-          <div><h2 className="text-base font-bold text-[var(--adm-ink)]">{t.title}</h2><p className="mt-2 text-[12.5px] leading-6 text-[var(--adm-ink-3)]">{t.help}</p></div>
-          <button type="button" onClick={() => setOpen(false)} disabled={pending} aria-label={t.cancel} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--adm-line)] text-[var(--adm-ink-3)]"><X size={16} /></button>
+          <div><h2 className="text-base font-bold text-[#071d2f]">{t.title}</h2><p className="mt-2 text-[12.5px] leading-6 text-[#56657c]">{t.help}</p></div>
+          <button type="button" onClick={() => setOpen(false)} disabled={pending} aria-label={t.cancel} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#dfe6f0] text-[#56657c]"><X size={16} /></button>
         </div>
-        <label className="mt-5 block text-[12px] font-bold text-[var(--adm-ink-3)]" htmlFor="attendance-import-session">{t.session}</label>
-        <select id="attendance-import-session" value={sessionId} onChange={(event) => setSessionId(event.target.value)} className="mt-2 h-11 w-full rounded-lg border border-[var(--adm-line)] bg-[var(--adm-panel)] px-3 text-[12.5px] font-bold text-[var(--adm-ink-2)]">
+        <label className="mt-5 block text-[12px] font-bold text-[#56657c]" htmlFor="attendance-import-session">{t.session}</label>
+        <select id="attendance-import-session" value={sessionId} onChange={(event) => setSessionId(event.target.value)} className="mt-2 h-11 w-full rounded-lg border border-[#dfe6f0] bg-white px-3 text-[12.5px] font-bold text-[#334155]">
           <option value="">{t.choose}</option>
           {sessions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
         </select>
-        <label className="mt-4 block text-[12px] font-bold text-[var(--adm-ink-3)]" htmlFor="attendance-import-file">{t.file}</label>
+        <label className="mt-4 block text-[12px] font-bold text-[#56657c]" htmlFor="attendance-import-file">{t.file}</label>
         <input id="attendance-import-file" type="file" accept=".xlsx,.xls,.csv" onChange={(event) => void pickFile(event.target.files?.[0])} className="sr-only" />
-        <label htmlFor="attendance-import-file" className="mt-2 flex h-11 cursor-pointer items-center gap-3 rounded-lg border border-[var(--adm-line)] bg-[var(--adm-panel-2)] px-3 text-[12.5px] text-[var(--adm-ink-2)]"><span className="rounded-lg bg-[var(--adm-strong)] px-3 py-1.5 font-bold text-white">{t.pick}</span><span className="latin truncate">{fileName || t.noFile}</span></label>
-        {rows.length > 0 && <p className="mt-3 text-[12.5px] leading-6 text-[var(--adm-good)]">{t.read} {rows.length} {t.rows} ({people} {t.people}) — {fileName}</p>}
-        {rows.length > 0 && <p className="mt-1 text-[12px] leading-5 text-[var(--adm-mid-ink)]">{t.replace}</p>}
-        {error && <p role="alert" className="mt-3 rounded-lg border border-[var(--adm-brand-line)] bg-[var(--adm-brand-soft)] px-3 py-2 text-[12.5px] leading-5 text-[var(--adm-brand)]">{error}</p>}
+        <label htmlFor="attendance-import-file" className="mt-2 flex h-11 cursor-pointer items-center gap-3 rounded-lg border border-[#dfe6f0] bg-[#f8fafc] px-3 text-[12.5px] text-[#334155]"><span className="rounded-lg bg-[#0b1533] px-3 py-1.5 font-bold text-white">{t.pick}</span><span className="latin truncate">{fileName || t.noFile}</span></label>
+        {rows.length > 0 && <p className="mt-3 text-[12.5px] leading-6 text-[#047857]">{t.read} {rows.length} {t.rows} ({people} {t.people}) — {fileName}</p>}
+        {rows.length > 0 && <p className="mt-1 text-[12px] leading-5 text-[#8a6d1d]">{t.replace}</p>}
+        {error && <p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[12.5px] leading-5 text-[#c2182b]">{error}</p>}
         <div className="mt-5 flex justify-start gap-2">
-          <button type="button" onClick={() => void submit()} disabled={pending || !sessionId || !rows.length} className="flex h-11 items-center gap-2 rounded-lg bg-[var(--adm-strong)] px-5 text-[12.5px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">{pending && <Loader2 size={14} className="animate-spin" />}{t.run}</button>
-          <button type="button" onClick={() => setOpen(false)} disabled={pending} className="h-11 rounded-lg border border-[var(--adm-line)] px-5 text-[12.5px] font-bold text-[var(--adm-ink-2)]">{t.cancel}</button>
+          <button type="button" onClick={() => void submit()} disabled={pending || !sessionId || !rows.length} className="flex h-11 items-center gap-2 rounded-lg bg-[#0b1533] px-5 text-[12.5px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">{pending && <Loader2 size={14} className="animate-spin" />}{t.run}</button>
+          <button type="button" onClick={() => setOpen(false)} disabled={pending} className="h-11 rounded-lg border border-[#dfe6f0] px-5 text-[12.5px] font-bold text-[#334155]">{t.cancel}</button>
         </div>
       </section>
     </div>}

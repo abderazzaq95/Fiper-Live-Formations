@@ -12,7 +12,7 @@ export default async function CourseEditorPage({ params }: PageProps<"/admin/cou
     listActiveWhatsAppChannelOptions(),
   ]);
   if (id !== "new" && !initial) {
-    return <section className="mx-auto max-w-2xl rounded-xl border border-[var(--adm-brand-line)] bg-[var(--adm-panel)] p-8 text-center"><h1 className="text-2xl font-bold text-[var(--adm-strong)]">تعذر تحميل بيانات الدورة</h1><p className="mt-3 text-sm leading-7 text-[var(--adm-ink-3)]">لم نعرض قيماً افتراضية حتى لا تُستبدل بياناتك الحقيقية. ارجع إلى قائمة الدورات وحاول فتحها مرة أخرى.</p><Link href="/admin/courses" className="mt-6 inline-flex h-11 items-center rounded-lg bg-[var(--adm-brand)] px-3 text-sm font-semibold text-white">العودة إلى الدورات</Link></section>;
+    return <section className="mx-auto max-w-2xl rounded-xl border border-[#e7caca] bg-white p-8 text-center"><h1 className="text-2xl font-bold text-[#0b1533]">تعذر تحميل بيانات الدورة</h1><p className="mt-3 text-sm leading-7 text-[#56657c]">لم نعرض قيماً افتراضية حتى لا تُستبدل بياناتك الحقيقية. ارجع إلى قائمة الدورات وحاول فتحها مرة أخرى.</p><Link href="/admin/courses" className="mt-6 inline-flex h-11 items-center rounded-lg bg-[#c2182b] px-3 text-sm font-semibold text-white">العودة إلى الدورات</Link></section>;
   }
   const resolvedId = initial?.id ?? id;
   return <CourseEditor key={resolvedId} courseId={resolvedId} initial={initial} isNew={id === "new"} whatsappChannels={whatsappChannels} />;
