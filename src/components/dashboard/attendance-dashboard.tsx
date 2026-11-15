@@ -43,25 +43,25 @@ export function AttendanceDashboard({ rows, courseOptions = [], sessions = [] }:
   const average = durations.length ? Math.round(durations.reduce((sum, value) => sum + value, 0) / durations.length) : 0;
   const eligible = attended + absent;
   const stats = [
-    [t.attended, String(attended), eligible ? Math.round(attended / eligible * 100) + "%" : "—", UserRoundCheck, "bg-[#e3f6ec] text-[#047857]"],
-    [t.absent, String(absent), eligible ? Math.round(absent / eligible * 100) + "%" : pending + " " + t.pending, UserRoundX, "bg-[#fbe8ea] text-[#c2182b]"],
-    [t.average, average + " دقيقة", t.sessionData, Clock3, "bg-[#e6eefc] text-[#1d4ed8]"],
+    [t.attended, String(attended), eligible ? Math.round(attended / eligible * 100) + "%" : "—", UserRoundCheck, "bg-[var(--adm-good-soft)] text-[var(--adm-good)]"],
+    [t.absent, String(absent), eligible ? Math.round(absent / eligible * 100) + "%" : pending + " " + t.pending, UserRoundX, "bg-[var(--adm-brand-soft)] text-[var(--adm-brand)]"],
+    [t.average, average + " دقيقة", t.sessionData, Clock3, "bg-[var(--adm-blue-soft)] text-[var(--adm-blue)]"],
   ] as const;
 
   return <>
-    <div className="mb-5 flex flex-col items-stretch justify-end gap-3 rounded-[12px] border border-[#dfe6f0] bg-white shadow-[0_1px_2px_rgba(15,23,42,.05)] p-4 sm:flex-row sm:items-center">
-      <label className="text-[12px] font-bold text-[#56657c]" htmlFor="attendance-course-filter">{t.courseFilter}</label>
+    <div className="mb-5 flex flex-col items-stretch justify-end gap-3 rounded-[12px] border border-[var(--adm-line)] bg-[var(--adm-panel)] shadow-[0_1px_2px_rgba(15,23,42,.05)] p-4 sm:flex-row sm:items-center">
+      <label className="text-[12px] font-bold text-[var(--adm-ink-3)]" htmlFor="attendance-course-filter">{t.courseFilter}</label>
       <div className="relative">
-        <select id="attendance-course-filter" value={course} onChange={(event) => setCourse(event.target.value)} className="h-10 w-full appearance-none rounded-lg border border-[#dfe6f0] bg-white px-4 pl-9 text-[12px] font-bold text-[#334155] sm:w-auto sm:min-w-[250px]">
+        <select id="attendance-course-filter" value={course} onChange={(event) => setCourse(event.target.value)} className="h-10 w-full appearance-none rounded-lg border border-[var(--adm-line)] bg-[var(--adm-panel)] px-4 pl-9 text-[12px] font-bold text-[var(--adm-ink-2)] sm:w-auto sm:min-w-[250px]">
           <option value="all">{t.allCourses}</option>
           {courses.map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
-        <ChevronDown size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#56657c]" />
+        <ChevronDown size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--adm-ink-3)]" />
       </div>
     </div>
     <CustomMessageComposer recipients={filteredRows} />
     <div className="grid gap-4 sm:grid-cols-3">
-      {stats.map(([label, value, note, Icon, tone]) => <div key={label} className="flex items-center gap-4 rounded-[12px] border border-[#dfe6f0] bg-white shadow-[0_1px_2px_rgba(15,23,42,.05)] p-5"><span className={"flex h-11 w-11 items-center justify-center rounded-[10px] " + tone}><Icon size={19} /></span><span><small className="text-[11.5px] text-[#64748b]">{label}</small><strong className="mt-1 block text-xl">{value}</strong><small className="text-[11px] text-[#64748b]">{note}</small></span></div>)}
+      {stats.map(([label, value, note, Icon, tone]) => <div key={label} className="flex items-center gap-4 rounded-[12px] border border-[var(--adm-line)] bg-[var(--adm-panel)] shadow-[0_1px_2px_rgba(15,23,42,.05)] p-5"><span className={"flex h-11 w-11 items-center justify-center rounded-[10px] " + tone}><Icon size={19} /></span><span><small className="text-[11.5px] text-[var(--adm-ink-4)]">{label}</small><strong className="mt-1 block text-xl">{value}</strong><small className="text-[11px] text-[var(--adm-ink-4)]">{note}</small></span></div>)}
     </div>
     <AttendanceTable key={course} rows={filteredRows} disableCourseFilter actions={<AttendanceImport sessions={importSessions} />} />
   </>;

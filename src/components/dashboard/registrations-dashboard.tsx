@@ -29,25 +29,25 @@ export function RegistrationsDashboard({ registrations, courseOptions = [] }: { 
   const confirmed = filtered.filter((item) => item.status === "مؤكد").length;
   const waitlisted = filtered.filter((item) => item.status === "قائمة انتظار").length;
   const cards = [
-    [t.total, String(filtered.length), "bg-[#e6eefc] text-[#1d4ed8]"],
-    [t.confirmed, String(confirmed), "bg-[#e3f6ec] text-[#047857]"],
-    [t.wait, String(waitlisted), "bg-[#fef3c7] text-[#92400e]"],
+    [t.total, String(filtered.length), "bg-[var(--adm-blue-soft)] text-[var(--adm-blue)]"],
+    [t.confirmed, String(confirmed), "bg-[var(--adm-good-soft)] text-[var(--adm-good)]"],
+    [t.wait, String(waitlisted), "bg-[var(--adm-mid-soft)] text-[var(--adm-mid-ink)]"],
   ] as const;
 
   return <>
-    <div className="mb-5 flex flex-col items-stretch justify-end gap-3 rounded-[12px] border border-[#dfe6f0] bg-white shadow-[0_1px_2px_rgba(15,23,42,.05)] p-4 sm:flex-row sm:items-center">
-      <label className="text-[12px] font-bold text-[#56657c]" htmlFor="registrations-course-filter">{t.course}</label>
+    <div className="mb-5 flex flex-col items-stretch justify-end gap-3 rounded-[12px] border border-[var(--adm-line)] bg-[var(--adm-panel)] shadow-[0_1px_2px_rgba(15,23,42,.05)] p-4 sm:flex-row sm:items-center">
+      <label className="text-[12px] font-bold text-[var(--adm-ink-3)]" htmlFor="registrations-course-filter">{t.course}</label>
       <div className="relative">
-        <select id="registrations-course-filter" value={course} onChange={(event) => setCourse(event.target.value)} className="h-10 w-full appearance-none rounded-lg border border-[#dfe6f0] bg-white px-4 pl-9 text-[12px] font-bold text-[#334155] sm:w-auto sm:min-w-[250px]">
+        <select id="registrations-course-filter" value={course} onChange={(event) => setCourse(event.target.value)} className="h-10 w-full appearance-none rounded-lg border border-[var(--adm-line)] bg-[var(--adm-panel)] px-4 pl-9 text-[12px] font-bold text-[var(--adm-ink-2)] sm:w-auto sm:min-w-[250px]">
           <option value="all">{t.allCourses}</option>
           {courses.map((item) => <option key={item} value={item}>{item}</option>)}
         </select>
-        <ChevronDown size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#56657c]" />
+        <ChevronDown size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--adm-ink-3)]" />
       </div>
     </div>
     <CustomMessageComposer recipients={filtered} />
     <div className="grid gap-4 sm:grid-cols-3">
-      {cards.map(([label, value, tone]) => <div key={label} className="flex items-center gap-4 rounded-[12px] border border-[#dfe6f0] bg-white shadow-[0_1px_2px_rgba(15,23,42,.05)] p-5"><span className={"flex h-11 w-11 items-center justify-center rounded-[10px] " + tone}><UsersRound size={19} /></span><span><small className="text-[11.5px] text-[#64748b]">{label}</small><strong className="latin mt-1 block text-xl">{value}</strong></span></div>)}
+      {cards.map(([label, value, tone]) => <div key={label} className="flex items-center gap-4 rounded-[12px] border border-[var(--adm-line)] bg-[var(--adm-panel)] shadow-[0_1px_2px_rgba(15,23,42,.05)] p-5"><span className={"flex h-11 w-11 items-center justify-center rounded-[10px] " + tone}><UsersRound size={19} /></span><span><small className="text-[11.5px] text-[var(--adm-ink-4)]">{label}</small><strong className="latin mt-1 block text-xl">{value}</strong></span></div>)}
     </div>
     <RegistrationsTable key={course} registrations={filtered} disableCourseFilter />
   </>;

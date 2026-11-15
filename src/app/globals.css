@@ -109,3 +109,33 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 640px) {
   .noise-grid { background-size: 28px 28px, 28px 28px, auto, auto; }
 }
+
+/* Dashboard theme (day / night), palette from the Fiper Quality Control app.
+   The admin pages use these tokens; <html data-admin-theme="dark"> switches them. */
+:root {
+  --adm-page: #f3f6fb; --adm-panel: #ffffff; --adm-panel-2: #f8fafc; --adm-hover: #f3f7fd; --adm-sunken: #e9eef6;
+  --adm-line: #dfe6f0; --adm-line-2: #cbd5e1; --adm-focus-line: #a9b9e3;
+  --adm-ink: #0f172a; --adm-ink-2: #334155; --adm-ink-3: #56657c; --adm-ink-4: #64748b;
+  --adm-strong: #0b1533; --adm-strong-hover: #13204a;
+  --adm-brand: #c2182b; --adm-brand-hover: #a01324; --adm-brand-soft: #fbe8ea; --adm-brand-soft-2: #fdf2f3; --adm-brand-line: #f0c5c5;
+  --adm-blue: #1d4ed8; --adm-blue-soft: #e6eefc;
+  --adm-good: #047857; --adm-good-2: #1fa57a; --adm-good-soft: #e3f6ec;
+  --adm-mid: #d97706; --adm-mid-ink: #92400e; --adm-mid-soft: #fef3c7; --adm-mid-line: #efdfbc;
+  --adm-violet: #7059c8; --adm-violet-soft: #f2effc;
+  --adm-deep-1: #0b1533; --adm-deep-2: #13204a; --adm-deep-3: #1b2c62;
+  --adm-nav: #0b1533; --adm-nav-active: #1b2c62; --adm-nav-pop: #13204a;
+}
+:root[data-admin-theme="dark"] {
+  color-scheme: dark;
+  --adm-page: #0a1020; --adm-panel: #0f192d; --adm-panel-2: #132039; --adm-hover: #152340; --adm-sunken: #192741;
+  --adm-line: #1d2a45; --adm-line-2: #2a3a5c; --adm-focus-line: #34508f;
+  --adm-ink: #e2e8f0; --adm-ink-2: #cbd5e1; --adm-ink-3: #a3b0c4; --adm-ink-4: #8b9ab3;
+  --adm-strong: #2563eb; --adm-strong-hover: #3b82f6;
+  --adm-brand: #e3404f; --adm-brand-hover: #c2182b; --adm-brand-soft: rgba(227, 64, 79, 0.16); --adm-brand-soft-2: rgba(227, 64, 79, 0.1); --adm-brand-line: rgba(227, 64, 79, 0.35);
+  --adm-blue: #60a5fa; --adm-blue-soft: rgba(59, 130, 246, 0.16);
+  --adm-good: #34d399; --adm-good-2: #34d399; --adm-good-soft: rgba(52, 211, 153, 0.14);
+  --adm-mid: #fbbf24; --adm-mid-ink: #fcd34d; --adm-mid-soft: rgba(251, 191, 36, 0.14); --adm-mid-line: rgba(251, 191, 36, 0.35);
+  --adm-violet: #a78bfa; --adm-violet-soft: rgba(139, 92, 246, 0.16);
+  --adm-deep-1: #13204a; --adm-deep-2: #15244a; --adm-deep-3: #1d2f63;
+  --adm-nav: #070d1c; --adm-nav-active: #15244a; --adm-nav-pop: #0f1a33;
+}
