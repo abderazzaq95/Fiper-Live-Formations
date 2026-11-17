@@ -20,8 +20,12 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(body);
   if (!parsed.success || (!parsed.data.email && !parsed.data.whatsapp)) return Response.json({ message: "Choose at least one channel." }, { status: 422 });
   const supabase = createAdminClient();
-  const { data: recipients, error } = await supabase.from("registrations").select("id,session_id,full_name,email,phone_e164,whatsapp_consent").in("id", parsed.data.registrationIds);
-  if (error) return Response.json({ message: "Unable to load recipients." }, { status: 500 });
+  const recipients: { id: string; session_id: string | null; full_name: string; email: string; phone_e164: string; whatsapp_consent: boolean }[] = [];
+  for (let index = 0; index < parsed.data.registrationIds.length; index += 200) {
+    const { data: chunk, error } = await supabase.from("registrations").select("id,session_id,full_name,email,phone_e164,whatsapp_consent").in("id", parsed.data.registrationIds.slice(index, index + 200));
+    if (error) return Response.json({ message: "Unable to load recipients." }, { status: 500 });
+    recipients.push(...(chunk ?? []));
+  }
   const sessionIds = [...new Set((recipients ?? []).map((recipient) => recipient.session_id).filter(Boolean))];
   const { data: sessions } = sessionIds.length ? await supabase.from("course_sessions").select("id,whatsapp_channel_id").in("id", sessionIds) : { data: [] };
   const senderIds = [...new Set((sessions ?? []).map((session) => session.whatsapp_channel_id).filter(Boolean))];

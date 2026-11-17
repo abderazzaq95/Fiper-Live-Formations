@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { defaultLandingContent, mergeLandingContent, type LandingContent } from "@/lib/landing-content";
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -308,7 +309,7 @@ export async function listPublicActiveCourses(): Promise<Course[]> {
     if (serviceUrl && serviceKey) {
       const sessionIds = candidates.map(({ session }) => asText(session.id)).filter(Boolean);
       const admin = createSupabaseClient(serviceUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
-      const result = await admin.from("registrations").select("session_id,status").in("session_id", sessionIds).in("status", ["confirmed", "attended"]);
+      const result = await fetchAllRows((from, to) => admin.from("registrations").select("session_id,status").in("session_id", sessionIds).in("status", ["confirmed", "attended"]).order("id").range(from, to));
       for (const registration of asArray(result.data)) {
         const sessionId = asText(registration.session_id);
         counts.set(sessionId, (counts.get(sessionId) ?? 0) + 1);
@@ -334,7 +335,7 @@ export async function listDashboardCourses(): Promise<DashboardCourse[]> {
     if (error || !courses) return [];
 
     const sessionIds = courses.flatMap((course) => asArray((course as JsonRecord).course_sessions).map((session) => asText(session.id))).filter(Boolean);
-    const { data: registrations } = sessionIds.length ? await supabase.from("registrations").select("session_id,status").in("session_id", sessionIds) : { data: [] };
+    const { data: registrations } = sessionIds.length ? await fetchAllRows((from, to) => supabase.from("registrations").select("session_id,status").in("session_id", sessionIds).order("id").range(from, to)) : { data: [] };
     const registrationRows = asArray(registrations);
     return courses.map((course) => {
       const row = course as unknown as JsonRecord;
@@ -357,7 +358,7 @@ export async function listDashboardCourses(): Promise<DashboardCourse[]> {
 export async function listDashboardRegistrations(): Promise<DashboardRegistration[]> {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase.from("registrations").select("id,full_name,email,phone_e164,country,status,registered_at,session_id,course_sessions(course_id,starts_at,courses(id,default_locale,course_translations(locale,title)))").order("registered_at", { ascending: false });
+    const { data, error } = await fetchAllRows((from, to) => supabase.from("registrations").select("id,full_name,email,phone_e164,country,status,registered_at,session_id,course_sessions(course_id,starts_at,courses(id,default_locale,course_translations(locale,title)))").order("registered_at", { ascending: false }).order("id").range(from, to));
     if (error || !data) return [];
     return data.map((item) => {
       const row = item as unknown as JsonRecord;

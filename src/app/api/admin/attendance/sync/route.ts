@@ -1,6 +1,7 @@
 import { getDashboardIdentity } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getStoredGoogleConfig } from "@/lib/integrations/google";
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -391,7 +392,7 @@ export async function POST() {
 
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase.from("registrations").select("id,full_name,email,session_id,course_sessions(id,meet_url,starts_at,ends_at)").order("registered_at", { ascending: false });
+    const { data, error } = await fetchAllRows((from, to) => supabase.from("registrations").select("id,full_name,email,session_id,course_sessions(id,meet_url,starts_at,ends_at)").order("registered_at", { ascending: false }).order("id").range(from, to));
     if (error) throw error;
     const registrations = (data ?? []).map(record);
     const groups = new Map<string, JsonRecord[]>();

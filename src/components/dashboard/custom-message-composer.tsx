@@ -8,13 +8,28 @@ export function CustomMessageComposer({ recipients }: { recipients: Recipient[] 
   async function send() {
     if (!message.trim() || !eligible.length || (!email && !whatsapp)) return;
     setSending(true); setResult("");
+    // Send in batches of 200 so any number of recipients works (the server accepts up to 500 per request).
+    const ids = eligible.map((item) => item.id);
+    const totals = { emailSent: 0, whatsappSent: 0, skipped: 0 };
+    const summary = () => "تم الإرسال بالبريد: " + totals.emailSent + " · واتساب: " + totals.whatsappSent + (totals.skipped ? " · غير متاح: " + totals.skipped : "");
+    let done = 0;
     try {
-      const response = await fetch("/api/admin/messages/custom", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ registrationIds: eligible.map((item) => item.id), message, email, whatsapp }) });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.message || "Unable to send");
-      setResult("تم الإرسال بالبريد: " + body.emailSent + " · واتساب: " + body.whatsappSent + (body.skipped ? " · غير متاح: " + body.skipped : ""));
+      for (let index = 0; index < ids.length; index += 200) {
+        const response = await fetch("/api/admin/messages/custom", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ registrationIds: ids.slice(index, index + 200), message, email, whatsapp }) });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.message || "Unable to send");
+        totals.emailSent += Number(body.emailSent) || 0;
+        totals.whatsappSent += Number(body.whatsappSent) || 0;
+        totals.skipped += Number(body.skipped) || 0;
+        done = Math.min(ids.length, index + 200);
+        if (done < ids.length) setResult("جارٍ الإرسال... " + done + " / " + ids.length);
+      }
+      setResult(summary());
       setMessage("");
-    } catch (error) { setResult(error instanceof Error ? error.message : "تعذر الإرسال"); } finally { setSending(false); }
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "تعذر الإرسال";
+      setResult(done ? "توقف الإرسال بعد " + done + " / " + ids.length + " (" + summary() + "): " + reason : reason);
+    } finally { setSending(false); }
   }
   return <section className="mt-5 rounded-[12px] border border-[#dfe6f0] bg-white shadow-[0_1px_2px_rgba(15,23,42,.05)] p-5">
     <div className="flex items-center gap-2"><MessageCircle size={17} className="text-[#c2182b]" /><div><h2 className="text-sm font-bold">رسالة مخصصة للمشاركين</h2><p className="mt-1 text-[12px] text-[#64748b]">اختر الفئة واكتب الرسالة، وسيتم إرسالها عبر القنوات المتاحة.</p></div></div>

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { fetchAllRows } from "@/lib/supabase/fetch-all";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -77,10 +78,12 @@ export type AttendanceData = {
 export async function getDashboardAttendance(): Promise<AttendanceData> {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
+    const { data, error } = await fetchAllRows((from, to) => supabase
       .from("registrations")
       .select("id,full_name,email,phone_e164,status,course_sessions(starts_at,ends_at,courses(default_locale,course_translations(locale,title))),attendance_sessions(id,joined_at,left_at,duration_seconds,match_method,created_at,meet_participant_id)")
-      .order("registered_at", { ascending: false });
+      .order("registered_at", { ascending: false })
+      .order("id")
+      .range(from, to));
     if (error || !data) return { rows: [], attended: 0, absent: 0, pending: 0, averageMinutes: 0, lastSync: "—" };
 
     const rows: AttendanceRow[] = data.map((item) => {
@@ -113,12 +116,14 @@ export async function getDashboardAttendance(): Promise<AttendanceData> {
       } satisfies AttendanceRow;
     });
 
-    const { data: unmatched } = await supabase
+    const { data: unmatched } = await fetchAllRows((from, to) => supabase
       .from("attendance_sessions")
       .select("id,participant_name,participant_email,meet_participant_id,joined_at,left_at,duration_seconds,match_method,course_sessions(starts_at,ends_at,courses(default_locale,course_translations(locale,title)))")
       .is("registration_id", null)
       .neq("match_method", "obsolete")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .order("id")
+      .range(from, to));
     for (const item of unmatched ?? []) {
       const row = asRecord(item);
       const session = firstRecord(row.course_sessions);
@@ -216,13 +221,15 @@ export async function getDashboardDeliveries(): Promise<DeliveryData> {
         sender: text(sender?.phone_e164, text(sender?.label)),
       } satisfies DeliveryRow;
     });
-    return {
-      rows,
-      emailTotal: rows.filter((row) => row.channel === "email").length,
-      whatsappTotal: rows.filter((row) => row.channel === "whatsapp").length,
-      failed: rows.filter((row) => row.state === "failed").length,
-      delivered: rows.filter((row) => ["delivered", "read"].includes(row.state)).length,
-    };
+    const countQuery = () => supabase.from("message_deliveries").select("id", { count: "exact", head: true });
+    const count = async (apply: (query: ReturnType<typeof countQuery>) => ReturnType<typeof countQuery>) => (await apply(countQuery())).count ?? 0;
+    const [emailTotal, whatsappTotal, failed, delivered] = await Promise.all([
+      count((query) => query.eq("channel", "email")),
+      count((query) => query.eq("channel", "whatsapp")),
+      count((query) => query.eq("state", "failed")),
+      count((query) => query.in("state", ["delivered", "read"])),
+    ]);
+    return { rows, emailTotal, whatsappTotal, failed, delivered };
   } catch {
     return { rows: [], emailTotal: 0, whatsappTotal: 0, failed: 0, delivered: 0 };
   }
@@ -239,7 +246,7 @@ export type ReportData = {
 export async function getDashboardReport(): Promise<ReportData> {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase.from("registrations").select("status,source,attendance_sessions(joined_at,duration_seconds,match_method)");
+    const { data, error } = await fetchAllRows((from, to) => supabase.from("registrations").select("status,source,attendance_sessions(joined_at,duration_seconds,match_method)").order("id").range(from, to));
     if (error || !data) return { total: 0, confirmed: 0, attended: 0, attendanceRate: 0, sources: [] };
     const rows = data.map(asRecord);
     const total = rows.length;
@@ -276,12 +283,14 @@ export async function getDashboardRegistrationGrowth(days = 30): Promise<Registr
   start.setDate(start.getDate() - safeDays + 1);
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
+    const { data, error } = await fetchAllRows((from, to) => supabase
       .from("registrations")
       .select("registered_at")
       .gte("registered_at", start.toISOString())
       .lte("registered_at", end.toISOString())
-      .order("registered_at", { ascending: true });
+      .order("registered_at", { ascending: true })
+      .order("id")
+      .range(from, to));
     if (error) return [];
     const totals = new Map<string, number>();
     for (const item of data ?? []) {
