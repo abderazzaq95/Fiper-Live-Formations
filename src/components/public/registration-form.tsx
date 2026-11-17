@@ -199,7 +199,7 @@ export function RegistrationForm({ courseId, compact = false }: RegistrationForm
               <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3 flex items-center gap-1.5 text-xs font-semibold text-white"><span className="text-base leading-none">{selectedCountryData?.flag ?? "🌐"}</span><span className="latin">{phoneCode}</span></span>
               <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#8daac1]" />
             </div>
-            <input id={`phone-${compact}`} name="phone" type="tel" required minLength={6} autoComplete="tel" inputMode="tel" dir="ltr" placeholder="770 000 0000" onChange={() => setPhoneError("")} aria-invalid={phoneError ? true : undefined} aria-describedby={phoneError ? `phone-error-${compact}` : undefined} className={`${inputClass} latin min-w-0 flex-1 text-right ${phoneError ? "border-red-400/70" : ""}`} />
+            <input id={`phone-${compact}`} name="phone" type="tel" required autoComplete="tel" inputMode="tel" dir="ltr" placeholder="770 000 0000" onChange={() => setPhoneError("")} aria-invalid={phoneError ? true : undefined} aria-describedby={phoneError ? `phone-error-${compact}` : undefined} className={`${inputClass} latin min-w-0 flex-1 text-right ${phoneError ? "border-red-400/70" : ""}`} />
           </div>
           {phoneError && <p id={`phone-error-${compact}`} role="alert" className="mt-2 rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">{phoneError}</p>}
         </div>
