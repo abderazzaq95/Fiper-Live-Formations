@@ -28,9 +28,6 @@ function CourseCard({ course, priority = false }: { course: Course; priority?: b
     <article className="group overflow-hidden rounded-[18px] border border-[#e1e4e7] bg-white p-3 shadow-[0_5px_18px_rgba(13,34,50,0.05)] transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:shadow-[0_16px_32px_rgba(13,34,50,0.10)]">
       <Link href={courseHref(course)} className="relative block overflow-hidden rounded-[12px]" aria-label={`عرض دورة ${course.title}`}>
         <CourseCover course={course} priority={priority} className="aspect-[16/9] w-full" />
-        <span className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-[9px] bg-[#cf262c] shadow-md">
-          <Image src="/brand/fiper-mark.png" alt="" width={31} height={31} className="h-8 w-8 object-contain" />
-        </span>
         <span className="absolute bottom-3 left-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-xs font-bold text-[#10283a] shadow-sm">
           {isOnline ? <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-[#16a05d]" /> : <MapPin aria-hidden="true" size={14} weight="fill" className="shrink-0 text-[#cf262c]" />}
           {isOnline ? "دورة أونلاين" : "دورة حضورية"}
