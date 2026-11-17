@@ -38,7 +38,7 @@ export function CoursesBrowser({ courses }: { courses: DashboardCourse[] }) {
             <div className={`relative h-32 overflow-visible p-5 ${index === 0 ? "bg-[#0b1533]" : index === 1 ? "bg-[#13204a]" : "bg-[#1b2c62]"}`}>
               <div className="absolute -left-10 -top-16 h-40 w-40 rounded-full border-[28px] border-white/[0.035]" />
               <div className="absolute bottom-0 right-0 h-16 w-full bg-[linear-gradient(110deg,transparent_20%,rgba(42,134,194,.2)_21%,transparent_22%,transparent_48%,rgba(195,40,40,.15)_49%,transparent_50%)]" />
-              <div className="relative flex items-start justify-between"><span className={`rounded-full px-3 py-1.5 text-[11px] font-bold ${statusMap[course.tone]}`}>{course.status}</span><CourseCardActions courseId={course.id} courseSlug={course.slug} registrationOpen={course.registrationOpen} featured={course.featured} courseTitle={course.title} variant="menu" /></div>
+              <div className="relative flex items-start justify-between"><span className={`rounded-full px-3 py-1.5 text-[11px] font-bold ${statusMap[course.tone]}`}>{course.status}</span><CourseCardActions courseId={course.id} courseSlug={course.slug} registrationOpen={course.registrationOpen} featured={course.featured} completed={course.status === "مكتملة"} courseTitle={course.title} variant="menu" /></div>
               <span className="latin absolute bottom-4 left-5 text-[11.5px] font-semibold text-white/35">FIPER ACADEMY</span>
             </div>
             <div className="p-5">

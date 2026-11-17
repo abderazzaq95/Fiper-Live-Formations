@@ -17,10 +17,11 @@ export async function PATCH(request: Request, context: RouteContext<"/api/admin/
   if (!parsed.success) return Response.json({ message: "Invalid registration status." }, { status: 422 });
 
   const supabase = await createClient();
-  const { data: course } = await supabase.from("courses").select("id").eq("id", id).maybeSingle();
+  const { data: course } = await supabase.from("courses").select("id,state").eq("id", id).maybeSingle();
   if (!course) return Response.json({ message: "Course not found." }, { status: 404 });
   const { error } = await supabase.from("course_sessions").update({ registration_open: parsed.data.open, updated_at: new Date().toISOString() }).eq("course_id", id);
   if (error) return Response.json({ message: "Unable to update registration status." }, { status: 500 });
+  if (parsed.data.open && course.state === "completed") await supabase.from("courses").update({ state: "published", updated_at: new Date().toISOString() }).eq("id", id);
 
   revalidatePath("/");
   revalidatePath("/admin/courses");

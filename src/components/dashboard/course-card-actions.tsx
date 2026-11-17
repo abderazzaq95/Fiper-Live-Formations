@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, Eye, Loader2, MoreHorizontal, Power, Star, Trash2 } from "lucide-react";
+import { CheckCircle2, Copy, Eye, Loader2, MoreHorizontal, Power, RotateCcw, Star, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -10,15 +10,16 @@ type CourseCardActionsProps = {
   courseSlug?: string;
   registrationOpen: boolean;
   featured: boolean;
+  completed?: boolean;
   courseTitle?: string;
   variant: "menu" | "quick";
 };
 
-export function CourseCardActions({ courseId, courseSlug, registrationOpen, featured, courseTitle, variant }: CourseCardActionsProps) {
+export function CourseCardActions({ courseId, courseSlug, registrationOpen, featured, completed = false, courseTitle, variant }: CourseCardActionsProps) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [busy, setBusy] = useState<"copy" | "toggle" | "featured" | "delete" | null>(null);
+  const [busy, setBusy] = useState<"copy" | "toggle" | "featured" | "completed" | "delete" | null>(null);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -77,6 +78,26 @@ export function CourseCardActions({ courseId, courseSlug, registrationOpen, feat
     }
   }
 
+  async function toggleCompleted() {
+    if (!completed && !window.confirm("تحديد الدورة كمكتملة؟\n\nسيُغلق التسجيل وتتوقف التذكيرات، وتبقى صفحة الدورة ظاهرة.")) return;
+    setBusy("completed");
+    try {
+      const response = await fetch(`/api/admin/courses/${encodeURIComponent(courseId)}/completed`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: !completed }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(typeof result.message === "string" ? result.message : "تعذر تحديث حالة الدورة.");
+      setMenuOpen(false);
+      router.refresh();
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "تعذر تحديث حالة الدورة.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function deleteCourse() {
     const confirmationMessage = [
       "\u0647\u0644 \u0623\u0646\u062a \u0645\u062a\u0623\u0643\u062f \u0645\u0646 \u062d\u0630\u0641 \u0647\u0630\u0647 \u0627\u0644\u062f\u0648\u0631\u0629\u061f",
@@ -111,6 +132,7 @@ export function CourseCardActions({ courseId, courseSlug, registrationOpen, feat
           <button type="button" onClick={() => void toggleFeatured()} disabled={busy !== null} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[11.5px] font-bold text-[#1e293b] hover:bg-[#f3f7fd] disabled:opacity-50"><Star size={13} className={featured ? "fill-[#d97706] text-[#d97706]" : "text-[#92400e]"} />{featured ? "إلغاء تمييز الدورة" : "تعيين كدورة مميزة"}</button>
           <button type="button" onClick={() => void toggleRegistration()} disabled={busy !== null} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[11.5px] font-bold text-[#1e293b] hover:bg-[#f3f7fd] disabled:opacity-50"><Power size={13} className={registrationOpen ? "text-[#c2182b]" : "text-[#047857]"} />{registrationOpen ? "إغلاق التسجيل" : "فتح التسجيل"}</button>
           <button type="button" onClick={() => void duplicateCourse()} disabled={busy !== null} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[11.5px] font-bold text-[#1e293b] hover:bg-[#f3f7fd] disabled:opacity-50"><Copy size={13} />نسخ الدورة</button>
+          <button type="button" onClick={() => void toggleCompleted()} disabled={busy !== null} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[11.5px] font-bold text-[#1e293b] hover:bg-[#f3f7fd] disabled:opacity-50">{completed ? <RotateCcw size={13} className="text-[#1d4ed8]" /> : <CheckCircle2 size={13} className="text-[#047857]" />}{completed ? "إلغاء الاكتمال" : "تحديد كمكتملة"}</button>
           <button type="button" onClick={() => void deleteCourse()} disabled={busy !== null} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[11.5px] font-bold text-[#c2182b] hover:bg-[#fff3f3] disabled:opacity-50"><Trash2 size={13} />{"\u062d\u0630\u0641 \u0627\u0644\u062f\u0648\u0631\u0629"}</button>
         </div>}
       </div>

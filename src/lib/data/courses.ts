@@ -244,15 +244,18 @@ export async function getPublicCourseById(id: string): Promise<PublicCourseData>
  * Resolve a public course URL by slug or ID. Published courses receive
  * runtime URLs, so adding a course never requires another deployment.
  */
+// Completed courses keep their public page (registration is closed). Listings and the homepage still show published courses only.
+const PUBLIC_PAGE_STATES = ["published", "completed"];
+
 export async function getPublicCourseByPath(path: string): Promise<PublicCourseData | null> {
   if (!path) return null;
   try {
     const supabase = await createClient();
-    const direct = await supabase.from("courses").select("id").eq("slug", path).eq("state", "published").maybeSingle();
+    const direct = await supabase.from("courses").select("id").eq("slug", path).in("state", PUBLIC_PAGE_STATES).maybeSingle();
     if (direct.data && !direct.error) return getPublicCourseById(asText((direct.data as JsonRecord).id));
 
     if (/^[A-Za-z0-9_-]+$/.test(path)) {
-      const byId = await supabase.from("courses").select("id").eq("id", path).eq("state", "published").maybeSingle();
+      const byId = await supabase.from("courses").select("id").eq("id", path).in("state", PUBLIC_PAGE_STATES).maybeSingle();
       if (byId.data && !byId.error) return getPublicCourseById(asText((byId.data as JsonRecord).id));
     }
 
@@ -260,7 +263,7 @@ export async function getPublicCourseByPath(path: string): Promise<PublicCourseD
     const alias = await supabase.from("course_slug_aliases").select("course_id").eq("slug", path).maybeSingle();
     const aliasId = alias.data && !alias.error ? asText((alias.data as JsonRecord).course_id) : "";
     if (!aliasId) return null;
-    const target = await supabase.from("courses").select("id").eq("id", aliasId).eq("state", "published").maybeSingle();
+    const target = await supabase.from("courses").select("id").eq("id", aliasId).in("state", PUBLIC_PAGE_STATES).maybeSingle();
     if (target.error || !target.data) return null;
     return getPublicCourseById(aliasId);
   } catch {
