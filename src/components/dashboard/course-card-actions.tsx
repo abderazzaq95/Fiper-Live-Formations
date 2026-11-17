@@ -122,10 +122,10 @@ export function CourseCardActions({ courseId, courseSlug, registrationOpen, feat
   if (variant === "menu") {
     return (
       <div ref={menuRef} className="relative flex items-center gap-1.5">
-        <button type="button" aria-label={featured ? "إلغاء تمييز الدورة" : "تعيين كدورة مميزة"} title={featured ? "الدورة المميزة" : "تعيين كدورة مميزة"} onClick={() => void toggleFeatured()} disabled={busy !== null} className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${featured ? "bg-[#d97706] text-white" : "bg-black/15 text-white/80 hover:bg-black/30"}`}>
+        <button type="button" aria-label={featured ? "إلغاء تمييز الدورة" : "تعيين كدورة مميزة"} title={featured ? "الدورة المميزة" : "تعيين كدورة مميزة"} onClick={() => void toggleFeatured()} disabled={busy !== null} className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${featured ? "bg-[#d97706] text-white" : "bg-black/45 text-white backdrop-blur-sm hover:bg-black/60"}`}>
           <Star size={15} className={featured ? "fill-current" : ""} />
         </button>
-        <button type="button" aria-label="خيارات الدورة" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-black/15 text-white/80 transition hover:bg-black/30">
+        <button type="button" aria-label="خيارات الدورة" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-black/45 text-white backdrop-blur-sm transition hover:bg-black/60">
           {busy ? <Loader2 size={15} className="animate-spin" /> : <MoreHorizontal size={17} />}
         </button>
         {menuOpen && <div className="absolute left-0 top-10 z-30 w-44 rounded-lg border border-[#dfe6f0] bg-white p-1 text-right shadow-[0_16px_35px_rgba(15,42,61,.2)]">
