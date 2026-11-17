@@ -36,10 +36,11 @@ export function CoursesBrowser({ courses }: { courses: DashboardCourse[] }) {
         {visible.map((course) => { const index = courses.indexOf(course); return (
           <article key={course.id} className="group overflow-hidden rounded-[12px] border border-[#dfe6f0] bg-white shadow-[0_1px_2px_rgba(15,23,42,.05)]">
             <div className={`relative h-32 overflow-visible p-5 ${index === 0 ? "bg-[#0b1533]" : index === 1 ? "bg-[#13204a]" : "bg-[#1b2c62]"}`}>
-              <div className="absolute -left-10 -top-16 h-40 w-40 rounded-full border-[28px] border-white/[0.035]" />
-              <div className="absolute bottom-0 right-0 h-16 w-full bg-[linear-gradient(110deg,transparent_20%,rgba(42,134,194,.2)_21%,transparent_22%,transparent_48%,rgba(195,40,40,.15)_49%,transparent_50%)]" />
+              {course.coverImage ? <><img src={course.coverImage} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/10 to-black/35" /></> : null}
+              {!course.coverImage && <div className="absolute -left-10 -top-16 h-40 w-40 rounded-full border-[28px] border-white/[0.035]" />}
+              {!course.coverImage && <div className="absolute bottom-0 right-0 h-16 w-full bg-[linear-gradient(110deg,transparent_20%,rgba(42,134,194,.2)_21%,transparent_22%,transparent_48%,rgba(195,40,40,.15)_49%,transparent_50%)]" />}
               <div className="relative flex items-start justify-between"><span className={`rounded-full px-3 py-1.5 text-[11px] font-bold ${statusMap[course.tone]}`}>{course.status}</span><CourseCardActions courseId={course.id} courseSlug={course.slug} registrationOpen={course.registrationOpen} featured={course.featured} completed={course.status === "مكتملة"} courseTitle={course.title} variant="menu" /></div>
-              <span className="latin absolute bottom-4 left-5 text-[11.5px] font-semibold text-white/35">FIPER ACADEMY</span>
+              {!course.coverImage && <span className="latin absolute bottom-4 left-5 text-[11.5px] font-semibold text-white/35">FIPER ACADEMY</span>}
             </div>
             <div className="p-5">
               <Link href={`/admin/courses/${course.id}`} aria-label={`تعديل ${course.title}`} className="block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[#1d4ed8]">

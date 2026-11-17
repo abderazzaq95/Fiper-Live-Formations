@@ -28,6 +28,7 @@ registrations: number;
   capacity: number;
   registrationOpen: boolean;
   featured: boolean;
+  coverImage: string;
   status: "مفتوح" | "مغلق" | "قائمة انتظار" | "مسودة" | "مكتملة";
   tone: "green" | "amber" | "slate" | "red";
 };
@@ -334,7 +335,7 @@ export async function listPublicActiveCourses(): Promise<Course[]> {
 export async function listDashboardCourses(): Promise<DashboardCourse[]> {
   try {
     const supabase = await createClient();
-    const { data: courses, error } = await supabase.from("courses").select("id,slug,default_locale,state,is_featured,course_translations(locale,title),course_sessions(id,starts_at,capacity,registration_open)").order("created_at", { ascending: false });
+    const { data: courses, error } = await supabase.from("courses").select("id,slug,default_locale,state,is_featured,cover_path,course_translations(locale,title),course_sessions(id,starts_at,capacity,registration_open)").order("created_at", { ascending: false });
     if (error || !courses) return [];
 
     const sessionIds = courses.flatMap((course) => asArray((course as JsonRecord).course_sessions).map((session) => asText(session.id))).filter(Boolean);
@@ -351,7 +352,7 @@ export async function listDashboardCourses(): Promise<DashboardCourse[]> {
       const state = asText(row.state);
       const isOpen = session?.registration_open === true;
       const status = state === "draft" ? "مسودة" : state === "completed" ? "مكتملة" : count >= capacity && capacity > 0 && isOpen ? "قائمة انتظار" : isOpen ? "مفتوح" : "مغلق";
-      return { id: asText(row.id), slug: asText(row.slug, asText(row.id)), featured: row.is_featured === true, title: asText(translation?.title, "دورة بدون عنوان"), date: formatDate(asText(session?.starts_at)), startsAt: asText(session?.starts_at), registrations: count, capacity, registrationOpen: isOpen, status, tone: status === "قائمة انتظار" ? "amber" : status === "مسودة" ? "slate" : status === "مغلق" ? "red" : "green" };
+      return { id: asText(row.id), slug: asText(row.slug, asText(row.id)), featured: row.is_featured === true, coverImage: courseCoverPath(row), title: asText(translation?.title, "دورة بدون عنوان"), date: formatDate(asText(session?.starts_at)), startsAt: asText(session?.starts_at), registrations: count, capacity, registrationOpen: isOpen, status, tone: status === "قائمة انتظار" ? "amber" : status === "مسودة" ? "slate" : status === "مغلق" ? "red" : "green" };
     });
   } catch {
     return [];
