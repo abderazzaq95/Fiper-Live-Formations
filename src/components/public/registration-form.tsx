@@ -3,7 +3,7 @@
 import { ArrowLeft, Check, ChevronDown, Loader2, LockKeyhole, Search, ShieldCheck, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { localPhoneDigits } from "@/lib/phone";
+import { localPhoneDigits, phoneLengthError } from "@/lib/phone";
 
 type RegistrationFormProps = {
   courseId: string;
@@ -81,6 +81,7 @@ export function RegistrationForm({ courseId, compact = false }: RegistrationForm
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const [selectedCountry, setSelectedCountry] = useState(featuredCountries[0].name);
   const [phoneCode, setPhoneCode] = useState(featuredCountries[0].dial);
   const [countryDialogOpen, setCountryDialogOpen] = useState(false);
@@ -118,9 +119,11 @@ export function RegistrationForm({ courseId, compact = false }: RegistrationForm
     setSelectedCountry(value);
     const country = allCountries.find((item) => item.name === value);
     if (country) setPhoneCode(country.dial);
+    setPhoneError("");
   }
 
   function selectAdditionalCountry(country: Country) {
+    setPhoneError("");
     setSelectedCountry(country.name);
     setPhoneCode(country.dial);
     setCountryDialogOpen(false);
@@ -129,10 +132,16 @@ export function RegistrationForm({ courseId, compact = false }: RegistrationForm
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setPending(true);
     setError("");
     const form = new FormData(event.currentTarget);
     const localPhone = String(form.get("phone") ?? "").trim();
+    const lengthError = phoneLengthError(phoneCode, localPhone);
+    if (lengthError) {
+      setPhoneError(lengthError);
+      document.getElementById(`phone-${compact}`)?.focus();
+      return;
+    }
+    setPending(true);
     const payload = {
       courseId,
       name: form.get("name"),
@@ -184,14 +193,15 @@ export function RegistrationForm({ courseId, compact = false }: RegistrationForm
           <label htmlFor={`phone-${compact}`} className={labelClass}>رقم واتساب</label>
           <div className="flex gap-2" dir="ltr">
             <div className="relative w-[116px] shrink-0">
-              <select aria-label="رمز الدولة" value={phoneCode} onChange={(event) => { const value = event.target.value; setPhoneCode(value); const country = compactCountries.find((item) => item.dial === value); if (country) setSelectedCountry(country.name); }} className="latin h-13 w-full appearance-none rounded-2xl border border-white/10 bg-[#06233a] pl-8 pr-7 text-transparent [&>option]:text-white focus:border-[#3e8ec7] focus:outline-none">
+              <select aria-label="رمز الدولة" value={phoneCode} onChange={(event) => { const value = event.target.value; setPhoneCode(value); setPhoneError(""); const country = compactCountries.find((item) => item.dial === value); if (country) setSelectedCountry(country.name); }} className="latin h-13 w-full appearance-none rounded-2xl border border-white/10 bg-[#06233a] pl-8 pr-7 text-transparent [&>option]:text-white focus:border-[#3e8ec7] focus:outline-none">
                 {compactCountries.map((country) => <option key={`${country.name}-${country.dial}`} value={country.dial}>{country.flag} {country.dial}</option>)}
               </select>
               <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3 flex items-center gap-1.5 text-xs font-semibold text-white"><span className="text-base leading-none">{selectedCountryData?.flag ?? "🌐"}</span><span className="latin">{phoneCode}</span></span>
               <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#8daac1]" />
             </div>
-            <input id={`phone-${compact}`} name="phone" type="tel" required minLength={6} autoComplete="tel" inputMode="tel" dir="ltr" placeholder="770 000 0000" className={`${inputClass} latin min-w-0 flex-1 text-right`} />
+            <input id={`phone-${compact}`} name="phone" type="tel" required minLength={6} autoComplete="tel" inputMode="tel" dir="ltr" placeholder="770 000 0000" onChange={() => setPhoneError("")} aria-invalid={phoneError ? true : undefined} aria-describedby={phoneError ? `phone-error-${compact}` : undefined} className={`${inputClass} latin min-w-0 flex-1 text-right ${phoneError ? "border-red-400/70" : ""}`} />
           </div>
+          {phoneError && <p id={`phone-error-${compact}`} role="alert" className="mt-2 rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs leading-5 text-red-100">{phoneError}</p>}
         </div>
       </div>
 

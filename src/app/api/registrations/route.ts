@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { dedupeDialCode } from "@/lib/phone";
+import { dedupeDialCode, e164LengthError } from "@/lib/phone";
 
 const registrationSchema = z.object({
   courseId: z.string().min(3).max(80),
@@ -44,6 +44,10 @@ export async function POST(request: Request) {
     phone: normalizePhone(result.data.phone),
     userAgent: request.headers.get("user-agent")?.slice(0, 400) ?? null,
   };
+
+  // Same length rule as the form (e.g. Morocco: 9 digits after +212), so a wrong number cannot be saved.
+  const phoneProblem = e164LengthError(payload.phone);
+  if (phoneProblem) return Response.json({ message: phoneProblem }, { status: 422 });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
